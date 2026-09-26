@@ -5,14 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Expanse Tacview</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; color: #fff; }
         canvas { display: block; }
+        #container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+
+        #timeline {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.88);
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+            border-top: 1px solid #333;
+            box-sizing: border-box;
+        }
+        #timeline button {
+            background: #222; color: #fff; border: 1px solid #555;
+            padding: 4px 10px; font-family: monospace; cursor: pointer;
+        }
+        #timeline button:hover { background: #333; }
+        #timeline select {
+            background: #222; color: #fff; border: 1px solid #555;
+            padding: 4px; font-family: monospace;
+        }
+        #timeReadout {
+            min-width: 110px;
+            text-align: center;
+            font-size: 14px;
+            color: #7fd07f;
+        }
+        #scrubBar {
+            position: relative;
+            flex: 1;
+            height: 16px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            cursor: pointer;
+            user-select: none;
+        }
+        #scrubProgress {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            background: linear-gradient(90deg, #2a5fa0, #3a7bd5);
+            width: 0%;
+        }
+        #scrubHandle {
+            position: absolute;
+            top: -4px;
+            width: 4px; height: 24px;
+            background: #ffffff;
+            margin-left: -2px;
+            left: 0%;
+            pointer-events: none;
+        }
+        .eventMarker {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 16px;
+            background: #ffcc00;
+            pointer-events: none;
+        }
+        .eventMarker.launch { background: #66aaff; }
+        .eventMarker.intercept { background: #ffaa33; }
+        .eventMarker.hit { background: #ff5555; }
+        .eventMarker.miss { background: #aaaaaa; }
+        .eventMarker.pdc_engage { background: #ffdd66; }
+        .eventMarker.maneuver_start, .eventMarker.maneuver_end { background: #cc66ff; }
+        .eventMarker.lock, .eventMarker.unlock { background: #ff66cc; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
 </head>
 <body>
     <div id="container"></div>
+
+    <div id="timeline">
+        <button id="playPauseBtn">Pause</button>
+        <span id="timeReadout">T+00:00.0</span>
+        <div id="scrubBar">
+            <div id="scrubProgress"></div>
+            <div id="scrubHandle"></div>
+            <div id="eventMarkers"></div>
+        </div>
+        <select id="speedSelect">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+        </select>
+    </div>
+
     <script>
         (function () {
             const container = document.getElementById('container');
@@ -69,12 +155,11 @@
                 return new THREE.Mesh(geom, mat);
             }
 
-            // Placeholder hulls (generic low-poly; not copies of show designs)
-            const rociMesh = makeHull(0x3a7bd5); // blue
+            const rociMesh = makeHull(0x3a7bd5);
             scene.add(rociMesh);
             hullMeshes['roci'] = rociMesh;
 
-            const zmeyaMesh = makeHull(0xd53a3a); // red
+            const zmeyaMesh = makeHull(0xd53a3a);
             scene.add(zmeyaMesh);
             hullMeshes['zmeya'] = zmeyaMesh;
 
@@ -82,7 +167,7 @@
             const PlaybackEngine = (function () {
                 const state = {
                     dataset: null,
-                    entities: {},   // id -> { type, iff, keyframes: [{t, pos:Vec3, vel:Vec3, q:Quat}] }
+                    entities: {},
                     duration: 0,
                     currentTime: 0,
                     speed: 1.0,
@@ -102,11 +187,7 @@
                                 q: new THREE.Quaternion(k.orientation[0], k.orientation[1], k.orientation[2], k.orientation[3])
                             };
                         });
-                        state.entities[e.id] = {
-                            type: e.type,
-                            iff: e.iff,
-                            keyframes: kfs
-                        };
+                        state.entities[e.id] = { type: e.type, iff: e.iff, keyframes: kfs };
                     });
                 }
 
@@ -115,15 +196,8 @@
                     for (const id in state.entities) {
                         const ent = state.entities[id];
                         const kfs = ent.keyframes;
-                        if (kfs.length === 0) {
-                            out[id] = { active: false };
-                            continue;
-                        }
-                        if (t < kfs[0].t || t > kfs[kfs.length - 1].t) {
-                            out[id] = { active: false };
-                            continue;
-                        }
-                        // Find surrounding keyframes
+                        if (kfs.length === 0) { out[id] = { active: false }; continue; }
+                        if (t < kfs[0].t || t > kfs[kfs.length - 1].t) { out[id] = { active: false }; continue; }
                         let i = 0;
                         while (i < kfs.length - 1 && kfs[i + 1].t < t) i++;
                         if (i >= kfs.length - 1) {
@@ -139,17 +213,10 @@
                         const b = kfs[i + 1];
                         const span = b.t - a.t;
                         const alpha = span > 0 ? (t - a.t) / span : 0;
-
                         const pos = new THREE.Vector3().copy(a.pos).lerp(b.pos, alpha);
                         const vel = new THREE.Vector3().copy(a.vel).lerp(b.vel, alpha);
                         const q = new THREE.Quaternion().copy(a.q).slerp(b.q, alpha);
-
-                        out[id] = {
-                            active: true,
-                            position: pos,
-                            velocity: vel,
-                            orientation: q,
-                        };
+                        out[id] = { active: true, position: pos, velocity: vel, orientation: q };
                     }
                     return out;
                 }
@@ -189,13 +256,85 @@
 
             window.TacviewPlayback = PlaybackEngine;
 
-            // Load the engagement dataset
+            // ---- Timeline UI ----
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const timeReadout = document.getElementById('timeReadout');
+            const scrubBar = document.getElementById('scrubBar');
+            const scrubProgress = document.getElementById('scrubProgress');
+            const scrubHandle = document.getElementById('scrubHandle');
+            const eventMarkersEl = document.getElementById('eventMarkers');
+            const speedSelect = document.getElementById('speedSelect');
+
+            playPauseBtn.addEventListener('click', function () {
+                if (PlaybackEngine.isPlaying()) {
+                    PlaybackEngine.pause();
+                    playPauseBtn.textContent = 'Play';
+                } else {
+                    PlaybackEngine.play();
+                    playPauseBtn.textContent = 'Pause';
+                }
+            });
+
+            speedSelect.addEventListener('change', function () {
+                PlaybackEngine.setSpeed(parseFloat(speedSelect.value));
+            });
+
+            let scrubbing = false;
+            function scrubFromEvent(e) {
+                const rect = scrubBar.getBoundingClientRect();
+                const x = (e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left;
+                let frac = Math.max(0, Math.min(1, x / rect.width));
+                const dur = PlaybackEngine.getDuration();
+                PlaybackEngine.setTime(frac * dur);
+            }
+            scrubBar.addEventListener('mousedown', function (e) {
+                scrubbing = true;
+                scrubFromEvent(e);
+            });
+            window.addEventListener('mousemove', function (e) {
+                if (scrubbing) scrubFromEvent(e);
+            });
+            window.addEventListener('mouseup', function () { scrubbing = false; });
+
+            function formatTime(t) {
+                const m = Math.floor(t / 60);
+                const s = t - m * 60;
+                return 'T+' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+            }
+
+            function populateEventMarkers() {
+                eventMarkersEl.innerHTML = '';
+                const events = PlaybackEngine.getEvents();
+                const dur = PlaybackEngine.getDuration();
+                if (!dur) return;
+                events.forEach(function (ev) {
+                    const m = document.createElement('div');
+                    m.className = 'eventMarker ' + ev.type;
+                    m.style.left = (ev.t / dur * 100) + '%';
+                    m.title = ev.type + (ev.detail ? ': ' + ev.detail : '');
+                    eventMarkersEl.appendChild(m);
+                });
+            }
+
+            function updateTimelineUI() {
+                const t = PlaybackEngine.getTime();
+                const dur = PlaybackEngine.getDuration();
+                if (dur > 0) {
+                    const frac = t / dur;
+                    scrubProgress.style.width = (frac * 100) + '%';
+                    scrubHandle.style.left = (frac * 100) + '%';
+                }
+                timeReadout.textContent = formatTime(t);
+            }
+
+            // Load dataset
             fetch('data/engagement.json')
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
                     PlaybackEngine.load(json);
-                    // Initial state
+                    populateEventMarkers();
                     updateMeshes(0);
+                    updateTimelineUI();
                 })
                 .catch(function (err) {
                     console.error('Failed to load dataset:', err);
@@ -230,12 +369,13 @@
                 const dt = (now - lastT) / 1000;
                 lastT = now;
 
-                if (PlaybackEngine.isPlaying() && PlaybackEngine.getDuration() > 0) {
+                if (!scrubbing && PlaybackEngine.isPlaying() && PlaybackEngine.getDuration() > 0) {
                     let t = PlaybackEngine.getTime() + dt * PlaybackEngine.getSpeed();
                     if (t > PlaybackEngine.getDuration()) t = PlaybackEngine.getDuration();
                     PlaybackEngine.setTime(t);
                 }
                 updateMeshes(PlaybackEngine.getTime());
+                updateTimelineUI();
 
                 controls.update();
                 stars.rotation.y += 0.0005;
