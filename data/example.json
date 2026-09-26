@@ -1,0 +1,29 @@
+{
+  "duration": 20.0,
+  "entities": [
+    {
+      "id": "roci",
+      "type": "ship",
+      "iff": "blue",
+      "keyframes": [
+        { "t": 0.0,  "position": [-70, 0, 0], "velocity": [10, 0, 0], "orientation": [0, 0, 0, 1] },
+        { "t": 10.0, "position": [-20, 0, 0], "velocity": [12, 0, 0], "orientation": [0, 0, 0, 1] },
+        { "t": 20.0, "position": [ 30, 0, 0], "velocity": [14, 0, 0], "orientation": [0, 0, 0, 1] }
+      ]
+    },
+    {
+      "id": "zmeya",
+      "type": "ship",
+      "iff": "red",
+      "keyframes": [
+        { "t": 0.0,  "position": [ 70, 0, 0], "velocity": [-8, 0, 0], "orientation": [0, 0, 0, 1] },
+        { "t": 10.0, "position": [ 20, 0, 0], "velocity": [-10, 0, 0], "orientation": [0, 0, 0, 1] },
+        { "t": 20.0, "position": [-30, 0, 0], "velocity": [-12, 0, 0], "orientation": [0, 0, 0, 1] }
+      ]
+    }
+  ],
+  "events": [
+    { "t": 5.0,  "type": "maneuver_start", "entity_id": "roci", "detail": "Roci begins high-G burn" },
+    { "t": 15.0, "type": "maneuver_end",   "entity_id": "roci", "detail": "Roci levels out" }
+  ]
+}
