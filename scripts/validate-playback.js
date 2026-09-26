@@ -240,6 +240,7 @@ function checkSyntax() {
         'js/timeline.js', 'js/event-log.js', 'js/minimap.js', 'js/main.js',
         'js/ship-models.js',
         'scripts/browser-smoke.js',
+        'scripts/resource-audit.js',
     ];
     for (const m of modules) {
         try {

@@ -24,8 +24,10 @@ export function createTimeline(playbackEngine) {
     const nextEvtBtn = document.getElementById('nextEventBtn');
 
     function refreshPlayPauseLabel() {
-        playPauseBtn.textContent = playbackEngine.isPlaying() ? 'Pause' : 'Play';
+        const want = playbackEngine.isPlaying() ? 'Pause' : 'Play';
+        if (playPauseBtn.textContent !== want) playPauseBtn.textContent = want;
     }
+    let lastPlayingState = null;
 
     playPauseBtn.addEventListener('click', function () {
         if (playbackEngine.isPlaying()) playbackEngine.pause();
@@ -153,8 +155,11 @@ export function createTimeline(playbackEngine) {
             scrubHandle.style.left = (frac * 100) + '%';
         }
         timeReadout.textContent = formatTime(t);
-        // Keep the Play/Pause label in sync if playback state changed elsewhere.
-        refreshPlayPauseLabel();
+        // Keep the Play/Pause label in sync — but only when state changes.
+        if (lastPlayingState !== playbackEngine.isPlaying()) {
+            lastPlayingState = playbackEngine.isPlaying();
+            refreshPlayPauseLabel();
+        }
     }
 
     function isScrubbing() { return scrubbing; }

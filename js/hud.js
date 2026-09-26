@@ -42,10 +42,13 @@ export function createHUD(playbackEngine, telemetry, lockState, missionState) {
         }
     }
 
+    let lastMissionState = null;
     function updateMissionState() {
         const el = document.getElementById('missionState');
         if (!el || !missionState) return;
         const s = missionState.getState();
+        if (s === lastMissionState) return; // no change — skip DOM work
+        lastMissionState = s;
         if (el.textContent !== s) el.textContent = s;
         el.classList.remove('standby', 'engagement', 'resolution');
         el.classList.add(s.toLowerCase());
