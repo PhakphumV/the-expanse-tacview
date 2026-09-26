@@ -16,9 +16,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const dataset = JSON.parse(fs.readFileSync(
+const collection = JSON.parse(fs.readFileSync(
     path.join(__dirname, '..', 'data', 'engagement.json'), 'utf8'
 ));
+const engagementList = (collection && Array.isArray(collection.engagements))
+    ? collection.engagements : [];
+console.log(`Engagements in collection: ${engagementList.length}`);
+// Audit the first engagement (the deterministic default the app loads).
+const dataset = engagementList[0] || { entities: [], events: [] };
 
 // Count entities by type.
 const counts = {};

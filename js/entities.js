@@ -38,6 +38,7 @@ export function createEntitiesManager(scene, playbackEngine) {
     }
 
     function loadEntities() {
+        resetTrails();
         const ents = playbackEngine.getEntities();
         for (const id in ents) {
             const e = ents[id];
@@ -46,6 +47,18 @@ export function createEntitiesManager(scene, playbackEngine) {
                 scene.add(trails[id]);
             }
         }
+    }
+
+    // Remove all trail meshes and history so a new engagement starts
+    // with no stale trails from the previous one.
+    function resetTrails() {
+        for (const id in trails) {
+            scene.remove(trails[id]);
+            trails[id].geometry.dispose();
+            trails[id].material.dispose();
+            delete trails[id];
+        }
+        for (const id in trailHistory) delete trailHistory[id];
     }
 
     function pushHistory(id, t, pos) {
@@ -114,6 +127,7 @@ export function createEntitiesManager(scene, playbackEngine) {
     return {
         createShips,
         loadEntities,
+        resetTrails,
         update,
         setTrailsVisible,
         getTrailsVisible,
@@ -129,6 +143,10 @@ export function createLabels(playbackEngine, camera) {
     if (container) container.innerHTML = '';
 
     function createShipLabels() {
+        // Rebuild from scratch so no stale labels survive an engagement
+        // switch.
+        if (container) container.innerHTML = '';
+        for (const id in labels) delete labels[id];
         ['roci', 'zmeya'].forEach(function (id) {
             const el = document.createElement('div');
             el.className = 'entity-label';

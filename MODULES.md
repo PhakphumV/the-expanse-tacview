@@ -19,13 +19,15 @@ loads `js/main.js` with `<script type="module">`.
 | `js/timeline.js`    | Timeline scrubber, play/pause, speed, event markers                |
 | `js/event-log.js`   | Scrolling event log with click-to-seek                             |
 | `js/info-panel.js`  | Shared Summary / Events tab panel                                  |
+| `js/engagement-selector.js` | Engagement dropdown and dataset error states             |
 | `css/tacview.css`   | All application styles                                             |
 
 ## Dependency direction
 
 ```
 main → scene, playback, telemetry, lock-state, entities, weapons,
-       effects, camera, hud, timeline, event-log, info-panel
+       effects, camera, hud, timeline, event-log, info-panel,
+       engagement-selector
 telemetry   → playback
 lock-state  → playback
 entities    → playback
@@ -36,6 +38,7 @@ hud         → playback, telemetry, lock-state
 timeline    → playback
 event-log   → playback
 info-panel  → event-log            (re-syncs scroll on tab show)
+engagement-selector → playback     (collection metadata + selection)
 ```
 
 No circular dependencies. `playback` is the only stateful singleton that

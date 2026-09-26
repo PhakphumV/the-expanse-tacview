@@ -1,4 +1,9 @@
 {
+  "engagements": [
+  {
+  "id": "example-engagement",
+  "name": "Example Engagement",
+  "description": "Minimal reference dataset",
   "duration": 20.0,
   "entities": [
     {
@@ -23,7 +28,9 @@
     }
   ],
   "events": [
-    { "t": 5.0,  "type": "maneuver_start", "entity_id": "roci", "detail": "Roci begins high-G burn" },
-    { "t": 15.0, "type": "maneuver_end",   "entity_id": "roci", "detail": "Roci levels out" }
+    { "t": 5.0,  "type": "maneuver_start", "actor": "roci", "description": "Roci begins high-G burn" },
+    { "t": 15.0, "type": "maneuver_end",   "actor": "roci", "description": "Roci levels out" }
+  ]
+  }
   ]
 }

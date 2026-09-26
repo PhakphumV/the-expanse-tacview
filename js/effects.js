@@ -22,6 +22,7 @@ export function createEffectsManager(scene, playbackEngine) {
     const bursts = [];
 
     function loadBursts() {
+        reset();
         const events = playbackEngine.getEvents();
         for (const ev of events) {
             if (ev.type !== 'intercept' && ev.type !== 'hit') continue;
@@ -57,5 +58,16 @@ export function createEffectsManager(scene, playbackEngine) {
         }
     }
 
-    return { loadBursts, update };
+    // Remove and dispose all burst meshes so a new engagement starts
+    // with no stale effects from the previous one.
+    function reset() {
+        for (const b of bursts) {
+            scene.remove(b.mesh);
+            b.mesh.geometry.dispose();
+            b.mesh.material.dispose();
+        }
+        bursts.length = 0;
+    }
+
+    return { loadBursts, reset, update };
 }

@@ -1,4 +1,9 @@
 {
+  "engagements": [
+  {
+  "id": "roci-vs-zmeya-synthetic",
+  "name": "Roci vs Zmeya — Synthetic Engagement",
+  "description": "Synthetic tactical replay: Rocinante pursues Zmeya",
   "duration": 90.0,
   "entities": [
     {
@@ -1029,5 +1034,7 @@
       "actor": "roci",
       "target": "zmeya"
     }
+  ]
+  }
   ]
 }

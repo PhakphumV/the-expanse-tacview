@@ -35,6 +35,15 @@ canvas { display: block; }
     background: #222; color: #fff; border: 1px solid #555;
     padding: 4px; font-family: monospace;
 }
+#engagementLabel {
+    color: #888;
+    font-size: 11px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+#engagementSelect {
+    max-width: 220px;
+}
 .mode-btn {
     background: #222; color: #fff; border: 1px solid #555;
     padding: 4px 10px; font-family: monospace; cursor: pointer;
@@ -245,6 +254,23 @@ canvas { display: block; }
 #missionState.standby     { color: #888; background: rgba(60, 60, 60, 0.4); }
 #missionState.engagement  { color: #ffcc00; background: rgba(80, 60, 0, 0.5); box-shadow: 0 0 8px #ffcc00; }
 #missionState.resolution  { color: #ff8080; background: rgba(80, 0, 0, 0.5); }
+
+/* ---- Dataset error banner ---- */
+#dataError {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(80, 0, 0, 0.92);
+    border: 1px solid #ff5555;
+    color: #ffcccc;
+    padding: 8px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    z-index: 90;
+    max-width: 80%;
+}
 
 /* ---- Help overlay (TAC-020) ---- */
 #helpBtn {

@@ -13,6 +13,8 @@ export function createPlaybackEngine() {
         currentTime: 0,
         speed: 1.0,
         playing: true,
+        engagementData: [],
+        activeId: null,
     };
 
     function load(json) {
@@ -79,6 +81,75 @@ export function createPlaybackEngine() {
     function getEvents() { return state.dataset ? state.dataset.events : []; }
     function getDataset() { return state.dataset; }
 
+    // ---- Engagement collection (multi-engagement selector) ----
+    // The dataset file wraps one or more engagements:
+    //   { "engagements": [ { id, name, description, duration, entities, events } ] }
+    // Each entry is a complete single-engagement document plus a stable
+    // id and a human-readable name for the selector UI.
+
+    function validateEngagementShape(e) {
+        if (!e || typeof e !== 'object') throw new Error('engagement entry is not an object');
+        if (typeof e.id !== 'string' || !e.id) throw new Error('engagement entry missing string "id"');
+        if (typeof e.duration !== 'number' || !isFinite(e.duration)) {
+            throw new Error('engagement "' + e.id + '" missing numeric "duration"');
+        }
+        if (!Array.isArray(e.entities)) throw new Error('engagement "' + e.id + '" missing "entities" array');
+        if (!Array.isArray(e.events)) throw new Error('engagement "' + e.id + '" missing "events" array');
+    }
+
+    // Load the collection document. The first engagement becomes active
+    // (deterministic default). An empty collection is valid: nothing is
+    // loaded and the UI shows its empty state.
+    function loadCollection(json) {
+        if (!json || !Array.isArray(json.engagements)) {
+            throw new Error('dataset has no "engagements" array');
+        }
+        state.engagementData = json.engagements;
+        state.activeId = null;
+        state.dataset = null;
+        state.entities = {};
+        state.duration = 0;
+        state.currentTime = 0;
+        if (json.engagements.length > 0) {
+            const first = json.engagements[0];
+            validateEngagementShape(first);
+            load(first);
+            state.activeId = first.id;
+            state.playing = true;
+        }
+        return getEngagements();
+    }
+
+    // Selector metadata: stable id + display name per engagement.
+    function getEngagements() {
+        return state.engagementData.map(function (e) {
+            return {
+                id: e && e.id,
+                name: (e && e.name) || (e && e.id) || '(unnamed engagement)',
+                description: (e && e.description) || '',
+            };
+        });
+    }
+
+    function getActiveEngagementId() { return state.activeId; }
+
+    // Switch the active engagement by id. Resets replay time to T+00:00
+    // and pauses; throws if the id is unknown or the entry is malformed
+    // (the previous engagement stays active in that case).
+    function selectEngagement(id) {
+        let eng = null;
+        for (const e of state.engagementData) {
+            if (e && e.id === id) { eng = e; break; }
+        }
+        if (!eng) throw new Error('unknown engagement id "' + id + '"');
+        validateEngagementShape(eng);
+        load(eng);
+        state.activeId = id;
+        state.currentTime = 0;
+        state.playing = false;
+        return true;
+    }
+
     // ---- Navigation helpers (TAC-020) ----
     // Jump to start of engagement. Playing state is preserved.
     function jumpToStart() { setTime(0); }
@@ -113,6 +184,10 @@ export function createPlaybackEngine() {
 
     return {
         load,
+        loadCollection,
+        getEngagements,
+        getActiveEngagementId,
+        selectEngagement,
         getStateAtTime,
         getEventsUpTo,
         setTime,

@@ -8,10 +8,59 @@ match this schema.
 
 - **Path:** `data/engagement.json`
 - **Format:** UTF-8 JSON
-- **Loaded by:** `index.html` → `PlaybackEngine.load(json)`
+- **Loaded by:** `index.html` → `PlaybackEngine.loadCollection(json)`
 
 A minimal reference example lives at `data/example.json` and is covered by
 the validation harness in `scripts/validate-playback.js`.
+
+## Collection wrapper
+
+The dataset file is a collection of one or more engagements:
+
+```json
+{
+  "engagements": [
+    {
+      "id": "roci-vs-zmeya-synthetic",
+      "name": "Roci vs Zmeya — Synthetic Engagement",
+      "description": "Synthetic tactical replay",
+      "duration": 90.0,
+      "entities": [ { ...entity... } ],
+      "events":   [ { ...event...   } ]
+    }
+  ]
+}
+```
+
+- `engagements` (array, required): one entry per selectable engagement.
+- Each entry is a complete single-engagement document (see
+  **Engagement structure** below) plus:
+  - `id` (string, required, unique): stable identifier used as the
+    dropdown option value and for programmatic selection.
+  - `name` (string): human-readable label shown in the Engagement
+    dropdown. Falls back to `id` when omitted.
+  - `description` (string): free-text summary.
+
+The application loads the first entry as the deterministic default; the
+Engagement dropdown switches entries without a page reload. An empty
+`engagements` array is valid and produces a visible empty state in the
+UI. Malformed entries are reported in an error banner and do not make
+the application unusable.
+
+## Engagement structure
+
+```json
+{
+  "duration": 90.0,
+  "entities": [ { ...entity... } ],
+  "events":   [ { ...event...   } ]
+}
+```
+
+- `duration` (number, seconds): total engagement length.
+- `entities` (array): per-entity keyframe tracks.
+- `events` (array): discrete time-stamped events used by the timeline
+  markers, event log, lock indicator, and burst effects.
 
 ## Units and coordinate system
 
@@ -28,21 +77,6 @@ the validation harness in `scripts/validate-playback.js`.
 **Coordinate system:** right-handed, **Y-up**, **forward = -Z** (THREE.js
 convention). The ship's local forward axis (used by aspect-angle
 calculation) is `(0, 0, -1)` rotated by the entity's orientation.
-
-## Top-level structure
-
-```json
-{
-  "duration": 90.0,
-  "entities": [ { ...entity... } ],
-  "events":   [ { ...event...   } ]
-}
-```
-
-- `duration` (number, seconds): total engagement length.
-- `entities` (array): per-entity keyframe tracks.
-- `events` (array): discrete time-stamped events used by the timeline
-  markers, event log, lock indicator, and burst effects.
 
 ## Entity object
 

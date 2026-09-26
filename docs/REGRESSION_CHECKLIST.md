@@ -29,6 +29,7 @@ issue with reproduction steps.
 | 8 | Event log populates with all 18 events      |        |         |        |
 | 9 | Info panel shows Summary tab by default     |        |         |        |
 | 10| Help overlay opens via `?` key              |        |         |        |
+| 11| Engagement dropdown lists the dataset entry |        |         |        |
 
 ## 2. Playback
 
@@ -104,7 +105,17 @@ issue with reproduction steps.
 | 5 | Events tab shows log; click seeks replay    |        |         |        |
 | 6 | Tab switch keeps replay time and camera     |        |         |        |
 
-## 8. Browser-specific defects
+## 8. Engagement switching
+
+| # | Test                                        | Chrome | Firefox | Safari |
+| - | ------------------------------------------- | ------ | ------- | ------ |
+| 1 | Switching engagement pauses and resets to T+00:00 |  |         |        |
+| 2 | Timeline duration/markers match selection   |        |         |        |
+| 3 | Event log shows only selected engagement    |        |         |        |
+| 4 | No stale trails/weapons/effects after switch|        |         |        |
+| 5 | Camera mode preserved across a switch       |        |         |        |
+
+## 9. Browser-specific defects
 
 Any defects discovered while running this checklist are recorded below
 with reproduction steps.

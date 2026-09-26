@@ -37,9 +37,12 @@ will block `fetch('data/engagement.json')`.
 
 ## Dataset
 
-- The application loads **`data/engagement.json`** on startup.
-- The full telemetry contract (units, coordinate system, entity lifecycle,
-  event types) is documented in **[SCHEMA.md](SCHEMA.md)**.
+- The application loads **`data/engagement.json`** on startup. The file
+  is a collection of one or more engagements; the **Engagement** dropdown
+  in the timeline bar switches between them without a page reload.
+- The full telemetry contract (collection wrapper, units, coordinate
+  system, entity lifecycle, event types) is documented in
+  **[SCHEMA.md](SCHEMA.md)**.
 - A minimal reference dataset lives at `data/example.json`.
 
 ## Project structure

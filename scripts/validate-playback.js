@@ -4,18 +4,22 @@
 // End-to-end telemetry consistency and validation against
 // data/engagement.json. No browser, no Three.js — pure Node.
 //
+// The dataset file is a collection: { "engagements": [...] }. Every
+// engagement in the collection runs through the per-engagement checks.
+//
 // Checks:
-//   1. Dataset shape conforms to the documented schema
-//   2. All application JS modules parse without syntax errors
-//   3. Orientation continuity at every keyframe boundary
-//   4. Velocity from position derivatives stays near the authored
-//      velocity field within VEL_TOLERANCE
-//   5. Closure rate from interpolated velocities stays near the
-//      numeric time-derivative of range within CLOSURE_TOLERANCE
-//   6. G-force stays in physically reasonable range and uses g0=9.8
-//   7. Derived telemetry (range, velocity) stays physically reasonable
-//   8. Lock/unlock events form valid closed intervals
-//   9. Burst event positions are at known entity positions
+//   1.  Collection shape (engagements array, unique string ids)
+//   2.  All application JS modules parse without syntax errors
+//   3.  Per engagement: shape conforms to the documented schema
+//   4.  Orientation continuity at every keyframe boundary
+//   5.  Velocity from position derivatives stays near the authored
+//       velocity field within VEL_TOLERANCE
+//   6.  Closure rate from interpolated velocities stays near the
+//       numeric time-derivative of range within CLOSURE_TOLERANCE
+//   7.  G-force stays in physically reasonable range and uses g0=9.8
+//   8.  Derived telemetry (range, velocity) stays physically reasonable
+//   9.  Lock/unlock events form valid closed intervals
+//   10. Burst event positions are at known entity positions
 //
 // Units:
 //   - distance: meters
@@ -96,24 +100,34 @@ class Quat {
     }
 }
 
-// ---- Load dataset ----
+// ---- Load dataset collection ----
 const repoRoot = path.resolve(__dirname, '..');
 const datasetPath = path.join(repoRoot, 'data', 'engagement.json');
-const dataset = JSON.parse(fs.readFileSync(datasetPath, 'utf8'));
+const collection = JSON.parse(fs.readFileSync(datasetPath, 'utf8'));
 
-// Pre-process entities to Vec3/Quat keyframes
-const entities = {};
-for (const e of dataset.entities) {
-    entities[e.id] = {
-        type: e.type,
-        iff: e.iff,
-        keyframes: e.keyframes.map(k => ({
-            t: k.t,
-            pos: new Vec3(k.position[0], k.position[1], k.position[2]),
-            vel: new Vec3(k.velocity[0], k.velocity[1], k.velocity[2]),
-            ori: new Quat(k.orientation[0], k.orientation[1], k.orientation[2], k.orientation[3]),
-        }))
-    };
+// The file wraps one or more engagements:
+//   { "engagements": [ { id, name, description, duration, entities, events } ] }
+// Per-engagement state is rebound by loadEngagementContext() so every
+// engagement in the collection runs through the same checks.
+let dataset = null;
+let entities = {};
+
+function loadEngagementContext(eng) {
+    dataset = eng;
+    entities = {};
+    // Pre-process entities to Vec3/Quat keyframes
+    for (const e of dataset.entities) {
+        entities[e.id] = {
+            type: e.type,
+            iff: e.iff,
+            keyframes: e.keyframes.map(k => ({
+                t: k.t,
+                pos: new Vec3(k.position[0], k.position[1], k.position[2]),
+                vel: new Vec3(k.velocity[0], k.velocity[1], k.velocity[2]),
+                ori: new Quat(k.orientation[0], k.orientation[1], k.orientation[2], k.orientation[3]),
+            }))
+        };
+    }
 }
 
 // Mirror of PlaybackEngine.getStateAtTime
@@ -238,6 +252,7 @@ function checkSyntax() {
         'js/mission-state.js', 'js/event-model.js', 'js/entities.js',
         'js/weapons.js', 'js/effects.js', 'js/camera.js', 'js/hud.js',
         'js/timeline.js', 'js/event-log.js', 'js/info-panel.js', 'js/main.js',
+        'js/engagement-selector.js',
         'js/ship-models.js',
         'js/presentation.js',
         'scripts/browser-smoke.js',
@@ -405,17 +420,51 @@ function checkBurstPositions() {
     return null;
 }
 
+function checkCollectionShape() {
+    if (!collection || typeof collection !== 'object') return 'top level is not an object';
+    if (!Array.isArray(collection.engagements)) return 'missing "engagements" array';
+    const seen = new Set();
+    for (const [i, e] of collection.engagements.entries()) {
+        if (!e || typeof e !== 'object') return `engagements[${i}] not an object`;
+        if (typeof e.id !== 'string' || !e.id) return `engagements[${i}] missing string id`;
+        if (seen.has(e.id)) return `duplicate engagement id "${e.id}"`;
+        seen.add(e.id);
+    }
+    return null;
+}
+
 // ---- Run all checks ----
 console.log(`Validating ${path.relative(repoRoot, datasetPath)}\n`);
-check('1. Dataset shape conforms to schema', checkShape);
+check('1. Collection shape conforms to schema', checkCollectionShape);
 check('2. JS module syntax', checkSyntax);
-check('3. Orientation continuity at keyframe boundaries', checkOrientationContinuity);
-check('4. Velocity from position vs keyframe velocity', checkVelocityFromPosition);
-check('5. Closure rate vs numeric dRange/dt', checkClosureRate);
-check('6. G-force physically reasonable (|dv/dt|/9.8)', checkGForce);
-check('7. Derived telemetry in physical range', checkDerivedRanges);
-check('8. Lock/unlock events form valid closed intervals', checkLockWindows);
-check('9. Burst events at known entity positions', checkBurstPositions);
+
+const engagementList = (collection && Array.isArray(collection.engagements))
+    ? collection.engagements : [];
+if (engagementList.length === 0) {
+    console.log('\n(no engagements in collection — per-engagement checks skipped)');
+}
+for (const eng of engagementList) {
+    const tag = `[${eng && eng.id !== undefined ? eng.id : '?'}]`;
+    console.log(`\nEngagement ${tag}`);
+    // Shape first: the structural checks below require a valid shape.
+    dataset = eng;
+    const shapeErr = checkShape();
+    if (shapeErr) {
+        failCount++;
+        console.error(`\u2717 ${tag} 3. Engagement shape conforms to schema: ${shapeErr}`);
+        continue;
+    }
+    passCount++;
+    console.log(`\u2713 ${tag} 3. Engagement shape conforms to schema`);
+    loadEngagementContext(eng);
+    check(`  ${tag} 4. Orientation continuity at keyframe boundaries`, checkOrientationContinuity);
+    check(`  ${tag} 5. Velocity from position vs keyframe velocity`, checkVelocityFromPosition);
+    check(`  ${tag} 6. Closure rate vs numeric dRange/dt`, checkClosureRate);
+    check(`  ${tag} 7. G-force physically reasonable (|dv/dt|/9.8)`, checkGForce);
+    check(`  ${tag} 8. Derived telemetry in physical range`, checkDerivedRanges);
+    check(`  ${tag} 9. Lock/unlock events form valid closed intervals`, checkLockWindows);
+    check(`  ${tag} 10. Burst events at known entity positions`, checkBurstPositions);
+}
 
 console.log(`\n${passCount} passed, ${failCount} failed`);
 process.exit(failCount === 0 ? 0 : 1);

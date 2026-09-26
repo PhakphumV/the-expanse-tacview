@@ -23,6 +23,7 @@ export function createWeaponsManager(scene, playbackEngine, entitiesManager) {
     const pdcMeshes = {};
 
     function loadWeapons() {
+        reset();
         const ents = playbackEngine.getEntities();
         for (const id in ents) {
             const e = ents[id];
@@ -35,6 +36,24 @@ export function createWeaponsManager(scene, playbackEngine, entitiesManager) {
                 scene.add(m);
                 pdcMeshes[id] = { mesh: m, mat: m.material };
             }
+        }
+    }
+
+    // Remove and dispose all weapon meshes so a new engagement starts
+    // with no stale torpedoes or tracers from the previous one.
+    function reset() {
+        for (const id in torpedoMeshes) {
+            scene.remove(torpedoMeshes[id]);
+            torpedoMeshes[id].geometry.dispose();
+            torpedoMeshes[id].material.dispose();
+            delete torpedoMeshes[id];
+        }
+        for (const id in pdcMeshes) {
+            const mesh = pdcMeshes[id].mesh;
+            scene.remove(mesh);
+            mesh.geometry.dispose();
+            mesh.material.dispose();
+            delete pdcMeshes[id];
         }
     }
 
@@ -93,5 +112,5 @@ export function createWeaponsManager(scene, playbackEngine, entitiesManager) {
         updatePdc(t, stateMap, ents);
     }
 
-    return { loadWeapons, update };
+    return { loadWeapons, reset, update };
 }

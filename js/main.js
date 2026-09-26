@@ -16,6 +16,7 @@ import { createHUD } from './hud.js';
 import { createTimeline } from './timeline.js';
 import { createEventLog } from './event-log.js';
 import { createInfoPanel } from './info-panel.js';
+import { createEngagementSelector } from './engagement-selector.js';
 import { createPresentation, createRangeRings } from './presentation.js';
 
 const container = document.getElementById('container');
@@ -64,32 +65,65 @@ window.addEventListener('keydown', (e) => {
     else if (e.key === '3') cameraCtl.setMode('top');
 });
 
+// Rebuild every per-engagement structure after the active engagement
+// changes: lock/mission state, trails, weapon and effect meshes, range
+// rings, labels, timeline markers, event log, and the summary panel.
+// loadEntities/loadWeapons/loadBursts/build dispose their previous
+// meshes internally, so nothing from the prior engagement remains.
+function rebuildForEngagement() {
+    lockState.build();
+    missionState.build();
+    entities.loadEntities();
+    weapons.loadWeapons();
+    effects.loadBursts();
+    labels.createShipLabels();
+    timeline.populateMarkers();
+    eventLog.populate();
+    rangeRings.build();
+    presentation.buildSummary();
+    const t0 = playback.getTime();
+    entities.update(t0);
+    weapons.update(t0, playback.getStateAtTime(t0));
+    effects.update(t0);
+    rangeRings.update(t0);
+    timeline.updateUI();
+    hud.update();
+    eventLog.update();
+    labels.update();
+    presentation.update();
+}
+
+// Engagement dropdown. Switching pauses the replay, resets time to
+// T+00:00, and rebuilds all engagement-scoped state. Camera mode,
+// playback speed, and trail visibility are user preferences and are
+// preserved across a switch.
+function onEngagementSelected(id) {
+    try {
+        playback.selectEngagement(id);
+        rebuildForEngagement();
+        selector.clearError();
+    } catch (err) {
+        selector.showError('Failed to load engagement "' + id + '": ' + err.message);
+        selector.syncToActive();
+    }
+}
+const selector = createEngagementSelector(playback, onEngagementSelected);
+
 // Load dataset, build per-entity meshes, populate UI
 fetch('data/engagement.json')
     .then((r) => r.json())
     .then((json) => {
-        playback.load(json);
-        lockState.build();
-        missionState.build();
-        entities.loadEntities();
-        weapons.loadWeapons();
-        effects.loadBursts();
-        labels.createShipLabels();
-        timeline.populateMarkers();
-        eventLog.populate();
-        rangeRings.build();
-        const t0 = playback.getTime();
-        entities.update(t0);
-        weapons.update(t0, playback.getStateAtTime(t0));
-        effects.update(t0);
-        rangeRings.update(t0);
-        timeline.updateUI();
-        hud.update();
-        eventLog.update();
-        labels.update();
-        presentation.update();
+        playback.loadCollection(json);
+        selector.populate();
+        // With an empty collection there is nothing to build; the
+        // selector has already shown its empty state.
+        if (playback.getActiveEngagementId()) rebuildForEngagement();
     })
-    .catch((err) => console.error('Failed to load dataset:', err));
+    .catch((err) => {
+        console.error('Failed to load dataset:', err);
+        selector.populate();
+        selector.showError('Failed to load dataset: ' + err.message);
+    });
 
 // Main loop
 let lastT = performance.now();

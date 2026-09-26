@@ -94,6 +94,7 @@ export function createRangeRings(scene, playbackEngine) {
     const rings = {};
 
     function build() {
+        reset();
         const ents = playbackEngine.getEntities();
         for (const id in ents) {
             if (ents[id].type !== 'ship') continue;
@@ -103,6 +104,16 @@ export function createRangeRings(scene, playbackEngine) {
             ring.visible = false;
             scene.add(ring);
             rings[id] = ring;
+        }
+    }
+
+    // Remove and dispose all rings so a new engagement starts clean.
+    function reset() {
+        for (const id in rings) {
+            scene.remove(rings[id]);
+            rings[id].geometry.dispose();
+            rings[id].material.dispose();
+            delete rings[id];
         }
     }
 
@@ -120,5 +131,5 @@ export function createRangeRings(scene, playbackEngine) {
         }
     }
 
-    return { build, update };
+    return { build, reset, update };
 }
