@@ -120,12 +120,10 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
 
-            // Orbit camera controls
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
 
-            // Procedural starfield
             const starCount = 6000;
             const starGeometry = new THREE.BufferGeometry();
             const starPositions = new Float32Array(starCount * 3);
@@ -146,7 +144,6 @@
             const stars = new THREE.Points(starGeometry, starMaterial);
             scene.add(stars);
 
-            // Hull meshes keyed by entity id
             const hullMeshes = {};
 
             function makeHull(color) {
@@ -256,6 +253,92 @@
 
             window.TacviewPlayback = PlaybackEngine;
 
+            // ---- Derived telemetry ----
+            const Telemetry = (function () {
+                const G = 9.8;
+
+                // Find index i such that keyframes[i].t <= t <= keyframes[i+1].t
+                function findBracket(kfs, t) {
+                    if (kfs.length === 0) return null;
+                    if (t <= kfs[0].t) return { a: kfs[0], b: kfs[0], edge: 'before' };
+                    if (t >= kfs[kfs.length - 1].t) {
+                        const last = kfs.length - 1;
+                        return { a: kfs[last - 1] || kfs[last], b: kfs[last], edge: 'after' };
+                    }
+                    let i = 0;
+                    while (i < kfs.length - 1 && kfs[i + 1].t < t) i++;
+                    return { a: kfs[i], b: kfs[i + 1], edge: 'inside' };
+                }
+
+                function gForceForEntity(ent, t) {
+                    const kfs = ent.keyframes;
+                    if (kfs.length < 2) return 0;
+                    const bracket = findBracket(kfs, t);
+                    if (!bracket) return 0;
+                    const a = bracket.a, b = bracket.b;
+                    const dt = b.t - a.t;
+                    if (dt <= 0) return 0;
+                    const dv = new THREE.Vector3().subVectors(b.vel, a.vel);
+                    const aMag = dv.length() / dt;
+                    return aMag / G;
+                }
+
+                function aspectAngleDeg(shipPos, shipQuat, otherPos) {
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(shipQuat).normalize();
+                    const dir = new THREE.Vector3().subVectors(otherPos, shipPos);
+                    const dist = dir.length();
+                    if (dist < 1e-6) return 0;
+                    dir.normalize();
+                    const dot = THREE.MathUtils.clamp(forward.dot(dir), -1, 1);
+                    return Math.acos(dot) * 180 / Math.PI;
+                }
+
+                function computeForPair(stateMap, idA, idB, t) {
+                    const a = stateMap[idA], b = stateMap[idB];
+                    if (!a || !b || !a.active || !b.active) return null;
+                    const range = new THREE.Vector3().subVectors(b.position, a.position).length();
+                    const relVel = new THREE.Vector3().subVectors(b.velocity, a.velocity);
+                    const sep = new THREE.Vector3().subVectors(b.position, a.position);
+                    let closure = 0;
+                    if (range > 1e-6) {
+                        closure = sep.dot(relVel) / range; // positive = closing
+                    }
+                    const ents = PlaybackEngine.getEntities();
+                    return {
+                        range: range,
+                        closureRate: closure,
+                        gForceA: gForceForEntity(ents[idA], t),
+                        gForceB: gForceForEntity(ents[idB], t),
+                        aspectAngleA: aspectAngleDeg(a.position, a.orientation, b.position),
+                        aspectAngleB: aspectAngleDeg(b.position, b.orientation, a.position),
+                    };
+                }
+
+                function getDerived(t) {
+                    const stateMap = PlaybackEngine.getStateAtTime(t);
+                    const pair = computeForPair(stateMap, 'roci', 'zmeya', t);
+                    if (!pair) return null;
+                    return {
+                        roci: {
+                            gForce: pair.gForceA,
+                            aspectAngle: pair.aspectAngleA,
+                            range: pair.range,
+                            closureRate: pair.closureRate,
+                        },
+                        zmeya: {
+                            gForce: pair.gForceB,
+                            aspectAngle: pair.aspectAngleB,
+                            range: pair.range,
+                            closureRate: pair.closureRate,
+                        },
+                    };
+                }
+
+                return { getDerived: getDerived };
+            })();
+
+            window.TacviewTelemetry = Telemetry;
+
             // ---- Timeline UI ----
             const playPauseBtn = document.getElementById('playPauseBtn');
             const timeReadout = document.getElementById('timeReadout');
@@ -327,7 +410,6 @@
                 timeReadout.textContent = formatTime(t);
             }
 
-            // Load dataset
             fetch('data/engagement.json')
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
