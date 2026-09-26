@@ -106,6 +106,22 @@
             margin-bottom: 6px;
             letter-spacing: 2px;
         }
+        .hud-lock {
+            margin-top: 8px;
+            padding: 4px 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid currentColor;
+            background: rgba(0,0,0,0.4);
+        }
+        .hud-lock.on {
+            color: #00ff00;
+            background: rgba(0, 60, 0, 0.6);
+            box-shadow: 0 0 8px #00ff00;
+        }
+        .hud-lock.off {
+            color: #555;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
@@ -115,6 +131,7 @@
 
     <div id="hud-roci" class="hud-panel">
         <div class="hud-title">ROCI</div>
+        <div id="roci-lock" class="hud-lock off">LOCK: OFF</div>
         <div>VEL: <span id="roci-vel">---</span> km/s</div>
         <div>G:&nbsp;&nbsp; <span id="roci-g">---</span></div>
         <div>RNG: <span id="roci-rng">---</span> km</div>
@@ -388,6 +405,33 @@
 
             window.TacviewTelemetry = Telemetry;
 
+            // ---- Lock state (driven by discrete events, not physics) ----
+            const LockState = (function () {
+                let intervals = []; // [{start, end}]
+                function build() {
+                    intervals = [];
+                    const events = PlaybackEngine.getEvents().slice().sort(function (a, b) { return a.t - b.t; });
+                    let open = null;
+                    events.forEach(function (ev) {
+                        if (ev.type === 'lock') {
+                            if (!open) open = { start: ev.t, end: Infinity };
+                        } else if (ev.type === 'unlock') {
+                            if (open) { open.end = ev.t; intervals.push(open); open = null; }
+                        }
+                    });
+                    if (open) intervals.push(open);
+                }
+                function isLockedAt(t) {
+                    for (let i = 0; i < intervals.length; i++) {
+                        if (t >= intervals[i].start && t < intervals[i].end) return true;
+                    }
+                    return false;
+                }
+                return { build: build, isLockedAt: isLockedAt };
+            })();
+
+            window.TacviewLockState = LockState;
+
             // ---- Timeline UI ----
             const playPauseBtn = document.getElementById('playPauseBtn');
             const timeReadout = document.getElementById('timeReadout');
@@ -485,12 +529,26 @@
                 } else {
                     ['zmeya-vel','zmeya-g','zmeya-rng','zmeya-clos','zmeya-asp'].forEach(function (id) { setVal(id, '---'); });
                 }
+
+                // Radar lock indicator (event-driven, correct on scrub)
+                const lockEl = document.getElementById('roci-lock');
+                const locked = LockState.isLockedAt(PlaybackEngine.getTime());
+                if (locked) {
+                    lockEl.textContent = 'LOCK: ON';
+                    lockEl.classList.add('on');
+                    lockEl.classList.remove('off');
+                } else {
+                    lockEl.textContent = 'LOCK: OFF';
+                    lockEl.classList.add('off');
+                    lockEl.classList.remove('on');
+                }
             }
 
             fetch('data/engagement.json')
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
                     PlaybackEngine.load(json);
+                    LockState.build();
                     populateEventMarkers();
                     updateMeshes(0);
                     updateTimelineUI();
