@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Expanse Tacview</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; }
+        canvas { display: block; }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
 </head>
 <body>
     <div id="container"></div>
@@ -21,26 +26,32 @@
                 0.1,
                 2000
             );
-            camera.position.set(0, 50, 150);
+            camera.position.set(0, 120, 220);
+            camera.lookAt(0, 0, 0);
 
             const renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
 
+            // Orbit camera controls
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
             // Procedural starfield (particle field, no texture assets)
             const starCount = 6000;
             const starGeometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(starCount * 3);
+            const starPositions = new Float32Array(starCount * 3);
             for (let i = 0; i < starCount; i++) {
                 const r = 800;
                 const theta = 2 * Math.PI * Math.random();
                 const phi = Math.acos(2 * Math.random() - 1);
-                positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-                positions[i * 3 + 2] = r * Math.cos(phi);
+                starPositions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+                starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                starPositions[i * 3 + 2] = r * Math.cos(phi);
             }
-            starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
             const starMaterial = new THREE.PointsMaterial({
                 color: 0xffffff,
                 size: 1.0,
@@ -48,6 +59,20 @@
             });
             const stars = new THREE.Points(starGeometry, starMaterial);
             scene.add(stars);
+
+            // Placeholder hulls (generic low-poly; not copies of show designs)
+            function makeHull(color) {
+                const geom = new THREE.BoxGeometry(20, 10, 40);
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                return new THREE.Mesh(geom, mat);
+            }
+            const roci = makeHull(0x3a7bd5); // blue
+            roci.position.set(-70, 0, 0);
+            scene.add(roci);
+
+            const zmeya = makeHull(0xd53a3a); // red
+            zmeya.position.set(70, 0, 0);
+            scene.add(zmeya);
 
             function onResize() {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -58,6 +83,7 @@
 
             function animate() {
                 requestAnimationFrame(animate);
+                controls.update();
                 stars.rotation.y += 0.0005;
                 stars.rotation.x += 0.0002;
                 renderer.render(scene, camera);
