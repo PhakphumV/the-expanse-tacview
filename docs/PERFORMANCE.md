@@ -33,7 +33,6 @@ bounded so it does not scale with replay duration:
 | `hud.js`            | 12 `textContent` writes, mission state class    | Cached — skipped when unchanged    |
 | `timeline.js`       | 2 `style.width`/`left` writes, 1 `textContent`  | Per-frame time advance only        |
 | `event-log.js`      | N `style.display` toggles, 1 `scrollTop`        | Only when last-visible index moves |
-| `minimap.js`        | 160×160 canvas 2D redraw                        | Fixed canvas size                  |
 | `entities.js`       | 2 ship meshes + 2 trail buffers                 | Bounded by entity count            |
 | `weapons.js`        | 4 torpedo spheres + 6 PDC line segments         | Bounded by entity count            |
 | `effects.js`        | burst_count additive spheres                    | Bounded by intercept/hit events    |

@@ -186,18 +186,6 @@ canvas { display: block; }
     z-index: 5;
 }
 
-/* ---- Minimap ---- */
-#minimap {
-    position: fixed;
-    left: 20px;
-    top: 260px;
-    width: 160px;
-    height: 160px;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid #555;
-    z-index: 10;
-}
-
 /* ---- Mission state panel (TAC-020) ---- */
 #missionPanel {
     position: fixed;
