@@ -39,7 +39,7 @@
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
 
-            // Procedural starfield (particle field, no texture assets)
+            // Procedural starfield
             const starCount = 6000;
             const starGeometry = new THREE.BufferGeometry();
             const starPositions = new Float32Array(starCount * 3);
@@ -60,19 +60,161 @@
             const stars = new THREE.Points(starGeometry, starMaterial);
             scene.add(stars);
 
-            // Placeholder hulls (generic low-poly; not copies of show designs)
+            // Hull meshes keyed by entity id
+            const hullMeshes = {};
+
             function makeHull(color) {
                 const geom = new THREE.BoxGeometry(20, 10, 40);
                 const mat = new THREE.MeshBasicMaterial({ color: color });
                 return new THREE.Mesh(geom, mat);
             }
-            const roci = makeHull(0x3a7bd5); // blue
-            roci.position.set(-70, 0, 0);
-            scene.add(roci);
 
-            const zmeya = makeHull(0xd53a3a); // red
-            zmeya.position.set(70, 0, 0);
-            scene.add(zmeya);
+            // Placeholder hulls (generic low-poly; not copies of show designs)
+            const rociMesh = makeHull(0x3a7bd5); // blue
+            scene.add(rociMesh);
+            hullMeshes['roci'] = rociMesh;
+
+            const zmeyaMesh = makeHull(0xd53a3a); // red
+            scene.add(zmeyaMesh);
+            hullMeshes['zmeya'] = zmeyaMesh;
+
+            // ---- Playback engine ----
+            const PlaybackEngine = (function () {
+                const state = {
+                    dataset: null,
+                    entities: {},   // id -> { type, iff, keyframes: [{t, pos:Vec3, vel:Vec3, q:Quat}] }
+                    duration: 0,
+                    currentTime: 0,
+                    speed: 1.0,
+                    playing: true,
+                };
+
+                function load(json) {
+                    state.dataset = json;
+                    state.duration = json.duration;
+                    state.entities = {};
+                    json.entities.forEach(function (e) {
+                        const kfs = e.keyframes.map(function (k) {
+                            return {
+                                t: k.t,
+                                pos: new THREE.Vector3(k.position[0], k.position[1], k.position[2]),
+                                vel: new THREE.Vector3(k.velocity[0], k.velocity[1], k.velocity[2]),
+                                q: new THREE.Quaternion(k.orientation[0], k.orientation[1], k.orientation[2], k.orientation[3])
+                            };
+                        });
+                        state.entities[e.id] = {
+                            type: e.type,
+                            iff: e.iff,
+                            keyframes: kfs
+                        };
+                    });
+                }
+
+                function getStateAtTime(t) {
+                    const out = {};
+                    for (const id in state.entities) {
+                        const ent = state.entities[id];
+                        const kfs = ent.keyframes;
+                        if (kfs.length === 0) {
+                            out[id] = { active: false };
+                            continue;
+                        }
+                        if (t < kfs[0].t || t > kfs[kfs.length - 1].t) {
+                            out[id] = { active: false };
+                            continue;
+                        }
+                        // Find surrounding keyframes
+                        let i = 0;
+                        while (i < kfs.length - 1 && kfs[i + 1].t < t) i++;
+                        if (i >= kfs.length - 1) {
+                            out[id] = {
+                                active: true,
+                                position: kfs[kfs.length - 1].pos.clone(),
+                                velocity: kfs[kfs.length - 1].vel.clone(),
+                                orientation: kfs[kfs.length - 1].q.clone(),
+                            };
+                            continue;
+                        }
+                        const a = kfs[i];
+                        const b = kfs[i + 1];
+                        const span = b.t - a.t;
+                        const alpha = span > 0 ? (t - a.t) / span : 0;
+
+                        const pos = new THREE.Vector3().copy(a.pos).lerp(b.pos, alpha);
+                        const vel = new THREE.Vector3().copy(a.vel).lerp(b.vel, alpha);
+                        const q = new THREE.Quaternion().copy(a.q).slerp(b.q, alpha);
+
+                        out[id] = {
+                            active: true,
+                            position: pos,
+                            velocity: vel,
+                            orientation: q,
+                        };
+                    }
+                    return out;
+                }
+
+                function getEventsUpTo(t) {
+                    if (!state.dataset) return [];
+                    return state.dataset.events.filter(function (ev) { return ev.t <= t; });
+                }
+
+                function setTime(t) { state.currentTime = Math.max(0, Math.min(t, state.duration)); }
+                function getTime() { return state.currentTime; }
+                function setSpeed(s) { state.speed = s; }
+                function getSpeed() { return state.speed; }
+                function play() { state.playing = true; }
+                function pause() { state.playing = false; }
+                function isPlaying() { return state.playing; }
+                function getDuration() { return state.duration; }
+                function getEntities() { return state.entities; }
+                function getEvents() { return state.dataset ? state.dataset.events : []; }
+
+                return {
+                    load: load,
+                    getStateAtTime: getStateAtTime,
+                    getEventsUpTo: getEventsUpTo,
+                    setTime: setTime,
+                    getTime: getTime,
+                    setSpeed: setSpeed,
+                    getSpeed: getSpeed,
+                    play: play,
+                    pause: pause,
+                    isPlaying: isPlaying,
+                    getDuration: getDuration,
+                    getEntities: getEntities,
+                    getEvents: getEvents,
+                };
+            })();
+
+            window.TacviewPlayback = PlaybackEngine;
+
+            // Load the engagement dataset
+            fetch('data/engagement.json')
+                .then(function (r) { return r.json(); })
+                .then(function (json) {
+                    PlaybackEngine.load(json);
+                    // Initial state
+                    updateMeshes(0);
+                })
+                .catch(function (err) {
+                    console.error('Failed to load dataset:', err);
+                });
+
+            function updateMeshes(t) {
+                const stateMap = PlaybackEngine.getStateAtTime(t);
+                for (const id in hullMeshes) {
+                    const mesh = hullMeshes[id];
+                    const s = stateMap[id];
+                    if (s && s.active) {
+                        mesh.visible = true;
+                        mesh.position.copy(s.position);
+                        mesh.quaternion.copy(s.orientation);
+                    } else {
+                        mesh.visible = false;
+                    }
+                }
+            }
 
             function onResize() {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -81,8 +223,20 @@
             }
             window.addEventListener('resize', onResize);
 
+            let lastT = performance.now();
             function animate() {
                 requestAnimationFrame(animate);
+                const now = performance.now();
+                const dt = (now - lastT) / 1000;
+                lastT = now;
+
+                if (PlaybackEngine.isPlaying() && PlaybackEngine.getDuration() > 0) {
+                    let t = PlaybackEngine.getTime() + dt * PlaybackEngine.getSpeed();
+                    if (t > PlaybackEngine.getDuration()) t = PlaybackEngine.getDuration();
+                    PlaybackEngine.setTime(t);
+                }
+                updateMeshes(PlaybackEngine.getTime());
+
                 controls.update();
                 stars.rotation.y += 0.0005;
                 stars.rotation.x += 0.0002;
