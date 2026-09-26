@@ -162,12 +162,38 @@
         .event-log-entry:hover {
             background: rgba(255,255,255,0.1);
         }
+        .entity-label {
+            position: absolute;
+            color: #fff;
+            font-family: monospace;
+            font-size: 12px;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 6px;
+            border: 1px solid currentColor;
+            pointer-events: none;
+            white-space: nowrap;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+        }
+        #minimap {
+            position: fixed;
+            left: 20px;
+            top: 260px;
+            width: 160px;
+            height: 160px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid #555;
+            z-index: 10;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
 </head>
 <body>
     <div id="container"></div>
+
+    <div id="labelsContainer"></div>
+    <canvas id="minimap" width="160" height="160"></canvas>
 
     <div id="hud-roci" class="hud-panel">
         <div class="hud-title">ROCI</div>
@@ -327,6 +353,99 @@
                     depthWrite: false,
                 });
                 return new THREE.Mesh(geom, mat);
+            }
+
+            // Labels and minimap
+            const labels = {};
+            const minimapCanvas = document.getElementById('minimap');
+            const minimapCtx = minimapCanvas.getContext('2d');
+            let minimapBounds = null;
+
+            function computeMinimapBounds() {
+                const ents = PlaybackEngine.getEntities();
+                let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+                for (const id in ents) {
+                    const kfs = ents[id].keyframes;
+                    for (const k of kfs) {
+                        if (k.pos.x < minX) minX = k.pos.x;
+                        if (k.pos.x > maxX) maxX = k.pos.x;
+                        if (k.pos.z < minZ) minZ = k.pos.z;
+                        if (k.pos.z > maxZ) maxZ = k.pos.z;
+                    }
+                }
+                const pad = 20;
+                minimapBounds = {
+                    minX: minX - pad, maxX: maxX + pad,
+                    minZ: minZ - pad, maxZ: maxZ + pad
+                };
+            }
+
+            function drawMinimap(t) {
+                if (!minimapBounds) return;
+                const ctx = minimapCtx;
+                const w = minimapCanvas.width;
+                const h = minimapCanvas.height;
+                ctx.fillStyle = 'rgba(0,0,0,0.85)';
+                ctx.fillRect(0, 0, w, h);
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(0, 0, w, h);
+                const stateMap = PlaybackEngine.getStateAtTime(t);
+                function project(x, z) {
+                    const u = (x - minimapBounds.minX) / (minimapBounds.maxX - minimapBounds.minX);
+                    const v = (z - minimapBounds.minZ) / (minimapBounds.maxZ - minimapBounds.minZ);
+                    return [u * w, v * h];
+                }
+                const ships = ['roci', 'zmeya'];
+                ships.forEach(function (id) {
+                    const s = stateMap[id];
+                    if (s && s.active) {
+                        const [px, py] = project(s.position.x, s.position.z);
+                        ctx.fillStyle = id === 'roci' ? '#3a7bd5' : '#d53a3a';
+                        ctx.beginPath();
+                        ctx.arc(px, py, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '10px monospace';
+                        ctx.fillText(id.toUpperCase(), px + 6, py + 4);
+                    }
+                });
+                const ents = PlaybackEngine.getEntities();
+                for (const id in ents) {
+                    if (ents[id].type === 'torpedo') {
+                        const s = stateMap[id];
+                        if (s && s.active) {
+                            const [px, py] = project(s.position.x, s.position.z);
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.beginPath();
+                            ctx.arc(px, py, 2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+
+            function updateLabels() {
+                const t = PlaybackEngine.getTime();
+                const stateMap = PlaybackEngine.getStateAtTime(t);
+                const widthHalf = window.innerWidth / 2;
+                const heightHalf = window.innerHeight / 2;
+                camera.updateMatrixWorld();
+                for (const id in labels) {
+                    const s = stateMap[id];
+                    const el = labels[id];
+                    if (s && s.active) {
+                        const pos = s.position.clone().project(camera);
+                        if (pos.z > 1) { el.style.display = 'none'; continue; }
+                        const x = (pos.x * widthHalf) + widthHalf;
+                        const y = -(pos.y * heightHalf) + heightHalf;
+                        el.style.left = x + 'px';
+                        el.style.top = y + 'px';
+                        el.style.display = 'block';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                }
             }
 
             // ---- Playback engine ----
@@ -749,6 +868,18 @@
                             }
                         }
                     }
+                    // Compute minimap bounds and create ship labels
+                    computeMinimapBounds();
+                    const labelsContainer = document.getElementById('labelsContainer');
+                    labelsContainer.innerHTML = '';
+                    ['roci', 'zmeya'].forEach(function (id) {
+                        const el = document.createElement('div');
+                        el.className = 'entity-label';
+                        el.textContent = id === 'roci' ? 'ROCI' : 'ZMEYA';
+                        el.style.color = id === 'roci' ? '#7fd0ff' : '#ff8080';
+                        labelsContainer.appendChild(el);
+                        labels[id] = el;
+                    });
                     // Populate event log
                     eventLogEntries.length = 0;
                     const eventLogList = document.getElementById('eventLogList');
@@ -910,6 +1041,8 @@
                 updateTimelineUI();
                 updateHUD();
                 updateLog();
+                updateLabels();
+                drawMinimap(PlaybackEngine.getTime());
                 CameraMode.update(PlaybackEngine.getTime());
 
                 controls.update();
