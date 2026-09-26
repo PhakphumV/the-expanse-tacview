@@ -294,3 +294,141 @@ canvas { display: block; }
     font-size: 12px;
     line-height: 1.5;
 }
+
+/* ---- Mission header (TAC-024) ---- */
+#missionHeader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0) 100%);
+    padding: 14px 20px 22px;
+    z-index: 10;
+    pointer-events: none;
+    font-family: 'Courier New', monospace;
+}
+#missionTitle {
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #ffffff;
+    text-shadow: 0 0 6px rgba(120,180,255,0.4);
+}
+#replayStatusRow {
+    margin-top: 6px;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    color: #cccccc;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+#liveDot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff3333;
+    box-shadow: 0 0 8px #ff3333;
+    animation: livePulse 1.4s ease-in-out infinite;
+}
+@keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.85); }
+}
+#replayStatus {
+    color: #ff8080;
+    font-weight: bold;
+}
+.timeGroup {
+    margin-left: 8px;
+    color: #888;
+}
+.timeGroup span {
+    color: #7fd0ff;
+    font-weight: bold;
+    margin-left: 4px;
+}
+
+/* ---- IFF legend (TAC-024) ---- */
+#iffLegend {
+    position: fixed;
+    top: 100px;
+    left: 20px;
+    background: rgba(0,0,0,0.85);
+    border: 1px solid #444;
+    padding: 8px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #ccc;
+    z-index: 10;
+    letter-spacing: 1px;
+}
+.iff-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+}
+.iff-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(255,255,255,0.5);
+}
+.iff-swatch.roci  { background: #3a7bd5; }
+.iff-swatch.zmeya { background: #d53a3a; }
+.iff-side {
+    color: #888;
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+.iff-hint {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #333;
+    color: #66ffaa;
+    font-size: 10px;
+}
+
+/* ---- Engagement summary (TAC-024) ---- */
+#engagementSummary {
+    position: fixed;
+    top: 170px;
+    left: 20px;
+    width: 190px;
+    background: rgba(0,0,0,0.85);
+    border: 1px solid #444;
+    padding: 8px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #ccc;
+    z-index: 10;
+    letter-spacing: 1px;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    border-bottom: 1px solid #222;
+}
+.summary-row .k {
+    color: #888;
+}
+.summary-row .v {
+    color: #ffcc00;
+    font-weight: bold;
+}
+#engagementSummary .summary-row:last-child {
+    border-bottom: none;
+}
+
+/* ---- Responsive: stack left panels on narrower viewports ---- */
+@media (max-width: 1280px) {
+    #iffLegend, #engagementSummary {
+        left: 10px;
+        font-size: 10px;
+    }
+    #iffLegend { top: 90px; }
+    #engagementSummary { top: 150px; width: 170px; }
+}

@@ -16,6 +16,7 @@ import { createHUD } from './hud.js';
 import { createTimeline } from './timeline.js';
 import { createEventLog } from './event-log.js';
 import { createMinimap } from './minimap.js';
+import { createPresentation, createRangeRings } from './presentation.js';
 
 const container = document.getElementById('container');
 const { scene, camera, controls, tickStars, render } = createScene(container);
@@ -33,6 +34,8 @@ const entities = createEntitiesManager(scene, playback);
 const weapons = createWeaponsManager(scene, playback, entities);
 const effects = createEffectsManager(scene, playback);
 const labels = createLabels(playback, camera);
+const presentation = createPresentation(playback);
+const rangeRings = createRangeRings(scene, playback);
 
 entities.createShips();
 
@@ -75,15 +78,18 @@ fetch('data/engagement.json')
         labels.createShipLabels();
         timeline.populateMarkers();
         eventLog.populate();
+        rangeRings.build();
         const t0 = playback.getTime();
         entities.update(t0);
         weapons.update(t0, playback.getStateAtTime(t0));
         effects.update(t0);
+        rangeRings.update(t0);
         timeline.updateUI();
         hud.update();
         eventLog.update();
         labels.update();
         minimap.draw(t0);
+        presentation.update();
     })
     .catch((err) => console.error('Failed to load dataset:', err));
 
@@ -105,12 +111,14 @@ function animate() {
     const stateMap = entities.update(t);
     weapons.update(t, stateMap);
     effects.update(t);
+    rangeRings.update(t);
     timeline.updateUI();
     hud.update();
     eventLog.update();
     labels.update();
     minimap.draw(t);
     cameraCtl.update(t);
+    presentation.update();
 
     tickStars();
     render();

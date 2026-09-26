@@ -239,6 +239,7 @@ function checkSyntax() {
         'js/weapons.js', 'js/effects.js', 'js/camera.js', 'js/hud.js',
         'js/timeline.js', 'js/event-log.js', 'js/minimap.js', 'js/main.js',
         'js/ship-models.js',
+        'js/presentation.js',
         'scripts/browser-smoke.js',
         'scripts/resource-audit.js',
     ];

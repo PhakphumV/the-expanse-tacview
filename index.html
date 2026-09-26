@@ -14,6 +14,28 @@
     <div id="labelsContainer"></div>
     <canvas id="minimap" width="160" height="160"></canvas>
 
+    <!-- Mission header + live replay indicator -->
+    <div id="missionHeader">
+        <div id="missionTitle">EXPANSE TACVIEW &mdash; LIVE REPLAY</div>
+        <div id="replayStatusRow">
+            <span id="liveDot"></span>
+            <span id="replayStatus">REPLAYING</span>
+            <span class="timeGroup">ELAPSED <span id="elapsedReadout">00:00.0</span></span>
+            <span class="timeGroup">REMAINING <span id="remainingReadout">-00:00.0</span></span>
+        </div>
+    </div>
+
+    <!-- IFF / side legend -->
+    <div id="iffLegend">
+        <div class="iff-row"><span class="iff-swatch roci"></span>ROCI &mdash; <span class="iff-side">BLUE</span></div>
+        <div class="iff-row"><span class="iff-swatch zmeya"></span>ZMEYA &mdash; <span class="iff-side">RED</span></div>
+        <div class="iff-hint">Range ring: 10 km</div>
+    </div>
+
+    <!-- Engagement summary -->
+    <div id="engagementSummary"></div>
+
+    <!-- Existing HUD panels -->
     <div id="hud-roci" class="hud-panel">
         <div class="hud-title">ROCI</div>
         <div id="roci-lock" class="hud-lock off">LOCK: OFF</div>
