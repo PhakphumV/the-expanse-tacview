@@ -242,6 +242,7 @@ function checkSyntax() {
         'js/presentation.js',
         'scripts/browser-smoke.js',
         'scripts/resource-audit.js',
+        'vendor/OrbitControls.js',
     ];
     for (const m of modules) {
         try {
