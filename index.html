@@ -33,20 +33,30 @@
         <div>ASP: <span id="zmeya-asp">---</span>&deg;</div>
     </div>
 
+    <div id="missionPanel">
+        <span class="mission-label">MISSION:</span>
+        <span id="missionState" class="standby">STANDBY</span>
+    </div>
+
     <div id="eventLog" class="event-log">
         <div class="event-log-title">EVENT LOG</div>
         <div id="eventLogList"></div>
     </div>
 
     <div id="timeline">
-        <button id="playPauseBtn">Pause</button>
+        <button id="restartBtn" title="Restart (R)">|&laquo;</button>
+        <button id="jumpStartBtn" title="Jump to start (Home/0)">|<</button>
+        <button id="prevEventBtn" title="Previous event (Left/J)">&laquo;</button>
+        <button id="playPauseBtn" title="Play/Pause (Space)">Pause</button>
+        <button id="nextEventBtn" title="Next event (Right/L)">&raquo;</button>
+        <button id="jumpEndBtn" title="Jump to end (End)">>|</button>
         <span id="timeReadout">T+00:00.0</span>
         <div id="scrubBar">
             <div id="scrubProgress"></div>
             <div id="scrubHandle"></div>
             <div id="eventMarkers"></div>
         </div>
-        <select id="speedSelect">
+        <select id="speedSelect" title="Playback speed">
             <option value="0.25">0.25x</option>
             <option value="0.5">0.5x</option>
             <option value="1" selected>1x</option>
@@ -57,6 +67,33 @@
         <button id="modeChaseBtn" class="mode-btn">Chase</button>
         <button id="modeTopBtn" class="mode-btn">Top</button>
         <button id="trailsBtn">Trails: ON</button>
+        <button id="helpBtn" title="Keyboard shortcuts (?)">?</button>
+    </div>
+
+    <div id="helpOverlay" style="display:none;">
+        <div id="helpContent">
+            <div id="helpHeader">
+                <span>KEYBOARD SHORTCUTS</span>
+                <button id="helpClose">&times;</button>
+            </div>
+            <table>
+                <tr><td>Space</td><td>Play / Pause</td></tr>
+                <tr><td>R</td><td>Restart (jump to start & resume)</td></tr>
+                <tr><td>Home / 0</td><td>Jump to start</td></tr>
+                <tr><td>End</td><td>Jump to end</td></tr>
+                <tr><td>&larr; / J</td><td>Previous event</td></tr>
+                <tr><td>&rarr; / L</td><td>Next event</td></tr>
+                <tr><td>T</td><td>Toggle trails</td></tr>
+                <tr><td>1 / 2 / 3</td><td>Orbit / Chase / Top-Down camera</td></tr>
+                <tr><td>?</td><td>Toggle this help</td></tr>
+                <tr><td>Esc</td><td>Close this help</td></tr>
+            </table>
+            <p class="helpNote">
+                Mission state: <b>STANDBY</b> before the first event,
+                <b>ENGAGEMENT</b> during active combat,
+                <b>RESOLUTION</b> after the last intercept or hit.
+            </p>
+        </div>
     </div>
 
     <script type="module" src="js/main.js"></script>

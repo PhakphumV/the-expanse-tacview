@@ -12,7 +12,7 @@ function formatAngle(deg) { return deg.toFixed(1); }
 
 function setVal(id, v) { document.getElementById(id).textContent = v; }
 
-export function createHUD(playbackEngine, telemetry, lockState) {
+export function createHUD(playbackEngine, telemetry, lockState, missionState) {
     function updateShip(id, state, derived) {
         if (derived && state && state.active) {
             const vel = state.velocity.length();
@@ -42,12 +42,22 @@ export function createHUD(playbackEngine, telemetry, lockState) {
         }
     }
 
+    function updateMissionState() {
+        const el = document.getElementById('missionState');
+        if (!el || !missionState) return;
+        const s = missionState.getState();
+        if (el.textContent !== s) el.textContent = s;
+        el.classList.remove('standby', 'engagement', 'resolution');
+        el.classList.add(s.toLowerCase());
+    }
+
     function update() {
         const t = playbackEngine.getTime();
         const derived = telemetry.getDerived(t);
         const stateMap = playbackEngine.getStateAtTime(t);
         SHIP_IDS.forEach((id) => updateShip(id, stateMap[id], derived));
         updateLock();
+        updateMissionState();
     }
 
     return { update };

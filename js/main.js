@@ -7,6 +7,7 @@ import { createScene } from './scene.js';
 import { createPlaybackEngine } from './playback.js';
 import { createTelemetry } from './telemetry.js';
 import { createLockState } from './lock-state.js';
+import { createMissionState } from './mission-state.js';
 import { createEntitiesManager, createLabels } from './entities.js';
 import { createWeaponsManager } from './weapons.js';
 import { createEffectsManager } from './effects.js';
@@ -22,11 +23,12 @@ const { scene, camera, controls, tickStars, render } = createScene(container);
 const playback = createPlaybackEngine();
 const telemetry = createTelemetry(playback);
 const lockState = createLockState(playback);
+const missionState = createMissionState(playback);
 const cameraCtl = createCameraController(camera, controls, playback);
 const timeline = createTimeline(playback);
 const eventLog = createEventLog(playback, timeline.formatTime);
 const minimap = createMinimap(playback);
-const hud = createHUD(playback, telemetry, lockState);
+const hud = createHUD(playback, telemetry, lockState, missionState);
 const entities = createEntitiesManager(scene, playback);
 const weapons = createWeaponsManager(scene, playback, entities);
 const effects = createEffectsManager(scene, playback);
@@ -50,12 +52,22 @@ window.addEventListener('keydown', (e) => {
     if (e.key === 't' || e.key === 'T') setTrailsVisible(!entities.getTrailsVisible());
 });
 
+// Camera mode keyboard shortcuts (1/2/3).
+window.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (e.key === '1') cameraCtl.setMode('orbit');
+    else if (e.key === '2') cameraCtl.setMode('chase');
+    else if (e.key === '3') cameraCtl.setMode('top');
+});
+
 // Load dataset, build per-entity meshes, populate UI
 fetch('data/engagement.json')
     .then((r) => r.json())
     .then((json) => {
         playback.load(json);
         lockState.build();
+        missionState.build();
         entities.loadEntities();
         weapons.loadWeapons();
         effects.loadBursts();

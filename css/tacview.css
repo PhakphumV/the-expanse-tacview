@@ -197,3 +197,100 @@ canvas { display: block; }
     border: 1px solid #555;
     z-index: 10;
 }
+
+/* ---- Mission state panel (TAC-020) ---- */
+#missionPanel {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.88);
+    border: 1px solid #555;
+    padding: 8px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.mission-label {
+    color: #888;
+    font-weight: normal;
+}
+#missionState {
+    font-weight: bold;
+    padding: 2px 8px;
+    border: 1px solid currentColor;
+}
+#missionState.standby     { color: #888; background: rgba(60, 60, 60, 0.4); }
+#missionState.engagement  { color: #ffcc00; background: rgba(80, 60, 0, 0.5); box-shadow: 0 0 8px #ffcc00; }
+#missionState.resolution  { color: #ff8080; background: rgba(80, 0, 0, 0.5); }
+
+/* ---- Help overlay (TAC-020) ---- */
+#helpBtn {
+    background: #2a2a2a !important;
+    border-color: #888 !important;
+    font-weight: bold;
+}
+#helpOverlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.78);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#helpContent {
+    background: #111;
+    border: 1px solid #888;
+    padding: 20px 28px;
+    font-family: 'Courier New', monospace;
+    color: #fff;
+    min-width: 420px;
+    max-width: 90%;
+}
+#helpHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #555;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    font-size: 14px;
+}
+#helpClose {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #555;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 8px;
+}
+#helpClose:hover { background: #333; }
+#helpContent table {
+    border-collapse: collapse;
+    width: 100%;
+}
+#helpContent td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #222;
+}
+#helpContent td:first-child {
+    color: #ffcc00;
+    font-weight: bold;
+    width: 35%;
+    white-space: nowrap;
+}
+.helpNote {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid #444;
+    color: #aaa;
+    font-size: 12px;
+    line-height: 1.5;
+}

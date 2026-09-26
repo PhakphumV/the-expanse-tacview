@@ -79,6 +79,38 @@ export function createPlaybackEngine() {
     function getEvents() { return state.dataset ? state.dataset.events : []; }
     function getDataset() { return state.dataset; }
 
+    // ---- Navigation helpers (TAC-020) ----
+    // Jump to start of engagement. Playing state is preserved.
+    function jumpToStart() { setTime(0); }
+    // Jump to end of engagement. Playing state is preserved.
+    function jumpToEnd() { setTime(state.duration); }
+    // Restart: jump to t=0 and resume playback if paused.
+    function restart() { setTime(0); state.playing = true; }
+    // Seek to the previous event strictly before currentTime.
+    // Returns the event's t, or null if there is no earlier event.
+    function prevEvent() {
+        const events = getEvents();
+        let target = null;
+        for (const ev of events) {
+            if (ev.t < state.currentTime - 1e-6) target = ev.t;
+            else break;
+        }
+        if (target !== null) setTime(target);
+        return target;
+    }
+    // Seek to the next event strictly after currentTime.
+    // Returns the event's t, or null if there is no later event.
+    function nextEvent() {
+        const events = getEvents();
+        for (const ev of events) {
+            if (ev.t > state.currentTime + 1e-6) {
+                setTime(ev.t);
+                return ev.t;
+            }
+        }
+        return null;
+    }
+
     return {
         load,
         getStateAtTime,
@@ -94,5 +126,10 @@ export function createPlaybackEngine() {
         getEntities,
         getEvents,
         getDataset,
+        jumpToStart,
+        jumpToEnd,
+        restart,
+        prevEvent,
+        nextEvent,
     };
 }
