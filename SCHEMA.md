@@ -84,37 +84,73 @@ An entity is **active** in the closed interval
 This convention naturally supports torpedoes launched at t=12 and
 destroyed at t=18: their keyframes simply span `[12, 18]`.
 
-## Event object
+## Event object (structured model)
 
 ```json
 {
-  "t": 12.5,
-  "type": "launch",
-  "entity_id": "torp_01",
-  "detail": "Roci launches torpedo at Zmeya"
+  "t":          12.5,
+  "type":       "launch",
+  "actor":      "roci",
+  "target":     "zmeya",
+  "result":     null,
+  "description": "Roci launches torpedo at Zmeya"
 }
 ```
 
-- `t` (number, seconds): timestamp.
-- `type` (string, required): one of the types listed below.
-- `entity_id` (string, optional): the entity this event refers to.
-- `detail` (string, optional): human-readable description shown in the
-  event log and as marker tooltips.
+### Required fields
 
-### Event types used by the application
+- `t` (number, seconds): event timestamp relative to engagement start.
+  Must be a finite number.
+- `type` (string, required, must be in `EventModel.VALID_TYPES`): one of
+  the types listed below.
 
-| Type              | Purpose                                         |
-| ----------------- | ----------------------------------------------- |
-| `launch`          | Munition spawn                                  |
-| `pdc_engage`      | PDC point-defense opens fire                    |
-| `intercept`       | PDC successfully defeats an inbound munition   |
-| `hit`             | Munition impacts a ship                         |
-| `miss`            | Munition passes without effect                  |
-| `maneuver_start`  | Ship begins a named maneuver                    |
-| `maneuver_end`    | Ship completes a named maneuver                 |
-| `lock`            | Targeting lock acquired                         |
-| `unlock`          | Targeting lock lost                             |
+### Optional fields
 
-`lock`/`unlock` pairs define closed intervals consumed by the radar lock
-indicator. `intercept`/`hit` events spawn procedural burst effects at the
-referenced entity's position.
+- `actor` (string): entity id that performed the action. Used by the
+  event log, mission state, burst positioning, and lock indicator.
+- `target` (string): entity id that was acted upon. May be `null` for
+  self-referential events like `maneuver_start`/`maneuver_end` or
+  `unlock`.
+- `result` (string): combat outcome for terminal events. One of
+  `"hit"`, `"intercept"`, `"miss"`, or `null`.
+- `description` (string): human-readable summary used by the event
+  log and timeline marker tooltips. When omitted, a fallback is
+  composed from the other fields.
+
+### Event-type catalogue
+
+| Type             | actor          | target          | result     | Meaning                                |
+| ---------------- | -------------- | --------------- | ---------- | -------------------------------------- |
+| `launch`         | launching ship | target ship     | `null`     | Munition spawned                       |
+| `pdc_engage`     | firing ship    | inbound torpedo | `null`     | Point-defense opens fire               |
+| `maneuver_start` | maneuvering    | `null`          | `null`     | Ship begins a named maneuver           |
+| `maneuver_end`   | maneuvering    | `null`          | `null`     | Ship completes a named maneuver        |
+| `lock`           | locking ship   | target ship     | `null`     | Targeting lock acquired                |
+| `unlock`         | releasing ship | `null`          | `null`     | Targeting lock lost                    |
+| `intercept`      | torpedo        | intercepting    | `"intercept"` | PDC successfully defeats munition   |
+| `hit`            | torpedo        | struck ship     | `"hit"`    | Munition impacts a ship                |
+| `miss`           | torpedo        | intended target | `"miss"`   | Munition passes without effect         |
+
+### Shared module
+
+All event consumption goes through `js/event-model.js`, which provides:
+
+- `EventModel.normalize(raw)` / `EventModel.normalizeAll(rawList)` —
+  validate and coerce an event (or list) into the canonical shape.
+- `EventModel.byType / byActor / byTarget / byResult(events, key)` —
+  filtered views over an event list.
+- `EventModel.prevAt(events, t)` / `EventModel.nextAt(events, t)` —
+  deterministic navigation to the event strictly before / after a
+  given time.
+- `EventModel.describe(ev)` — display string for the event log.
+- `EventModel.typeClass(ev)` — CSS hook for timeline markers.
+
+Consumers (timeline markers, event log, lock indicator, burst
+effects, mission state) all read from `playbackEngine.getEvents()`
+and rely on the schema above; they do not maintain their own copies
+of event definitions.
+
+`lock`/`unlock` pairs define closed intervals consumed by the radar
+lock indicator. `intercept`/`hit` events spawn procedural burst
+effects at the affected entity's position (target for `hit`, actor
+for `intercept`).

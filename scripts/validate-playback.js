@@ -45,6 +45,11 @@ const VEL_TOLERANCE = 200;     // m/s
 const CLOSURE_TOLERANCE = 50;  // m/s
 const ORIENT_DOT_MIN = 0.9;
 
+const VALID_EVENT_TYPES = new Set([
+    'launch', 'pdc_engage', 'maneuver_start', 'maneuver_end',
+    'lock', 'unlock', 'intercept', 'hit', 'miss',
+]);
+
 // ---- Minimal Vec3 / Quat substitutes ----
 class Vec3 {
     constructor(x=0, y=0, z=0) { this.x=x; this.y=y; this.z=z; }
@@ -203,6 +208,27 @@ function checkShape() {
         }
     }
     if (!Array.isArray(dataset.events)) return 'missing events array';
+    // Validate the structured event schema (TAC-021).
+    for (const [i, ev] of dataset.events.entries()) {
+        if (!ev || typeof ev !== 'object') return `events[${i}] not an object`;
+        if (typeof ev.t !== 'number' || !isFinite(ev.t))
+            return `events[${i}].t not a finite number`;
+        if (typeof ev.type !== 'string' || !VALID_EVENT_TYPES.has(ev.type))
+            return `events[${i}].type "${ev.type}" not in VALID_EVENT_TYPES`;
+        if ('actor' in ev && ev.actor !== null && typeof ev.actor !== 'string')
+            return `events[${i}].actor must be string or null`;
+        if ('target' in ev && ev.target !== null && typeof ev.target !== 'string')
+            return `events[${i}].target must be string or null`;
+        if ('result' in ev && ev.result !== null && typeof ev.result !== 'string')
+            return `events[${i}].result must be string or null`;
+        if ('description' in ev && typeof ev.description !== 'string')
+            return `events[${i}].description must be a string`;
+    }
+    // Events should be sorted by t for deterministic prev/next navigation.
+    for (let i = 1; i < dataset.events.length; i++) {
+        if (dataset.events[i].t < dataset.events[i-1].t - 1e-6)
+            return `events[${i}].t (${dataset.events[i].t}) < events[${i-1}].t (${dataset.events[i-1].t}): events must be time-ordered`;
+    }
     return null;
 }
 
@@ -361,9 +387,14 @@ function checkLockWindows() {
 function checkBurstPositions() {
     for (const ev of dataset.events) {
         if (ev.type !== 'intercept' && ev.type !== 'hit') continue;
-        const s = getStateAtTime(ev.entity_id, ev.t);
+        // Burst entity: target for `hit`, actor for `intercept`
+        const burstId = ev.type === 'hit' ? ev.target : ev.actor;
+        if (!burstId) {
+            return `event ${ev.type} at t=${ev.t.toFixed(2)}s: missing burst entity id (need target for hit or actor for intercept)`;
+        }
+        const s = getStateAtTime(burstId, ev.t);
         if (!s) {
-            return `event ${ev.type} at t=${ev.t.toFixed(2)}s: entity ${ev.entity_id} not active`;
+            return `event ${ev.type} at t=${ev.t.toFixed(2)}s: burst entity ${burstId} not active`;
         }
     }
     return null;

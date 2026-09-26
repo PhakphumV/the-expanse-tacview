@@ -136,7 +136,10 @@ export function createTimeline(playbackEngine) {
             const m = document.createElement('div');
             m.className = 'eventMarker ' + ev.type;
             m.style.left = (ev.t / dur * 100) + '%';
-            m.title = ev.type + (ev.detail ? ': ' + ev.detail : '');
+            m.title = (ev.description || ev.type) +
+                      (ev.actor ? ' [' + ev.actor.toUpperCase() + ']' : '') +
+                      (ev.target ? ' -> ' + ev.target.toUpperCase() : '') +
+                      (ev.result ? ' (' + ev.result + ')' : '');
             eventMarkersEl.appendChild(m);
         });
     }

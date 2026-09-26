@@ -22,20 +22,22 @@ export function createEffectsManager(scene, playbackEngine) {
     const bursts = [];
 
     function loadBursts() {
-        const dataset = playbackEngine.getDataset();
-        if (!dataset) return;
-        for (const ev of dataset.events) {
-            if (ev.type === 'intercept' || ev.type === 'hit') {
-                const sMap = playbackEngine.getStateAtTime(ev.t);
-                const s = sMap[ev.entity_id];
-                if (s && s.active) {
-                    const color = ev.type === 'hit' ? 0xff3333 : 0xffaa33;
-                    const mesh = createBurstMesh(color);
-                    mesh.position.copy(s.position);
-                    mesh.visible = false;
-                    scene.add(mesh);
-                    bursts.push({ mesh, startTime: ev.t, duration: BURST_DURATION });
-                }
+        const events = playbackEngine.getEvents();
+        for (const ev of events) {
+            if (ev.type !== 'intercept' && ev.type !== 'hit') continue;
+            // Burst position: at the target for `hit` (ship struck),
+            // at the actor for `intercept` (torpedo destroyed).
+            const burstEntityId = ev.type === 'hit' ? ev.target : ev.actor;
+            if (!burstEntityId) continue;
+            const sMap = playbackEngine.getStateAtTime(ev.t);
+            const s = sMap[burstEntityId];
+            if (s && s.active) {
+                const color = ev.type === 'hit' ? 0xff3333 : 0xffaa33;
+                const mesh = createBurstMesh(color);
+                mesh.position.copy(s.position);
+                mesh.visible = false;
+                scene.add(mesh);
+                bursts.push({ mesh, startTime: ev.t, duration: BURST_DURATION });
             }
         }
     }

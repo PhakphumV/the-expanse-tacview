@@ -12,8 +12,13 @@ export function createEventLog(playbackEngine, formatTime) {
         const events = playbackEngine.getEvents();
         events.forEach(function (ev) {
             const entry = document.createElement('div');
-            entry.className = 'event-log-entry';
-            entry.textContent = formatTime(ev.t) + ' — ' + (ev.detail || ev.type);
+            entry.className = 'event-log-entry ' + ev.type;
+            const desc = ev.description ||
+                [ev.actor && ev.actor.toUpperCase(), ev.type,
+                 ev.target && ('-> ' + ev.target.toUpperCase()),
+                 ev.result && ('(' + ev.result + ')')]
+                    .filter(Boolean).join(' ');
+            entry.textContent = formatTime(ev.t) + ' — ' + desc;
             entry.title = 'Jump to ' + formatTime(ev.t);
             entry.addEventListener('click', function () {
                 playbackEngine.setTime(ev.t);

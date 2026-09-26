@@ -888,110 +888,146 @@
     {
       "t": 10.0,
       "type": "launch",
-      "entity_id": "torp_01",
-      "detail": "Roci launches torpedo at Zmeya"
+      "description": "Roci launches torpedo at Zmeya",
+      "result": null,
+      "actor": "roci",
+      "target": "zmeya"
     },
     {
       "t": 15.0,
       "type": "launch",
-      "entity_id": "torp_02",
-      "detail": "Zmeya launches torpedo at Roci"
+      "description": "Zmeya launches torpedo at Roci",
+      "result": null,
+      "actor": "zmeya",
+      "target": "roci"
     },
     {
       "t": 20.0,
       "type": "maneuver_start",
-      "entity_id": "roci",
-      "detail": "Roci begins high-G roll/burn"
+      "description": "Roci begins high-G roll/burn",
+      "result": null,
+      "actor": "roci",
+      "target": null
     },
     {
       "t": 20.0,
       "type": "hit",
-      "entity_id": "torp_01",
-      "detail": "Torpedo impacts Zmeya hull"
+      "description": "Torpedo impacts Zmeya hull",
+      "result": "hit",
+      "actor": "torp_01",
+      "target": "zmeya"
     },
     {
       "t": 22.0,
       "type": "pdc_engage",
-      "entity_id": "roci",
-      "detail": "Roci PDC engages inbound torpedo"
+      "description": "Roci PDC engages inbound torpedo",
+      "result": null,
+      "actor": "roci",
+      "target": "torp_02"
     },
     {
       "t": 25.0,
       "type": "hit",
-      "entity_id": "torp_02",
-      "detail": "Torpedo impacts Roci hull"
+      "description": "Torpedo impacts Roci hull",
+      "result": "hit",
+      "actor": "torp_02",
+      "target": "roci"
     },
     {
       "t": 25.0,
       "type": "maneuver_start",
-      "entity_id": "zmeya",
-      "detail": "Zmeya begins evasive maneuver"
+      "description": "Zmeya begins evasive maneuver",
+      "result": null,
+      "actor": "zmeya",
+      "target": null
     },
     {
       "t": 30.0,
       "type": "launch",
-      "entity_id": "torp_03",
-      "detail": "Roci launches second torpedo"
+      "description": "Roci launches second torpedo",
+      "result": null,
+      "actor": "roci",
+      "target": "zmeya"
     },
     {
       "t": 30.0,
       "type": "maneuver_end",
-      "entity_id": "roci",
-      "detail": "Roci levels out"
+      "description": "Roci levels out",
+      "result": null,
+      "actor": "roci",
+      "target": null
     },
     {
       "t": 34.0,
       "type": "pdc_engage",
-      "entity_id": "zmeya",
-      "detail": "Zmeya PDC engages inbound torpedo"
+      "description": "Zmeya PDC engages inbound torpedo",
+      "result": null,
+      "actor": "zmeya",
+      "target": "torp_03"
     },
     {
       "t": 35.0,
       "type": "intercept",
-      "entity_id": "torp_03",
-      "detail": "PDC intercepts torpedo"
+      "description": "PDC intercepts torpedo",
+      "result": "intercept",
+      "actor": "torp_03",
+      "target": "zmeya"
     },
     {
       "t": 35.0,
       "type": "maneuver_end",
-      "entity_id": "zmeya",
-      "detail": "Zmeya levels out"
+      "description": "Zmeya levels out",
+      "result": null,
+      "actor": "zmeya",
+      "target": null
     },
     {
       "t": 45.0,
       "type": "lock",
-      "entity_id": "zmeya",
-      "detail": "Roci acquires weapons lock on Zmeya"
+      "description": "Roci acquires weapons lock on Zmeya",
+      "result": null,
+      "actor": "roci",
+      "target": "zmeya"
     },
     {
       "t": 50.0,
       "type": "miss",
-      "entity_id": "torp_03",
-      "detail": "Debris from intercept passes Roci"
+      "description": "Debris from intercept passes Roci",
+      "result": "miss",
+      "actor": "torp_03",
+      "target": "roci"
     },
     {
       "t": 70.0,
       "type": "launch",
-      "entity_id": "torp_04",
-      "detail": "Zmeya launches final torpedo"
+      "description": "Zmeya launches final torpedo",
+      "result": null,
+      "actor": "zmeya",
+      "target": "roci"
     },
     {
       "t": 74.0,
       "type": "pdc_engage",
-      "entity_id": "roci",
-      "detail": "Roci PDC engages final torpedo"
+      "description": "Roci PDC engages final torpedo",
+      "result": null,
+      "actor": "roci",
+      "target": "torp_04"
     },
     {
       "t": 75.0,
       "type": "intercept",
-      "entity_id": "torp_04",
-      "detail": "PDC intercepts torpedo"
+      "description": "PDC intercepts torpedo",
+      "result": "intercept",
+      "actor": "torp_04",
+      "target": "roci"
     },
     {
       "t": 85.0,
       "type": "unlock",
-      "entity_id": "zmeya",
-      "detail": "Zmeya drive goes dark"
+      "description": "Zmeya drive goes dark",
+      "result": null,
+      "actor": "roci",
+      "target": "zmeya"
     }
   ]
 }
