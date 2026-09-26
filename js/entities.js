@@ -1,17 +1,14 @@
 // js/entities.js
 // Ship hull meshes, fading trails, and billboarded 2D entity labels.
 // Weapons (torpedoes, PDC tracers) live in js/weapons.js.
+// Hull geometry comes from js/ship-models.js (procedural silhouettes).
+
+import { createRociModel, createZmeyaModel } from './ship-models.js';
 
 const THREE = window.THREE;
 
 const TRAIL_SECONDS = 2.0;
 const TRAIL_SAMPLES = 30;
-
-function makeHull(color) {
-    const geom = new THREE.BoxGeometry(20, 10, 40);
-    const mat = new THREE.MeshBasicMaterial({ color });
-    return new THREE.Mesh(geom, mat);
-}
 
 function createTrail(color) {
     const geom = new THREE.BufferGeometry();
@@ -31,11 +28,11 @@ export function createEntitiesManager(scene, playbackEngine) {
 
     // Ship meshes created up-front; trails are created per entity in load().
     function createShips() {
-        const rociMesh = makeHull(0x3a7bd5);
+        const rociMesh = createRociModel();
         scene.add(rociMesh);
         hullMeshes['roci'] = rociMesh;
 
-        const zmeyaMesh = makeHull(0xd53a3a);
+        const zmeyaMesh = createZmeyaModel();
         scene.add(zmeyaMesh);
         hullMeshes['zmeya'] = zmeyaMesh;
     }
