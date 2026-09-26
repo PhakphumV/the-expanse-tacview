@@ -3,9 +3,8 @@
 //
 // Static audit of Three.js resource usage in the application. Counts
 // geometries, materials, and meshes that the application creates for
-// the committed dataset (data/engagement.json: 2 ships, 4 torpedoes,
-// 6 PDC rounds, 18 events). Reports the per-frame DOM-touching
-// surface that should be kept bounded.
+// the committed dataset (data/engagement.json). Reports the per-frame
+// DOM-touching surface that should be kept bounded.
 //
 // No browser required — uses a minimal THREE substitute to walk the
 // resource counts.
@@ -78,11 +77,12 @@ for (const u of domUpdates) {
 console.log('\nThree.js resource lifecycle:');
 console.log('  Geometries created once per dataset load:');
 console.log('    - 2 ship models (composite Groups, no geometry reuse)');
-console.log('    - 4 torpedo spheres (one per torpedo entity)');
-console.log('    - 6 PDC line BufferGeometries (one per PDC round)');
+console.log('    - N torpedo spheres (one per torpedo entity)');
+console.log('    - N PDC line BufferGeometries (one per pdc_round entity, plus');
+console.log('      5 tracers per pdc_engagement event window)');
 console.log('    - 2 trail BufferGeometries (30 sample positions each)');
 console.log('    - 6000-point starfield BufferGeometry');
-console.log('    - burst_count SphereGeometries (one per intercept/hit event)');
+console.log('    - burst_count SphereGeometries (one per burst-class event)');
 console.log('  Materials: MeshBasicMaterial per mesh (color-only, no textures)');
 console.log('  Reuse: bursts, trails, and HUD/label elements are reused across the');
 console.log('         full replay; new geometry is never created mid-playback.');

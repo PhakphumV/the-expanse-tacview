@@ -147,6 +147,12 @@ destroyed at t=18: their keyframes simply span `[12, 18]`.
   `unlock`.
 - `result` (string): combat outcome for terminal events. One of
   `"hit"`, `"intercept"`, `"miss"`, or `null`.
+- `weapon` (string): mount id for weapon-specific events
+  (e.g. `"pdc_02"` on `pdc_engagement` / `pdc_jammed` /
+  `pdc_coverage_shift` / `missile_intercept`).
+- `end` (number, seconds): end timestamp for windowed events. Required
+  on `pdc_engagement`; the renderer synthesizes a deterministic tracer
+  stream across `[t, end]`.
 - `description` (string): human-readable summary used by the event
   log and timeline marker tooltips. When omitted, a fallback is
   composed from the other fields.
@@ -164,6 +170,23 @@ destroyed at t=18: their keyframes simply span `[12, 18]`.
 | `intercept`      | torpedo        | intercepting    | `"intercept"` | PDC successfully defeats munition   |
 | `hit`            | torpedo        | struck ship     | `"hit"`    | Munition impacts a ship                |
 | `miss`           | torpedo        | intended target | `"miss"`   | Munition passes without effect         |
+| `pursuit_start`  | pursuing ship  | `null`          | `null`     | Pursuit track established              |
+| `intercept_course` | pursuing ship | `null`        | `null`     | Commits to an intercept course         |
+| `high_g_burn`    | burning ship   | `null`          | `null`     | Sustained high-acceleration burn       |
+| `missile_lock`   | locking ship   | target ship     | `null`     | Firing solution on the target          |
+| `zmeya_barrage_launch` | launching ship | target ship | `null` | Large missile barrage launched         |
+| `roci_torpedo_launch`  | launching ship | targeted missile | `null` | Defensive torpedo launched       |
+| `torpedo_intercept` | interceptor torpedo | destroyed missile | `"intercept"` | Torpedo destroys an incoming missile |
+| `pdc_auto_track` | defending ship | `null`          | `null`     | PDCs switched to automatic tracking    |
+| `defensive_roll_start` | rolling ship | `null`     | `null`     | Ship begins a defensive roll/spin      |
+| `pdc_engagement` | firing ship    | targeted missile | `null`    | PDC fire window; needs `weapon`, `end` |
+| `pdc_jammed`     | owning ship    | `null`          | `null`     | A PDC mount jams; needs `weapon`       |
+| `pdc_coverage_shift` | owning ship | `null`        | `null`     | Roll brings another PDC to bear; needs `weapon` |
+| `missile_intercept` | defending ship | destroyed missile | `"intercept"` | PDC destroys an incoming missile; needs `weapon` |
+| `all_missiles_destroyed` | defending ship | `null` | `null` | Final incoming missile destroyed       |
+| `railgun_fire`   | firing ship    | target ship     | `null`     | Railgun discharged                     |
+| `zmeya_drive_disabled` | firing ship | disabled ship | `"hit"` | Railgun disables the target's drive cone |
+| `engagement_resolution` | ship | ship or `null` | `null`    | Engagement outcome settled             |
 
 ### Shared module
 

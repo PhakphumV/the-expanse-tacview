@@ -26,7 +26,7 @@ issue with reproduction steps.
 | 5 | HUD panels populate (no "---" stuck)        |        |         |        |
 | 6 | Mission panel shows `STANDBY` at t=0        |        |         |        |
 | 7 | Timeline renders with event markers         |        |         |        |
-| 8 | Event log populates with all 18 events      |        |         |        |
+| 8 | Event log populates all dataset events      |        |         |        |
 | 9 | Info panel shows Summary tab by default     |        |         |        |
 | 10| Help overlay opens via `?` key              |        |         |        |
 | 11| Engagement dropdown lists the dataset entry |        |         |        |

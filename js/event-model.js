@@ -12,6 +12,9 @@
 //   target      string  entity id that was acted upon (may be null)
 //   result      string  outcome for combat events: "hit", "intercept",
 //                       "miss", or null
+//   weapon      string  mount id for PDC events (e.g. "pdc_02")
+//   end         number  end timestamp for windowed events
+//                       (pdc_engagement tracer windows)
 //   description string  human-readable summary
 //
 // See SCHEMA.md for the full event-type catalogue and field rules.
@@ -26,6 +29,24 @@ const VALID_TYPES = new Set([
     'intercept',
     'hit',
     'miss',
+    // Roci vs Zmeya ("Oyedeng") narrative event set
+    'pursuit_start',
+    'intercept_course',
+    'high_g_burn',
+    'missile_lock',
+    'zmeya_barrage_launch',
+    'roci_torpedo_launch',
+    'torpedo_intercept',
+    'pdc_auto_track',
+    'defensive_roll_start',
+    'pdc_engagement',
+    'pdc_jammed',
+    'pdc_coverage_shift',
+    'missile_intercept',
+    'all_missiles_destroyed',
+    'railgun_fire',
+    'zmeya_drive_disabled',
+    'engagement_resolution',
 ]);
 
 const REQUIRED_FIELDS = ['t', 'type'];
@@ -45,12 +66,17 @@ function normalize(raw) {
     if (!VALID_TYPES.has(raw.type)) {
         throw new Error(`event-model: unknown event type "${raw.type}"`);
     }
+    if ('end' in raw && (typeof raw.end !== 'number' || !isFinite(raw.end) || raw.end < raw.t)) {
+        throw new Error(`event-model: end must be a finite number >= t, got ${raw.end}`);
+    }
     return {
         t: raw.t,
         type: raw.type,
         actor: raw.actor != null ? String(raw.actor) : null,
         target: raw.target != null ? String(raw.target) : null,
         result: raw.result != null ? String(raw.result) : null,
+        weapon: raw.weapon != null ? String(raw.weapon) : null,
+        end: typeof raw.end === 'number' ? raw.end : null,
         description: raw.description != null ? String(raw.description) : '',
     };
 }

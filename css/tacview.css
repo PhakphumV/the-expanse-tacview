@@ -97,6 +97,16 @@ canvas { display: block; }
 .eventMarker.pdc_engage { background: #ffdd66; }
 .eventMarker.maneuver_start, .eventMarker.maneuver_end { background: #cc66ff; }
 .eventMarker.lock, .eventMarker.unlock { background: #ff66cc; }
+.eventMarker.missile_lock { background: #ff66cc; }
+.eventMarker.pursuit_start, .eventMarker.intercept_course, .eventMarker.high_g_burn { background: #66ffaa; }
+.eventMarker.zmeya_barrage_launch, .eventMarker.roci_torpedo_launch { background: #66aaff; }
+.eventMarker.torpedo_intercept, .eventMarker.missile_intercept { background: #ffaa33; }
+.eventMarker.pdc_auto_track, .eventMarker.pdc_engagement, .eventMarker.pdc_coverage_shift { background: #ffdd66; }
+.eventMarker.defensive_roll_start { background: #cc66ff; }
+.eventMarker.pdc_jammed { background: #ff5555; }
+.eventMarker.all_missiles_destroyed { background: #7fd07f; }
+.eventMarker.railgun_fire, .eventMarker.zmeya_drive_disabled { background: #7fd0ff; }
+.eventMarker.engagement_resolution { background: #ffffff; }
 
 /* ---- HUD panels ---- */
 .hud-panel {

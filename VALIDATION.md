@@ -6,7 +6,7 @@
 - **Engine:** Node.js v22 (used for static + simulation validation only)
 - **Browser testing:** Not performed in this CI environment. Browser-side
   coverage is deferred to the TAC-022 regression suite.
-- **Dataset under test:** `data/engagement.json` (90 s, 12 entities, 18 events)
+- **Dataset under test:** `data/engagement.json` (170 s, 26 entities, 60 events, 1 engagement)
 
 ## What was validated
 

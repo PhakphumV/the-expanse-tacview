@@ -10,8 +10,18 @@
 //
 // The transition from STANDBY → ENGAGEMENT happens at the first event.
 // The transition from ENGAGEMENT → RESOLUTION happens at the last
-// `intercept` or `hit` event (combat outcome). If the dataset has no
+// combat-outcome event (see TERMINAL_TYPES). If the dataset has no
 // such events, the mission never leaves ENGAGEMENT.
+
+// Event types that count as combat outcomes for the RESOLUTION boundary.
+const TERMINAL_TYPES = new Set([
+    'intercept',
+    'hit',
+    'torpedo_intercept',
+    'missile_intercept',
+    'railgun_fire',
+    'zmeya_drive_disabled',
+]);
 
 export function createMissionState(playbackEngine) {
     let firstEventT = Infinity;
@@ -23,7 +33,7 @@ export function createMissionState(playbackEngine) {
         lastCombatT = -Infinity;
         for (const ev of events) {
             if (ev.t < firstEventT) firstEventT = ev.t;
-            if (ev.type === 'intercept' || ev.type === 'hit') {
+            if (TERMINAL_TYPES.has(ev.type)) {
                 if (ev.t > lastCombatT) lastCombatT = ev.t;
             }
         }

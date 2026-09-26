@@ -25,13 +25,18 @@ export function createPresentation(playbackEngine) {
     const remainEl  = document.getElementById('remainingReadout');
     const summaryEl = document.getElementById('engagementSummary');
 
+    const LAUNCH_TYPES = new Set(['launch', 'roci_torpedo_launch', 'zmeya_barrage_launch']);
+    const INTERCEPT_TYPES = new Set(['intercept', 'torpedo_intercept', 'missile_intercept']);
+    const HIT_TYPES = new Set(['hit', 'zmeya_drive_disabled']);
+    const LOCK_TYPES = new Set(['lock', 'missile_lock']);
+
     function buildSummary() {
         if (!summaryEl) return;
         const events = playbackEngine.getEvents();
-        const intercepts = events.filter(e => e.type === 'intercept').length;
-        const hits = events.filter(e => e.type === 'hit').length;
-        const locks = events.filter(e => e.type === 'lock').length;
-        const launches = events.filter(e => e.type === 'launch').length;
+        const intercepts = events.filter(e => INTERCEPT_TYPES.has(e.type)).length;
+        const hits = events.filter(e => HIT_TYPES.has(e.type)).length;
+        const locks = events.filter(e => LOCK_TYPES.has(e.type)).length;
+        const launches = events.filter(e => LAUNCH_TYPES.has(e.type)).length;
         const dur = playbackEngine.getDuration();
         summaryEl.innerHTML =
             '<div class="summary-row"><span class="k">DURATION</span><span class="v">' +

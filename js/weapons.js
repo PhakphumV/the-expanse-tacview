@@ -1,8 +1,14 @@
 // js/weapons.js
 // Torpedo and PDC round rendering. Torpedoes are small sphere meshes with
-// spawn/despawn fade; PDC rounds are short-lived line-segment tracers.
+// spawn/despawn fade; explicit pdc_round entities render as short-lived
+// line-segment tracers. Additionally, compact `pdc_engagement` events
+// (firing mount, target, start/end window) are expanded into short
+// deterministic tracer streams — the telemetry stays small and no
+// thousands of individual rounds are encoded in the dataset.
 
 const THREE = window.THREE;
+
+const TRACERS_PER_ENGAGEMENT = 5;
 
 function createTorpedoMesh() {
     const geom = new THREE.SphereGeometry(2.5, 8, 8);
@@ -21,6 +27,7 @@ function createPdcMesh() {
 export function createWeaponsManager(scene, playbackEngine, entitiesManager) {
     const torpedoMeshes = {};
     const pdcMeshes = {};
+    const pdcEngagements = [];
 
     function loadWeapons() {
         reset();
@@ -36,6 +43,28 @@ export function createWeaponsManager(scene, playbackEngine, entitiesManager) {
                 scene.add(m);
                 pdcMeshes[id] = { mesh: m, mat: m.material };
             }
+        }
+        loadPdcEngagements();
+    }
+
+    // Expand pdc_engagement events into tracer streams. Each event
+    // { t, end, actor, weapon, target } spawns TRACERS_PER_ENGAGEMENT
+    // line meshes that pulse muzzle -> target during [t, end].
+    function loadPdcEngagements() {
+        const events = playbackEngine.getEvents();
+        for (const ev of events) {
+            if (ev.type !== 'pdc_engagement') continue;
+            if (typeof ev.end !== 'number' || !ev.actor || !ev.target) continue;
+            const tracers = [];
+            for (let i = 0; i < TRACERS_PER_ENGAGEMENT; i++) {
+                const m = createPdcMesh();
+                scene.add(m);
+                tracers.push({ mesh: m, mat: m.material, phase: i / TRACERS_PER_ENGAGEMENT });
+            }
+            pdcEngagements.push({
+                start: ev.t, end: ev.end,
+                actor: ev.actor, target: ev.target, tracers,
+            });
         }
     }
 
@@ -55,6 +84,14 @@ export function createWeaponsManager(scene, playbackEngine, entitiesManager) {
             mesh.material.dispose();
             delete pdcMeshes[id];
         }
+        for (const eng of pdcEngagements) {
+            for (const tr of eng.tracers) {
+                scene.remove(tr.mesh);
+                tr.mesh.geometry.dispose();
+                tr.mesh.material.dispose();
+            }
+        }
+        pdcEngagements.length = 0;
     }
 
     function updateTorpedoes(t, stateMap, ents) {
@@ -106,10 +143,44 @@ export function createWeaponsManager(scene, playbackEngine, entitiesManager) {
         }
     }
 
+    // Tracer streams are a pure function of (t, event window, entity
+    // states) — deterministic under scrubbing, no accumulated state.
+    function updatePdcEngagements(t, stateMap) {
+        for (const eng of pdcEngagements) {
+            const a = stateMap[eng.actor];
+            const tgt = stateMap[eng.target];
+            const visible = t >= eng.start && t <= eng.end &&
+                            a && a.active && tgt && tgt.active;
+            const span = eng.end - eng.start;
+            for (const tr of eng.tracers) {
+                if (!visible) { tr.mesh.visible = false; continue; }
+                // Deterministic pulse phase scrolling muzzle -> target.
+                const frac = span > 0
+                    ? (((t - eng.start) / span) * 3 + tr.phase) % 1
+                    : 1;
+                const ox = Math.sin(tr.phase * 17.3) * 1.5;
+                const oy = Math.cos(tr.phase * 11.7) * 1.5;
+                const oz = Math.sin(tr.phase * 7.9) * 1.5;
+                const mx = a.position.x + ox;
+                const my = a.position.y + oy;
+                const mz = a.position.z + oz;
+                const positions = tr.mesh.geometry.attributes.position.array;
+                positions[0] = mx; positions[1] = my; positions[2] = mz;
+                positions[3] = mx + (tgt.position.x - mx) * frac;
+                positions[4] = my + (tgt.position.y - my) * frac;
+                positions[5] = mz + (tgt.position.z - mz) * frac;
+                tr.mesh.geometry.attributes.position.needsUpdate = true;
+                tr.mesh.visible = true;
+                tr.mat.opacity = 0.35 + 0.65 * frac;
+            }
+        }
+    }
+
     function update(t, stateMap) {
         const ents = playbackEngine.getEntities();
         updateTorpedoes(t, stateMap, ents);
         updatePdc(t, stateMap, ents);
+        updatePdcEngagements(t, stateMap);
     }
 
     return { loadWeapons, reset, update };

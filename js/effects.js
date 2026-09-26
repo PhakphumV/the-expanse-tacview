@@ -1,6 +1,14 @@
 // js/effects.js
-// Procedural burst effects spawned at intercept/hit events. Each burst is an
-// additive-blended sphere that fades and expands over BURST_DURATION seconds.
+// Procedural burst effects spawned at intercept/hit-class events. Each
+// burst is an additive-blended sphere that fades and expands over
+// BURST_DURATION seconds.
+//
+// Burst location per event type (mirrored in scripts/validate-playback.js):
+//   intercept              -> actor   (the destroyed torpedo)
+//   hit                    -> target  (the struck ship)
+//   torpedo_intercept      -> target  (the destroyed missile)
+//   missile_intercept      -> target  (the destroyed missile)
+//   zmeya_drive_disabled   -> target  (the disabled ship)
 
 const THREE = window.THREE;
 
@@ -21,19 +29,27 @@ function createBurstMesh(color) {
 export function createEffectsManager(scene, playbackEngine) {
     const bursts = [];
 
+    const BURST_ENTITY_FIELD = {
+        intercept: 'actor',
+        hit: 'target',
+        torpedo_intercept: 'target',
+        missile_intercept: 'target',
+        zmeya_drive_disabled: 'target',
+    };
+
     function loadBursts() {
         reset();
         const events = playbackEngine.getEvents();
         for (const ev of events) {
-            if (ev.type !== 'intercept' && ev.type !== 'hit') continue;
-            // Burst position: at the target for `hit` (ship struck),
-            // at the actor for `intercept` (torpedo destroyed).
-            const burstEntityId = ev.type === 'hit' ? ev.target : ev.actor;
+            const field = BURST_ENTITY_FIELD[ev.type];
+            if (!field) continue;
+            const burstEntityId = ev[field];
             if (!burstEntityId) continue;
             const sMap = playbackEngine.getStateAtTime(ev.t);
             const s = sMap[burstEntityId];
             if (s && s.active) {
-                const color = ev.type === 'hit' ? 0xff3333 : 0xffaa33;
+                const color = (ev.type === 'hit' || ev.type === 'zmeya_drive_disabled')
+                    ? 0xff3333 : 0xffaa33;
                 const mesh = createBurstMesh(color);
                 mesh.position.copy(s.position);
                 mesh.visible = false;

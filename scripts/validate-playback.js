@@ -52,7 +52,24 @@ const ORIENT_DOT_MIN = 0.9;
 const VALID_EVENT_TYPES = new Set([
     'launch', 'pdc_engage', 'maneuver_start', 'maneuver_end',
     'lock', 'unlock', 'intercept', 'hit', 'miss',
+    // Roci vs Zmeya ("Oyedeng") narrative event set
+    'pursuit_start', 'intercept_course', 'high_g_burn', 'missile_lock',
+    'zmeya_barrage_launch', 'roci_torpedo_launch', 'torpedo_intercept',
+    'pdc_auto_track', 'defensive_roll_start', 'pdc_engagement',
+    'pdc_jammed', 'pdc_coverage_shift', 'missile_intercept',
+    'all_missiles_destroyed', 'railgun_fire', 'zmeya_drive_disabled',
+    'engagement_resolution',
 ]);
+
+// Types that spawn a burst effect, and which field locates the burst.
+// Mirrors js/effects.js.
+const BURST_ENTITY_FIELD = {
+    intercept: 'actor',
+    hit: 'target',
+    torpedo_intercept: 'target',
+    missile_intercept: 'target',
+    zmeya_drive_disabled: 'target',
+};
 
 // ---- Minimal Vec3 / Quat substitutes ----
 class Vec3 {
@@ -235,6 +252,14 @@ function checkShape() {
             return `events[${i}].target must be string or null`;
         if ('result' in ev && ev.result !== null && typeof ev.result !== 'string')
             return `events[${i}].result must be string or null`;
+        if ('weapon' in ev && ev.weapon !== null && typeof ev.weapon !== 'string')
+            return `events[${i}].weapon must be string or null`;
+        if ('end' in ev && ev.end !== undefined && ev.end !== null) {
+            if (typeof ev.end !== 'number' || !isFinite(ev.end))
+                return `events[${i}].end must be a finite number`;
+            if (ev.end < ev.t)
+                return `events[${i}].end (${ev.end}) precedes t (${ev.t})`;
+        }
         if ('description' in ev && typeof ev.description !== 'string')
             return `events[${i}].description must be a string`;
     }
@@ -406,11 +431,11 @@ function checkLockWindows() {
 
 function checkBurstPositions() {
     for (const ev of dataset.events) {
-        if (ev.type !== 'intercept' && ev.type !== 'hit') continue;
-        // Burst entity: target for `hit`, actor for `intercept`
-        const burstId = ev.type === 'hit' ? ev.target : ev.actor;
+        const field = BURST_ENTITY_FIELD[ev.type];
+        if (!field) continue;
+        const burstId = ev[field];
         if (!burstId) {
-            return `event ${ev.type} at t=${ev.t.toFixed(2)}s: missing burst entity id (need target for hit or actor for intercept)`;
+            return `event ${ev.type} at t=${ev.t.toFixed(2)}s: missing burst entity id (field ${field})`;
         }
         const s = getStateAtTime(burstId, ev.t);
         if (!s) {
