@@ -84,15 +84,28 @@ issue with reproduction steps.
 
 | # | Test                                        | Chrome | Firefox | Safari |
 | - | ------------------------------------------- | ------ | ------- | ------ |
-| 1 | HUD values update with playback time        |        |         |        |
-| 2 | Event log auto-scrolls to current event     |        |         |        |
-| 3 | Timeline event markers show at correct x    |        |         |        |
-| 4 | Marker tooltips show structured fields      |        |         |        |
-| 5 | Mission state changes when scrubbing past first/last event | | | |
-| 6 | Lock indicator turns ON during lock window  |        |         |        |
-| 7 | Lock indicator turns OFF after unlock       |        |         |        |
+| 5 | HUD values update with playback time        |        |         |        |
+| 6 | Event log auto-scrolls to current event     |        |         |        |
+| 7 | Timeline event markers show at correct x    |        |         |        |
+| 8 | Marker tooltips show structured fields      |        |         |        |
+| 9 | Mission state changes when scrubbing past first/last event | | | |
+| 10| Lock indicator turns ON during lock window  |        |         |        |
+| 11| Lock indicator turns OFF after unlock       |        |         |        |
 
-## 7. Trails / labels toggles
+## 7. Info panel tabs
+
+| # | Test                                                      | Chrome | Firefox | Safari |
+| - | --------------------------------------------------------- | ------ | ------- | ------ |
+| 1 | Summary tab is active by default                          |        |         |        |
+| 2 | Summary tab shows engagement duration / launches / etc.   |        |         |        |
+| 3 | Click Events tab switches visible content                 |        |         |        |
+| 4 | Exactly one tab is visually active at a time              |        |         |        |
+| 5 | Switching tabs does not change current replay time        |        |         |        |
+| 6 | Switching tabs does not reset camera mode or playback     |        |         |        |
+| 7 | Click an event in Events tab and verify seek still works  |        |         |        |
+| 8 | Selected tab persists during playback and scrubbing       |        |         |        |
+
+## 8. Trails / labels toggles
 
 | # | Test                                        | Chrome | Firefox | Safari |
 | - | ------------------------------------------- | ------ | ------- | ------ |
@@ -101,7 +114,7 @@ issue with reproduction steps.
 | 3 | Entity labels visible above ships           |        |         |        |
 | 4 | Labels hidden when ship inactive            |        |         |        |
 
-## 8. Browser-specific defects
+## 9. Browser-specific defects
 
 Any defects discovered while running this checklist are recorded below
 with reproduction steps.

@@ -31,8 +31,21 @@
         <div class="iff-hint">Range ring: 10 km</div>
     </div>
 
-    <!-- Engagement summary -->
-    <div id="engagementSummary"></div>
+    <!-- Engagement summary + event log in a tabbed panel -->
+    <div id="infoPanel" class="info-panel">
+        <div class="info-tabs">
+            <button id="summaryTabBtn" class="info-tab active" data-tab="summary">Summary</button>
+            <button id="eventsTabBtn" class="info-tab" data-tab="events">Events</button>
+        </div>
+        <div id="summaryContent" class="info-content active" data-tab="summary">
+            <div class="info-content-title">ENGAGEMENT SUMMARY</div>
+            <div id="engagementSummary"></div>
+        </div>
+        <div id="eventsContent" class="info-content" data-tab="events">
+            <div class="info-content-title">EVENT LOG</div>
+            <div id="eventLogList"></div>
+        </div>
+    </div>
 
     <!-- Existing HUD panels -->
     <div id="hud-roci" class="hud-panel">
@@ -57,11 +70,6 @@
     <div id="missionPanel">
         <span class="mission-label">MISSION:</span>
         <span id="missionState" class="standby">STANDBY</span>
-    </div>
-
-    <div id="eventLog" class="event-log">
-        <div class="event-log-title">EVENT LOG</div>
-        <div id="eventLogList"></div>
     </div>
 
     <div id="timeline">

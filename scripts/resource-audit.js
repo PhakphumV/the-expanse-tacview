@@ -60,6 +60,7 @@ const domUpdates = [
     { module: 'hud.js',          work: '12 textContent writes (VEL/G/RNG/CLOS/ASP × 2 ships, lock, mission state)', bounded: 'yes — cached when unchanged' },
     { module: 'timeline.js',     work: '2 style writes (scrub progress + handle width/left), 1 textContent', bounded: 'yes — only on time advance' },
     { module: 'event-log.js',    work: 'N style.display toggles, 1 scrollTop', bounded: 'yes — only when last-visible index changes' },
+    { module: 'info-panel.js',   work: 'tab click handler swaps 2 class lists', bounded: 'yes — only fires on user click' },
     { module: 'labels (entities)', work: '2 style.left/top writes per visible ship', bounded: 'yes — only ships on screen' },
     { module: 'main.js loop',    work: 'animate() calls entities/weapons/effects/timeline/hud/eventLog/labels/camera updates', bounded: 'yes — no per-frame allocations in the hot path' },
 ];

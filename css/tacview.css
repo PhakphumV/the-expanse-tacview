@@ -137,23 +137,65 @@ canvas { display: block; }
     color: #555;
 }
 
-/* ---- Event log ---- */
-.event-log {
+/* ---- Info panel: tabbed summary + event log ---- */
+.info-panel {
     position: fixed;
+    top: 170px;
     right: 20px;
-    top: 260px;
     width: 280px;
-    max-height: 320px;
+    max-height: calc(100vh - 240px);
     background: rgba(0, 20, 0, 0.88);
     border: 1px solid #555;
     color: #cccccc;
     font-family: 'Courier New', monospace;
     font-size: 12px;
-    padding: 8px 10px;
-    overflow-y: auto;
     z-index: 10;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
-.event-log-title {
+.info-tabs {
+    display: flex;
+    border-bottom: 1px solid #555;
+    flex-shrink: 0;
+}
+.info-tab {
+    flex: 1;
+    background: transparent;
+    color: #888;
+    border: none;
+    border-right: 1px solid #333;
+    padding: 8px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+.info-tab:last-child {
+    border-right: none;
+}
+.info-tab:hover {
+    background: rgba(255,255,255,0.05);
+    color: #ffffff;
+}
+.info-tab.active {
+    background: rgba(58, 123, 213, 0.25);
+    color: #ffffff;
+    border-bottom: 2px solid #3a7bd5;
+}
+.info-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 10px;
+    min-height: 0;
+}
+.info-content.active {
+    display: block;
+}
+.info-content-title {
     font-weight: bold;
     text-align: center;
     border-bottom: 1px solid #555;
@@ -379,19 +421,11 @@ canvas { display: block; }
     font-size: 10px;
 }
 
-/* ---- Engagement summary (TAC-024) ---- */
+/* ---- Engagement summary (TAC-024, inside info panel) ---- */
 #engagementSummary {
-    position: fixed;
-    top: 170px;
-    left: 20px;
-    width: 190px;
-    background: rgba(0,0,0,0.85);
-    border: 1px solid #444;
-    padding: 8px 12px;
-    font-family: 'Courier New', monospace;
+    padding: 0;
     font-size: 11px;
     color: #ccc;
-    z-index: 10;
     letter-spacing: 1px;
 }
 .summary-row {
@@ -413,11 +447,11 @@ canvas { display: block; }
 
 /* ---- Responsive: stack left panels on narrower viewports ---- */
 @media (max-width: 1280px) {
-    #iffLegend, #engagementSummary {
+    #iffLegend {
         left: 10px;
         font-size: 10px;
+        top: 90px;
     }
-    #iffLegend { top: 90px; }
-    #engagementSummary { top: 150px; width: 170px; }
+    .info-panel { width: 240px; font-size: 11px; }
     .hud-panel { bottom: 80px; }
 }

@@ -15,6 +15,7 @@ import { createCameraController } from './camera.js';
 import { createHUD } from './hud.js';
 import { createTimeline } from './timeline.js';
 import { createEventLog } from './event-log.js';
+import { createInfoPanel } from './info-panel.js';
 import { createPresentation, createRangeRings } from './presentation.js';
 
 const container = document.getElementById('container');
@@ -27,6 +28,7 @@ const missionState = createMissionState(playback);
 const cameraCtl = createCameraController(camera, controls, playback);
 const timeline = createTimeline(playback);
 const eventLog = createEventLog(playback, timeline.formatTime);
+const infoPanel = createInfoPanel();
 const hud = createHUD(playback, telemetry, lockState, missionState);
 const entities = createEntitiesManager(scene, playback);
 const weapons = createWeaponsManager(scene, playback, entities);
