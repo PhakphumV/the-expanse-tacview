@@ -235,9 +235,11 @@ function checkShape() {
 function checkSyntax() {
     const modules = [
         'js/playback.js', 'js/telemetry.js', 'js/scene.js', 'js/lock-state.js',
-        'js/entities.js', 'js/weapons.js', 'js/effects.js', 'js/camera.js',
-        'js/hud.js', 'js/timeline.js', 'js/event-log.js', 'js/minimap.js',
-        'js/main.js', 'js/ship-models.js',
+        'js/mission-state.js', 'js/event-model.js', 'js/entities.js',
+        'js/weapons.js', 'js/effects.js', 'js/camera.js', 'js/hud.js',
+        'js/timeline.js', 'js/event-log.js', 'js/minimap.js', 'js/main.js',
+        'js/ship-models.js',
+        'scripts/browser-smoke.js',
     ];
     for (const m of modules) {
         try {
