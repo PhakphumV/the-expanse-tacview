@@ -92,7 +92,7 @@ canvas { display: block; }
 /* ---- HUD panels ---- */
 .hud-panel {
     position: fixed;
-    top: 20px;
+    bottom: 70px;
     width: 190px;
     background: rgba(0, 20, 0, 0.85);
     border: 1px solid;
@@ -419,4 +419,5 @@ canvas { display: block; }
     }
     #iffLegend { top: 90px; }
     #engagementSummary { top: 150px; width: 170px; }
+    .hud-panel { bottom: 80px; }
 }
