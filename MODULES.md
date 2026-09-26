@@ -18,14 +18,14 @@ loads `js/main.js` with `<script type="module">`.
 | `js/hud.js`         | HUD panels and lock indicator                                      |
 | `js/timeline.js`    | Timeline scrubber, play/pause, speed, event markers                |
 | `js/event-log.js`   | Scrolling event log with click-to-seek                             |
-| `js/minimap.js`     | 2D overview canvas                                                 |
+| `js/info-panel.js`  | Shared Summary / Events tab panel                                  |
 | `css/tacview.css`   | All application styles                                             |
 
 ## Dependency direction
 
 ```
 main → scene, playback, telemetry, lock-state, entities, weapons,
-       effects, camera, hud, timeline, event-log, minimap
+       effects, camera, hud, timeline, event-log, info-panel
 telemetry   → playback
 lock-state  → playback
 entities    → playback
@@ -35,7 +35,7 @@ camera      → playback
 hud         → playback, telemetry, lock-state
 timeline    → playback
 event-log   → playback
-minimap     → playback
+info-panel  → event-log            (re-syncs scroll on tab show)
 ```
 
 No circular dependencies. `playback` is the only stateful singleton that

@@ -27,7 +27,7 @@ issue with reproduction steps.
 | 6 | Mission panel shows `STANDBY` at t=0        |        |         |        |
 | 7 | Timeline renders with event markers         |        |         |        |
 | 8 | Event log populates with all 18 events      |        |         |        |
-| 9 | Minimap renders the overview dots           |        |         |        |
+| 9 | Info panel shows Summary tab by default     |        |         |        |
 | 10| Help overlay opens via `?` key              |        |         |        |
 
 ## 2. Playback
@@ -93,7 +93,7 @@ issue with reproduction steps.
 | 6 | Lock indicator turns ON during lock window  |        |         |        |
 | 7 | Lock indicator turns OFF after unlock       |        |         |        |
 
-## 7. Trails / labels / minimap toggles
+## 7. Trails / labels / info panel
 
 | # | Test                                        | Chrome | Firefox | Safari |
 | - | ------------------------------------------- | ------ | ------- | ------ |
@@ -101,8 +101,8 @@ issue with reproduction steps.
 | 2 | `T` key toggles trails                      |        |         |        |
 | 3 | Entity labels visible above ships           |        |         |        |
 | 4 | Labels hidden when ship inactive            |        |         |        |
-| 5 | Minimap shows ships as colored dots         |        |         |        |
-| 6 | Minimap shows torpedoes during flight      |        |         |        |
+| 5 | Events tab shows log; click seeks replay    |        |         |        |
+| 6 | Tab switch keeps replay time and camera     |        |         |        |
 
 ## 8. Browser-specific defects
 

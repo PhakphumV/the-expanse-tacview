@@ -12,7 +12,6 @@
     <div id="container"></div>
 
     <div id="labelsContainer"></div>
-    <canvas id="minimap" width="160" height="160"></canvas>
 
     <!-- Mission header + live replay indicator -->
     <div id="missionHeader">
@@ -32,8 +31,21 @@
         <div class="iff-hint">Range ring: 10 km</div>
     </div>
 
-    <!-- Engagement summary -->
-    <div id="engagementSummary"></div>
+    <!-- Shared info panel: Summary / Events tabs -->
+    <div id="infoPanel">
+        <div id="infoPanelTabs">
+            <button id="tabSummary" class="info-tab active">Summary</button>
+            <button id="tabEvents" class="info-tab">Events</button>
+        </div>
+        <div id="paneSummary" class="info-tab-content active">
+            <div id="engagementSummary"></div>
+        </div>
+        <div id="paneEvents" class="info-tab-content">
+            <div id="eventLog" class="event-log">
+                <div id="eventLogList"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- Existing HUD panels -->
     <div id="hud-roci" class="hud-panel">
@@ -58,11 +70,6 @@
     <div id="missionPanel">
         <span class="mission-label">MISSION:</span>
         <span id="missionState" class="standby">STANDBY</span>
-    </div>
-
-    <div id="eventLog" class="event-log">
-        <div class="event-log-title">EVENT LOG</div>
-        <div id="eventLogList"></div>
     </div>
 
     <div id="timeline">

@@ -92,7 +92,7 @@ canvas { display: block; }
 /* ---- HUD panels ---- */
 .hud-panel {
     position: fixed;
-    top: 20px;
+    bottom: 60px;
     width: 190px;
     background: rgba(0, 20, 0, 0.85);
     border: 1px solid;
@@ -137,30 +137,60 @@ canvas { display: block; }
     color: #555;
 }
 
-/* ---- Event log ---- */
-.event-log {
+/* ---- Info panel: shared Summary / Events tabs ---- */
+#infoPanel {
     position: fixed;
     right: 20px;
-    top: 260px;
-    width: 280px;
-    max-height: 320px;
+    top: 160px;
+    width: 300px;
     background: rgba(0, 20, 0, 0.88);
     border: 1px solid #555;
     color: #cccccc;
     font-family: 'Courier New', monospace;
     font-size: 12px;
-    padding: 8px 10px;
-    overflow-y: auto;
     z-index: 10;
 }
-.event-log-title {
-    font-weight: bold;
-    text-align: center;
+#infoPanelTabs {
+    display: flex;
     border-bottom: 1px solid #555;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
+}
+.info-tab {
+    flex: 1;
+    background: #161616;
+    color: #888;
+    border: none;
+    border-right: 1px solid #555;
+    padding: 6px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: bold;
     letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.info-tab:last-child {
+    border-right: none;
+}
+.info-tab:hover {
+    background: #222;
+}
+.info-tab.active {
+    background: rgba(0, 20, 0, 0.88);
     color: #ffffff;
+    box-shadow: inset 0 -2px 0 #3a7bd5;
+}
+.info-tab-content {
+    display: none;
+    padding: 8px 10px;
+}
+.info-tab-content.active {
+    display: block;
+}
+
+/* ---- Event log (inside the info panel's Events tab) ---- */
+.event-log {
+    max-height: 320px;
+    overflow-y: auto;
 }
 .event-log-entry {
     padding: 3px 4px;
@@ -184,18 +214,6 @@ canvas { display: block; }
     white-space: nowrap;
     transform: translate(-50%, -50%);
     z-index: 5;
-}
-
-/* ---- Minimap ---- */
-#minimap {
-    position: fixed;
-    left: 20px;
-    top: 260px;
-    width: 160px;
-    height: 160px;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid #555;
-    z-index: 10;
 }
 
 /* ---- Mission state panel (TAC-020) ---- */
@@ -391,19 +409,9 @@ canvas { display: block; }
     font-size: 10px;
 }
 
-/* ---- Engagement summary (TAC-024) ---- */
+/* ---- Engagement summary (TAC-024; inside the info panel's Summary tab) ---- */
 #engagementSummary {
-    position: fixed;
-    top: 170px;
-    left: 20px;
-    width: 190px;
-    background: rgba(0,0,0,0.85);
-    border: 1px solid #444;
-    padding: 8px 12px;
-    font-family: 'Courier New', monospace;
     font-size: 11px;
-    color: #ccc;
-    z-index: 10;
     letter-spacing: 1px;
 }
 .summary-row {
@@ -423,12 +431,21 @@ canvas { display: block; }
     border-bottom: none;
 }
 
-/* ---- Responsive: stack left panels on narrower viewports ---- */
+/* ---- Responsive: tighten side panels on narrower viewports ---- */
 @media (max-width: 1280px) {
-    #iffLegend, #engagementSummary {
+    #iffLegend {
         left: 10px;
+        top: 90px;
         font-size: 10px;
     }
-    #iffLegend { top: 90px; }
-    #engagementSummary { top: 150px; width: 170px; }
+    #infoPanel {
+        right: 10px;
+        top: 140px;
+        width: 260px;
+        font-size: 11px;
+    }
+    .hud-panel {
+        width: 170px;
+        font-size: 12px;
+    }
 }

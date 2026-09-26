@@ -32,7 +32,8 @@ will block `fetch('data/engagement.json')`.
   ship/torpedo trails (toggleable with `T`), and entity labels.
 - Three camera modes: Free Orbit, Chase Cam (locked to Rocinante),
   Tactical Top-Down (auto-framing both ships).
-- Minimap overview inset.
+- HUD panels docked at the bottom of the viewport and a tabbed
+  Summary / Events panel for engagement stats and the event log.
 
 ## Dataset
 

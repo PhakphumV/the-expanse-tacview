@@ -81,5 +81,12 @@ export function createEventLog(playbackEngine, formatTime) {
         }
     }
 
-    return { populate, update };
+    // Re-sync scroll after the pane was hidden (display:none zeroes
+    // offsetTop); called by the info panel when the Events tab shows.
+    function refresh() {
+        lastScrollIdx = -1;
+        update();
+    }
+
+    return { populate, update, refresh };
 }

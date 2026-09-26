@@ -42,7 +42,7 @@ calculation) is `(0, 0, -1)` rotated by the entity's orientation.
 - `duration` (number, seconds): total engagement length.
 - `entities` (array): per-entity keyframe tracks.
 - `events` (array): discrete time-stamped events used by the timeline
-  markers, event log, lock indicator, burst effects, and minimap.
+  markers, event log, lock indicator, and burst effects.
 
 ## Entity object
 

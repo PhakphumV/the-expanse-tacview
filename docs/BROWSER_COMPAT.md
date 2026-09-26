@@ -29,7 +29,6 @@ All three targets support:
 | WebGL 2 (`WebGLRenderer`)                 | ✓          | ✓           | ✓          |
 | Three.js r128 (cdnjs)                     | ✓          | ✓           | ✓          |
 | `OrbitControls` (cdnjs)                   | ✓          | ✓           | ✓          |
-| DOM `<canvas>` 2D context (minimap)       | ✓          | ✓           | ✓          |
 | Keyboard event `key` + `code` fields      | ✓          | ✓           | ✓          |
 | `getBoundingClientRect` for UI math       | ✓          | ✓           | ✓          |
 | CSS `position: fixed` overlays            | ✓          | ✓           | ✓          |

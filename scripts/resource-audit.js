@@ -60,9 +60,9 @@ const domUpdates = [
     { module: 'hud.js',          work: '12 textContent writes (VEL/G/RNG/CLOS/ASP × 2 ships, lock, mission state)', bounded: 'yes — cached when unchanged' },
     { module: 'timeline.js',     work: '2 style writes (scrub progress + handle width/left), 1 textContent', bounded: 'yes — only on time advance' },
     { module: 'event-log.js',    work: 'N style.display toggles, 1 scrollTop', bounded: 'yes — only when last-visible index changes' },
-    { module: 'minimap.js',      work: 'canvas 2D redraw (~160×160)', bounded: 'yes — bounded canvas size' },
+    { module: 'info-panel.js',   work: 'class toggles on tab click', bounded: 'yes — user-driven only, no per-frame work' },
     { module: 'labels (entities)', work: '2 style.left/top writes per visible ship', bounded: 'yes — only ships on screen' },
-    { module: 'main.js loop',    work: 'animate() calls entities/weapons/effects/timeline/hud/eventLog/labels/minimap/camera updates', bounded: 'yes — no per-frame allocations in the hot path' },
+    { module: 'main.js loop',    work: 'animate() calls entities/weapons/effects/timeline/hud/eventLog/labels/camera updates', bounded: 'yes — no per-frame allocations in the hot path' },
 ];
 for (const u of domUpdates) {
     console.log(`  [${u.module}] ${u.work}`);

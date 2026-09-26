@@ -237,7 +237,7 @@ function checkSyntax() {
         'js/playback.js', 'js/telemetry.js', 'js/scene.js', 'js/lock-state.js',
         'js/mission-state.js', 'js/event-model.js', 'js/entities.js',
         'js/weapons.js', 'js/effects.js', 'js/camera.js', 'js/hud.js',
-        'js/timeline.js', 'js/event-log.js', 'js/minimap.js', 'js/main.js',
+        'js/timeline.js', 'js/event-log.js', 'js/info-panel.js', 'js/main.js',
         'js/ship-models.js',
         'js/presentation.js',
         'scripts/browser-smoke.js',
