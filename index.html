@@ -75,12 +75,61 @@
         .eventMarker.pdc_engage { background: #ffdd66; }
         .eventMarker.maneuver_start, .eventMarker.maneuver_end { background: #cc66ff; }
         .eventMarker.lock, .eventMarker.unlock { background: #ff66cc; }
+
+        .hud-panel {
+            position: fixed;
+            top: 20px;
+            width: 190px;
+            background: rgba(0, 20, 0, 0.85);
+            border: 1px solid;
+            padding: 10px 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            z-index: 10;
+            font-family: 'Courier New', monospace;
+        }
+        #hud-roci {
+            left: 20px;
+            border-color: #3a7bd5;
+            color: #7fd0ff;
+        }
+        #hud-zmeya {
+            right: 20px;
+            border-color: #d53a3a;
+            color: #ff8080;
+        }
+        .hud-title {
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid currentColor;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            letter-spacing: 2px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
 </head>
 <body>
     <div id="container"></div>
+
+    <div id="hud-roci" class="hud-panel">
+        <div class="hud-title">ROCI</div>
+        <div>VEL: <span id="roci-vel">---</span> km/s</div>
+        <div>G:&nbsp;&nbsp; <span id="roci-g">---</span></div>
+        <div>RNG: <span id="roci-rng">---</span> km</div>
+        <div>CLOS: <span id="roci-clos">---</span> km/s</div>
+        <div>ASP: <span id="roci-asp">---</span>&deg;</div>
+    </div>
+
+    <div id="hud-zmeya" class="hud-panel">
+        <div class="hud-title">ZMEYA</div>
+        <div>VEL: <span id="zmeya-vel">---</span> km/s</div>
+        <div>G:&nbsp;&nbsp; <span id="zmeya-g">---</span></div>
+        <div>RNG: <span id="zmeya-rng">---</span> km</div>
+        <div>CLOS: <span id="zmeya-clos">---</span> km/s</div>
+        <div>ASP: <span id="zmeya-asp">---</span>&deg;</div>
+    </div>
 
     <div id="timeline">
         <button id="playPauseBtn">Pause</button>
@@ -410,6 +459,34 @@
                 timeReadout.textContent = formatTime(t);
             }
 
+            function setVal(id, v) { document.getElementById(id).textContent = v; }
+            function updateHUD() {
+                const t = PlaybackEngine.getTime();
+                const derived = Telemetry.getDerived(t);
+                const stateMap = PlaybackEngine.getStateAtTime(t);
+
+                if (derived && stateMap['roci'] && stateMap['roci'].active) {
+                    const vel = stateMap['roci'].velocity.length() / 1000;
+                    setVal('roci-vel', vel.toFixed(2));
+                    setVal('roci-g', derived.roci.gForce.toFixed(2));
+                    setVal('roci-rng', (derived.roci.range / 1000).toFixed(2));
+                    setVal('roci-clos', (derived.roci.closureRate / 1000).toFixed(2));
+                    setVal('roci-asp', derived.roci.aspectAngle.toFixed(1));
+                } else {
+                    ['roci-vel','roci-g','roci-rng','roci-clos','roci-asp'].forEach(function (id) { setVal(id, '---'); });
+                }
+                if (derived && stateMap['zmeya'] && stateMap['zmeya'].active) {
+                    const vel = stateMap['zmeya'].velocity.length() / 1000;
+                    setVal('zmeya-vel', vel.toFixed(2));
+                    setVal('zmeya-g', derived.zmeya.gForce.toFixed(2));
+                    setVal('zmeya-rng', (derived.zmeya.range / 1000).toFixed(2));
+                    setVal('zmeya-clos', (derived.zmeya.closureRate / 1000).toFixed(2));
+                    setVal('zmeya-asp', derived.zmeya.aspectAngle.toFixed(1));
+                } else {
+                    ['zmeya-vel','zmeya-g','zmeya-rng','zmeya-clos','zmeya-asp'].forEach(function (id) { setVal(id, '---'); });
+                }
+            }
+
             fetch('data/engagement.json')
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
@@ -417,6 +494,7 @@
                     populateEventMarkers();
                     updateMeshes(0);
                     updateTimelineUI();
+                    updateHUD();
                 })
                 .catch(function (err) {
                     console.error('Failed to load dataset:', err);
@@ -458,6 +536,7 @@
                 }
                 updateMeshes(PlaybackEngine.getTime());
                 updateTimelineUI();
+                updateHUD();
 
                 controls.update();
                 stars.rotation.y += 0.0005;
