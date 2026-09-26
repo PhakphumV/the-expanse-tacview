@@ -30,6 +30,14 @@
             background: #222; color: #fff; border: 1px solid #555;
             padding: 4px; font-family: monospace;
         }
+        .mode-btn {
+            background: #222; color: #fff; border: 1px solid #555;
+            padding: 4px 10px; font-family: monospace; cursor: pointer;
+        }
+        .mode-btn.active {
+            background: #3a7bd5;
+            border-color: #3a7bd5;
+        }
         #timeReadout {
             min-width: 110px;
             text-align: center;
@@ -200,6 +208,9 @@
             <option value="2">2x</option>
             <option value="4">4x</option>
         </select>
+        <button id="modeOrbitBtn" class="mode-btn active">Orbit</button>
+        <button id="modeChaseBtn" class="mode-btn">Chase</button>
+        <button id="modeTopBtn" class="mode-btn">Top</button>
         <button id="trailsBtn">Trails: ON</button>
     </div>
 
@@ -524,6 +535,40 @@
 
             window.TacviewLockState = LockState;
 
+            // ---- Camera mode controller ----
+            const CameraMode = (function () {
+                let mode = 'orbit';
+                const OFFSET = new THREE.Vector3(0, 12, 40);
+                function setMode(m) {
+                    mode = m;
+                    controls.enabled = (m === 'orbit');
+                    const o = document.getElementById('modeOrbitBtn');
+                    const c = document.getElementById('modeChaseBtn');
+                    const tp = document.getElementById('modeTopBtn');
+                    if (o) o.classList.toggle('active', m === 'orbit');
+                    if (c) c.classList.toggle('active', m === 'chase');
+                    if (tp) tp.classList.toggle('active', m === 'top');
+                }
+                function getMode() { return mode; }
+                function update(t) {
+                    const stateMap = PlaybackEngine.getStateAtTime(t);
+                    const roci = stateMap['roci'];
+                    const zmeya = stateMap['zmeya'];
+                    if (mode === 'chase' && roci && roci.active) {
+                        const offsetWorld = OFFSET.clone().applyQuaternion(roci.orientation);
+                        camera.position.copy(roci.position).add(offsetWorld);
+                        camera.up.set(0, 1, 0);
+                        camera.lookAt(roci.position);
+                    } else if (mode === 'top' && roci && roci.active && zmeya && zmeya.active) {
+                        const mid = new THREE.Vector3().addVectors(roci.position, zmeya.position).multiplyScalar(0.5);
+                        camera.position.set(mid.x, mid.y + 150, mid.z + 1);
+                        camera.up.set(0, 0, -1);
+                        camera.lookAt(mid);
+                    }
+                }
+                return { setMode: setMode, getMode: getMode, update: update };
+            })();
+
             // ---- Timeline UI ----
             const playPauseBtn = document.getElementById('playPauseBtn');
             const timeReadout = document.getElementById('timeReadout');
@@ -552,6 +597,10 @@
                 trailsVisible = !trailsVisible;
                 trailsBtn.textContent = trailsVisible ? 'Trails: ON' : 'Trails: OFF';
             });
+
+            document.getElementById('modeOrbitBtn').addEventListener('click', function () { CameraMode.setMode('orbit'); });
+            document.getElementById('modeChaseBtn').addEventListener('click', function () { CameraMode.setMode('chase'); });
+            document.getElementById('modeTopBtn').addEventListener('click', function () { CameraMode.setMode('top'); });
 
             let scrubbing = false;
             function scrubFromEvent(e) {
@@ -861,6 +910,7 @@
                 updateTimelineUI();
                 updateHUD();
                 updateLog();
+                CameraMode.update(PlaybackEngine.getTime());
 
                 controls.update();
                 stars.rotation.y += 0.0005;
