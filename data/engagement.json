@@ -1,0 +1,997 @@
+{
+  "duration": 90.0,
+  "entities": [
+    {
+      "id": "roci",
+      "type": "ship",
+      "iff": "blue",
+      "keyframes": [
+        {
+          "t": 0.0,
+          "position": [
+            -100.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            20.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 10.0,
+          "position": [
+            -80.0,
+            0.0,
+            5.0
+          ],
+          "velocity": [
+            22.0,
+            0.0,
+            1.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 20.0,
+          "position": [
+            -55.0,
+            5.0,
+            10.0
+          ],
+          "velocity": [
+            25.0,
+            1.0,
+            2.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 25.0,
+          "position": [
+            -30.0,
+            10.0,
+            15.0
+          ],
+          "velocity": [
+            30.0,
+            2.0,
+            2.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 30.0,
+          "position": [
+            0.0,
+            10.0,
+            20.0
+          ],
+          "velocity": [
+            35.0,
+            0.0,
+            2.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 45.0,
+          "position": [
+            60.0,
+            5.0,
+            15.0
+          ],
+          "velocity": [
+            25.0,
+            -1.0,
+            -1.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 60.0,
+          "position": [
+            110.0,
+            0.0,
+            5.0
+          ],
+          "velocity": [
+            20.0,
+            0.0,
+            -1.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 75.0,
+          "position": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            15.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 90.0,
+          "position": [
+            180.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            10.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zmeya",
+      "type": "ship",
+      "iff": "red",
+      "keyframes": [
+        {
+          "t": 0.0,
+          "position": [
+            100.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            -15.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 10.0,
+          "position": [
+            80.0,
+            0.0,
+            -5.0
+          ],
+          "velocity": [
+            -18.0,
+            0.0,
+            -1.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 15.0,
+          "position": [
+            65.0,
+            0.0,
+            -8.0
+          ],
+          "velocity": [
+            -20.0,
+            0.0,
+            -1.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 25.0,
+          "position": [
+            40.0,
+            -5.0,
+            -10.0
+          ],
+          "velocity": [
+            -22.0,
+            -1.0,
+            -1.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 35.0,
+          "position": [
+            20.0,
+            -5.0,
+            -10.0
+          ],
+          "velocity": [
+            -25.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 45.0,
+          "position": [
+            -10.0,
+            -5.0,
+            -5.0
+          ],
+          "velocity": [
+            -20.0,
+            0.0,
+            1.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 60.0,
+          "position": [
+            -40.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            -15.0,
+            1.0,
+            1.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 75.0,
+          "position": [
+            -55.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            -10.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 90.0,
+          "position": [
+            -65.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            -5.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "torp_01",
+      "type": "torpedo",
+      "iff": "blue",
+      "keyframes": [
+        {
+          "t": 10.0,
+          "position": [
+            -80.0,
+            0.0,
+            5.0
+          ],
+          "velocity": [
+            80.0,
+            0.0,
+            -5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 15.0,
+          "position": [
+            -40.0,
+            0.0,
+            2.0
+          ],
+          "velocity": [
+            80.0,
+            0.0,
+            -5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 20.0,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            80.0,
+            0.0,
+            -5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "torp_02",
+      "type": "torpedo",
+      "iff": "red",
+      "keyframes": [
+        {
+          "t": 15.0,
+          "position": [
+            65.0,
+            0.0,
+            -8.0
+          ],
+          "velocity": [
+            -80.0,
+            0.0,
+            5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 20.0,
+          "position": [
+            25.0,
+            0.0,
+            -4.0
+          ],
+          "velocity": [
+            -80.0,
+            0.0,
+            5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 25.0,
+          "position": [
+            -15.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            -80.0,
+            0.0,
+            5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "torp_03",
+      "type": "torpedo",
+      "iff": "blue",
+      "keyframes": [
+        {
+          "t": 30.0,
+          "position": [
+            0.0,
+            10.0,
+            20.0
+          ],
+          "velocity": [
+            -60.0,
+            0.0,
+            -5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 33.0,
+          "position": [
+            -20.0,
+            10.0,
+            18.0
+          ],
+          "velocity": [
+            -60.0,
+            0.0,
+            -5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 35.0,
+          "position": [
+            -30.0,
+            10.0,
+            17.0
+          ],
+          "velocity": [
+            -60.0,
+            0.0,
+            -5.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "torp_04",
+      "type": "torpedo",
+      "iff": "red",
+      "keyframes": [
+        {
+          "t": 70.0,
+          "position": [
+            -40.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            60.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 73.0,
+          "position": [
+            -20.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            60.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 75.0,
+          "position": [
+            -10.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            60.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pdc_01",
+      "type": "pdc_round",
+      "iff": "blue",
+      "keyframes": [
+        {
+          "t": 22.0,
+          "position": [
+            -55.0,
+            5.0,
+            10.0
+          ],
+          "velocity": [
+            -150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 22.5,
+          "position": [
+            -130.0,
+            5.0,
+            10.0
+          ],
+          "velocity": [
+            -150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pdc_02",
+      "type": "pdc_round",
+      "iff": "blue",
+      "keyframes": [
+        {
+          "t": 22.2,
+          "position": [
+            -55.0,
+            5.0,
+            10.0
+          ],
+          "velocity": [
+            -150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 22.7,
+          "position": [
+            -130.0,
+            5.0,
+            10.0
+          ],
+          "velocity": [
+            -150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pdc_03",
+      "type": "pdc_round",
+      "iff": "red",
+      "keyframes": [
+        {
+          "t": 34.0,
+          "position": [
+            40.0,
+            -5.0,
+            -10.0
+          ],
+          "velocity": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 34.5,
+          "position": [
+            115.0,
+            -5.0,
+            -10.0
+          ],
+          "velocity": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pdc_04",
+      "type": "pdc_round",
+      "iff": "red",
+      "keyframes": [
+        {
+          "t": 34.2,
+          "position": [
+            40.0,
+            -5.0,
+            -10.0
+          ],
+          "velocity": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 34.7,
+          "position": [
+            115.0,
+            -5.0,
+            -10.0
+          ],
+          "velocity": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pdc_05",
+      "type": "pdc_round",
+      "iff": "blue",
+      "keyframes": [
+        {
+          "t": 74.0,
+          "position": [
+            -40.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 74.5,
+          "position": [
+            35.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pdc_06",
+      "type": "pdc_round",
+      "iff": "blue",
+      "keyframes": [
+        {
+          "t": 74.2,
+          "position": [
+            -40.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "t": 74.7,
+          "position": [
+            35.0,
+            0.0,
+            0.0
+          ],
+          "velocity": [
+            150.0,
+            0.0,
+            0.0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "t": 10.0,
+      "type": "launch",
+      "entity_id": "torp_01",
+      "detail": "Roci launches torpedo at Zmeya"
+    },
+    {
+      "t": 15.0,
+      "type": "launch",
+      "entity_id": "torp_02",
+      "detail": "Zmeya launches torpedo at Roci"
+    },
+    {
+      "t": 20.0,
+      "type": "maneuver_start",
+      "entity_id": "roci",
+      "detail": "Roci begins high-G roll/burn"
+    },
+    {
+      "t": 20.0,
+      "type": "hit",
+      "entity_id": "torp_01",
+      "detail": "Torpedo impacts Zmeya hull"
+    },
+    {
+      "t": 22.0,
+      "type": "pdc_engage",
+      "entity_id": "roci",
+      "detail": "Roci PDC engages inbound torpedo"
+    },
+    {
+      "t": 25.0,
+      "type": "hit",
+      "entity_id": "torp_02",
+      "detail": "Torpedo impacts Roci hull"
+    },
+    {
+      "t": 25.0,
+      "type": "maneuver_start",
+      "entity_id": "zmeya",
+      "detail": "Zmeya begins evasive maneuver"
+    },
+    {
+      "t": 30.0,
+      "type": "launch",
+      "entity_id": "torp_03",
+      "detail": "Roci launches second torpedo"
+    },
+    {
+      "t": 30.0,
+      "type": "maneuver_end",
+      "entity_id": "roci",
+      "detail": "Roci levels out"
+    },
+    {
+      "t": 34.0,
+      "type": "pdc_engage",
+      "entity_id": "zmeya",
+      "detail": "Zmeya PDC engages inbound torpedo"
+    },
+    {
+      "t": 35.0,
+      "type": "intercept",
+      "entity_id": "torp_03",
+      "detail": "PDC intercepts torpedo"
+    },
+    {
+      "t": 35.0,
+      "type": "maneuver_end",
+      "entity_id": "zmeya",
+      "detail": "Zmeya levels out"
+    },
+    {
+      "t": 45.0,
+      "type": "lock",
+      "entity_id": "zmeya",
+      "detail": "Roci acquires weapons lock on Zmeya"
+    },
+    {
+      "t": 50.0,
+      "type": "miss",
+      "entity_id": "torp_03",
+      "detail": "Debris from intercept passes Roci"
+    },
+    {
+      "t": 70.0,
+      "type": "launch",
+      "entity_id": "torp_04",
+      "detail": "Zmeya launches final torpedo"
+    },
+    {
+      "t": 74.0,
+      "type": "pdc_engage",
+      "entity_id": "roci",
+      "detail": "Roci PDC engages final torpedo"
+    },
+    {
+      "t": 75.0,
+      "type": "intercept",
+      "entity_id": "torp_04",
+      "detail": "PDC intercepts torpedo"
+    },
+    {
+      "t": 85.0,
+      "type": "unlock",
+      "entity_id": "zmeya",
+      "detail": "Zmeya drive goes dark"
+    }
+  ]
+}
