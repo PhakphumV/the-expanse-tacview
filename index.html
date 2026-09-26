@@ -122,6 +122,38 @@
         .hud-lock.off {
             color: #555;
         }
+        .event-log {
+            position: fixed;
+            right: 20px;
+            top: 260px;
+            width: 280px;
+            max-height: 320px;
+            background: rgba(0, 20, 0, 0.88);
+            border: 1px solid #555;
+            color: #cccccc;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 8px 10px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+        .event-log-title {
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid #555;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            letter-spacing: 2px;
+            color: #ffffff;
+        }
+        .event-log-entry {
+            padding: 3px 4px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+        }
+        .event-log-entry:hover {
+            background: rgba(255,255,255,0.1);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
@@ -146,6 +178,11 @@
         <div>RNG: <span id="zmeya-rng">---</span> km</div>
         <div>CLOS: <span id="zmeya-clos">---</span> km/s</div>
         <div>ASP: <span id="zmeya-asp">---</span>&deg;</div>
+    </div>
+
+    <div id="eventLog" class="event-log">
+        <div class="event-log-title">EVENT LOG</div>
+        <div id="eventLogList"></div>
     </div>
 
     <div id="timeline">
@@ -605,6 +642,26 @@
                 }
             }
 
+            // Event log entries
+            const eventLogEntries = [];
+            function updateLog() {
+                const t = PlaybackEngine.getTime();
+                const list = document.getElementById('eventLogList');
+                let lastVisible = null;
+                for (let i = 0; i < eventLogEntries.length; i++) {
+                    const e = eventLogEntries[i];
+                    if (e.ev.t <= t) {
+                        e.el.style.display = 'block';
+                        lastVisible = e.el;
+                    } else {
+                        e.el.style.display = 'none';
+                    }
+                }
+                if (lastVisible) {
+                    list.scrollTop = lastVisible.offsetTop;
+                }
+            }
+
             fetch('data/engagement.json')
                 .then(function (r) { return r.json(); })
                 .then(function (json) {
@@ -643,6 +700,21 @@
                             }
                         }
                     }
+                    // Populate event log
+                    eventLogEntries.length = 0;
+                    const eventLogList = document.getElementById('eventLogList');
+                    eventLogList.innerHTML = '';
+                    json.events.forEach(function (ev) {
+                        const entry = document.createElement('div');
+                        entry.className = 'event-log-entry';
+                        entry.textContent = formatTime(ev.t) + ' — ' + (ev.detail || ev.type);
+                        entry.title = 'Jump to ' + formatTime(ev.t);
+                        entry.addEventListener('click', function () {
+                            PlaybackEngine.setTime(ev.t);
+                        });
+                        eventLogList.appendChild(entry);
+                        eventLogEntries.push({ el: entry, ev: ev });
+                    });
                     populateEventMarkers();
                     updateMeshes(0);
                     updateTimelineUI();
@@ -788,6 +860,7 @@
                 updateMeshes(PlaybackEngine.getTime());
                 updateTimelineUI();
                 updateHUD();
+                updateLog();
 
                 controls.update();
                 stars.rotation.y += 0.0005;
