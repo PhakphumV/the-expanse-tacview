@@ -266,6 +266,21 @@
                 }
             });
 
+            // Burst effects for intercept/hit events
+            const bursts = [];
+            const BURST_DURATION = 1.0;
+            function createBurstMesh(color) {
+                const geom = new THREE.SphereGeometry(5, 16, 16);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 1,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                });
+                return new THREE.Mesh(geom, mat);
+            }
+
             // ---- Playback engine ----
             const PlaybackEngine = (function () {
                 const state = {
@@ -613,6 +628,21 @@
                             scene.add(trails[id]);
                         }
                     }
+                    // Burst effects for intercept/hit events
+                    for (const ev of json.events) {
+                        if (ev.type === 'intercept' || ev.type === 'hit') {
+                            const sMap = PlaybackEngine.getStateAtTime(ev.t);
+                            const s = sMap[ev.entity_id];
+                            if (s && s.active) {
+                                const color = ev.type === 'hit' ? 0xff3333 : 0xffaa33;
+                                const mesh = createBurstMesh(color);
+                                mesh.position.copy(s.position);
+                                mesh.visible = false;
+                                scene.add(mesh);
+                                bursts.push({ mesh: mesh, startTime: ev.t, duration: BURST_DURATION });
+                            }
+                        }
+                    }
                     populateEventMarkers();
                     updateMeshes(0);
                     updateTimelineUI();
@@ -719,6 +749,20 @@
                         positions[i * 3 + 2] = p.z;
                     }
                     line.geometry.attributes.position.needsUpdate = true;
+                }
+
+                // Bursts
+                for (const b of bursts) {
+                    const elapsed = t - b.startTime;
+                    if (elapsed < 0 || elapsed > b.duration) {
+                        b.mesh.visible = false;
+                    } else {
+                        b.mesh.visible = true;
+                        const u = elapsed / b.duration;
+                        b.mesh.material.opacity = 1 - u;
+                        const scale = 1 + u * 2;
+                        b.mesh.scale.setScalar(scale);
+                    }
                 }
             }
 
