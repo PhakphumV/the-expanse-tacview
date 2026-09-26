@@ -1,0 +1,59 @@
+// js/effects.js
+// Procedural burst effects spawned at intercept/hit events. Each burst is an
+// additive-blended sphere that fades and expands over BURST_DURATION seconds.
+
+const THREE = window.THREE;
+
+const BURST_DURATION = 1.0;
+
+function createBurstMesh(color) {
+    const geom = new THREE.SphereGeometry(5, 16, 16);
+    const mat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 1,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+    });
+    return new THREE.Mesh(geom, mat);
+}
+
+export function createEffectsManager(scene, playbackEngine) {
+    const bursts = [];
+
+    function loadBursts() {
+        const dataset = playbackEngine.getDataset();
+        if (!dataset) return;
+        for (const ev of dataset.events) {
+            if (ev.type === 'intercept' || ev.type === 'hit') {
+                const sMap = playbackEngine.getStateAtTime(ev.t);
+                const s = sMap[ev.entity_id];
+                if (s && s.active) {
+                    const color = ev.type === 'hit' ? 0xff3333 : 0xffaa33;
+                    const mesh = createBurstMesh(color);
+                    mesh.position.copy(s.position);
+                    mesh.visible = false;
+                    scene.add(mesh);
+                    bursts.push({ mesh, startTime: ev.t, duration: BURST_DURATION });
+                }
+            }
+        }
+    }
+
+    function update(t) {
+        for (const b of bursts) {
+            const elapsed = t - b.startTime;
+            if (elapsed < 0 || elapsed > b.duration) {
+                b.mesh.visible = false;
+            } else {
+                b.mesh.visible = true;
+                const u = elapsed / b.duration;
+                b.mesh.material.opacity = 1 - u;
+                const scale = 1 + u * 2;
+                b.mesh.scale.setScalar(scale);
+            }
+        }
+    }
+
+    return { loadBursts, update };
+}
