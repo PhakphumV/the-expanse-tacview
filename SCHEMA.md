@@ -70,6 +70,7 @@ the application unusable.
 | position      | m    | meters, world-space                            |
 | velocity      | m/s  | meters per second                              |
 | orientation   | -    | unit quaternion `[x, y, z, w]`                 |
+| angular_velocity | rad/s | body-frame `[wx, wy, wz]`; optional, additive |
 | range         | m    | derived; displayed in km in the HUD            |
 | closure rate  | m/s  | derived; displayed in km/s in the HUD          |
 | G-force       | G   | multiples of 9.8 m/s²                          |
@@ -91,6 +92,13 @@ calculation) is `(0, 0, -1)` rotated by the entity's orientation.
 }
 ```
 
+> **Optional keyframe fields (additive, ignored when absent):**
+> - `angular_velocity: [wx, wy, wz]` — body-frame angular velocity in rad/s.
+>   When omitted on every keyframe of an entity, the integrator derives a
+>   synthetic angular velocity from the quaternion delta between adjacent
+>   keyframes, so existing datasets render a continuous roll without
+>   re-authoring the data. See [Phase 6 ADR-0002](adr/0002-angular-velocity-field-policy.md).
+
 - `id` (string, required, unique): entity identifier referenced by events.
 - `type` (string, required): one of `"ship"`, `"torpedo"`, `"pdc_round"`.
 - `iff` (string, required): side tag, typically `"blue"` or `"red"`.
@@ -104,6 +112,10 @@ calculation) is `(0, 0, -1)` rotated by the entity's orientation.
   Authored as an independent sample, not strictly the derivative of
   `position`. See `VALIDATION.md` for the resulting tolerance.
 - `orientation` ([x, y, z, w]): unit quaternion.
+- `angular_velocity` ([wx, wy, wz], rad/s, **optional**): body-frame
+  angular velocity. The integrator uses this directly when present; when
+  absent it derives a synthetic ω from quaternion deltas between
+  adjacent keyframes. See the optional-fields note above.
 
 ### Entity lifecycle
 
