@@ -28,7 +28,6 @@ All three targets support:
 | `fetch()`                                 | ✓          | ✓           | ✓          |
 | WebGL 2 (`WebGLRenderer`)                 | ✓          | ✓           | ✓          |
 | Three.js r128 (cdnjs)                     | ✓          | ✓           | ✓          |
-| `OrbitControls` (cdnjs)                   | ✓          | ✓           | ✓          |
 | Keyboard event `key` + `code` fields      | ✓          | ✓           | ✓          |
 | `getBoundingClientRect` for UI math       | ✓          | ✓           | ✓          |
 | CSS `position: fixed` overlays            | ✓          | ✓           | ✓          |

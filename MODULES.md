@@ -7,16 +7,16 @@ loads `js/main.js` with `<script type="module">`.
 | Module              | Responsibility                                                     |
 | ------------------- | ------------------------------------------------------------------ |
 | `js/main.js`        | Entry point: wires modules together, runs the per-frame loop       |
-| `js/scene.js`       | Three.js scene, camera, renderer, OrbitControls, starfield, resize |
+| `js/scene.js`       | Three.js scene, camera, renderer, starfield, resize               |
 | `js/playback.js`    | Dataset load, keyframe interpolation, integrated state, play/pause/speed/time |
 | `js/integrator.js`  | Pure-math forward integration: position (`pos += vel·dt`) and orientation (exponential map from body-frame ω, with synthetic ω derivation from quaternion deltas) |
-| `js/telemetry.js`   | Derived G-force, aspect angle, range, closure rate, Acceleration, Burn Direction, Roll |
+| `js/telemetry.js`   | Derived G-force, aspect angle, range, closure rate, Acceleration, Burn Direction, Heading / Pitch / Roll |
 | `js/mission-state.js` | Six-phase tactical label derivation (STANDBY/PURSUIT/LAUNCH/INTERCEPT/ROLL/ATTRITION/RESOLUTION) from the event timeline |
 | `js/lock-state.js`  | Builds lock intervals from `lock`/`unlock` events                  |
 | `js/entities.js`    | Ship hulls, fading trails, and 2D entity labels                    |
 | `js/weapons.js`     | Torpedo meshes and PDC tracer line segments                        |
 | `js/effects.js`     | Procedural burst effects at intercept/hit events                   |
-| `js/camera.js`      | Camera mode switcher (Orbit / Chase / Top-Down)                    |
+| `js/camera.js`      | Camera mode switcher (Center of Engagement / Chase) with chase-target cycling |
 | `js/hud.js`         | HUD panels and lock indicator                                      |
 | `js/timeline.js`    | Timeline scrubber, play/pause, speed, event markers                |
 | `js/event-log.js`   | Scrolling event log with click-to-seek                             |
