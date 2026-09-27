@@ -52,12 +52,6 @@ _Avoid_: overhead, both-ships view
 A camera mode that follows a single ship (the chase target) at close range; the user can cycle the chase target with the `C` key. An engagement may declare a default chase target.
 _Avoid_: third-person, follow cam
 
-## Mission state
-
-**Phase Label**:
-The current phase of the engagement as displayed in the HUD; derived from the most recent event type. Six values: `PURSUIT`, `LAUNCH`, `INTERCEPT`, `ROLL`, `ATTRITION`, `RESOLUTION`. The boundary states `STANDBY` (before the first event) and the terminal `RESOLUTION` are also derived.
-_Avoid_: stage, beat, act
-
 ## Architecture
 
 **Newtonian-aware Interpolation**:
