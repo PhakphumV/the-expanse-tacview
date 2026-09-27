@@ -158,9 +158,15 @@ export function createPlaybackEngine() {
                 wx = 0; wy = 0; wz = 0;
             }
 
-            // Integrate position and orientation forward by dt.
-            const pos = integratePosition(kA.pos, kA.vel, dt);
-            const q = integrateOrientation(kA.q, wx, wy, wz, dt);
+            // Integrate position and orientation forward by dt. The
+            // integrator writes into the supplied out-parameter, so we
+            // pre-allocate a THREE.Vector3 / THREE.Quaternion to keep
+            // the returned shape consistent with the kinematic state
+            // (callers like js/entities.js rely on .clone() / .copy()).
+            const pos = new THREE.Vector3();
+            integratePosition(kA.pos, kA.vel, dt, pos);
+            const q = new THREE.Quaternion();
+            integrateOrientation(kA.q, wx, wy, wz, dt, q);
 
             out[id] = {
                 active: true,
