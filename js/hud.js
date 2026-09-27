@@ -21,8 +21,13 @@ export function createHUD(playbackEngine, telemetry, lockState, missionState) {
             setVal(id + '-rng', formatKm(derived[id].range));
             setVal(id + '-clos', formatKm(derived[id].closureRate));
             setVal(id + '-asp', formatAngle(derived[id].aspectAngle));
+            // New Phase 6 fields (Q7):
+            setVal(id + '-acc', derived[id].acceleration.length().toFixed(2));
+            setVal(id + '-burn', derived[id].burnDirection);
+            setVal(id + '-roll', formatAngle(derived[id].roll));
         } else {
-            [id + '-vel', id + '-g', id + '-rng', id + '-clos', id + '-asp']
+            [id + '-vel', id + '-g', id + '-rng', id + '-clos', id + '-asp',
+             id + '-acc', id + '-burn', id + '-roll']
                 .forEach((el) => setVal(el, '---'));
         }
     }
@@ -50,7 +55,10 @@ export function createHUD(playbackEngine, telemetry, lockState, missionState) {
         if (s === lastMissionState) return; // no change — skip DOM work
         lastMissionState = s;
         if (el.textContent !== s) el.textContent = s;
-        el.classList.remove('standby', 'engagement', 'resolution');
+        // Six-phase styling (STANDBY/PURSUIT/LAUNCH/INTERCEPT/ROLL/ATTRITION/RESOLUTION).
+        el.classList.remove(
+            'standby', 'pursuit', 'launch', 'intercept', 'roll', 'attrition', 'resolution'
+        );
         el.classList.add(s.toLowerCase());
     }
 

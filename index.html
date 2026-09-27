@@ -56,6 +56,9 @@
         <div>RNG: <span id="roci-rng">---</span> km</div>
         <div>CLOS: <span id="roci-clos">---</span> km/s</div>
         <div>ASP: <span id="roci-asp">---</span>&deg;</div>
+        <div>ACC: <span id="roci-acc">---</span> G</div>
+        <div>BURN: <span id="roci-burn">---</span></div>
+        <div>ROLL: <span id="roci-roll">---</span>&deg;</div>
     </div>
 
     <div id="hud-zmeya" class="hud-panel">
@@ -65,6 +68,9 @@
         <div>RNG: <span id="zmeya-rng">---</span> km</div>
         <div>CLOS: <span id="zmeya-clos">---</span> km/s</div>
         <div>ASP: <span id="zmeya-asp">---</span>&deg;</div>
+        <div>ACC: <span id="zmeya-acc">---</span> G</div>
+        <div>BURN: <span id="zmeya-burn">---</span></div>
+        <div>ROLL: <span id="zmeya-roll">---</span>&deg;</div>
     </div>
 
     <div id="missionPanel">
@@ -123,8 +129,10 @@
             </table>
             <p class="helpNote">
                 Mission state: <b>STANDBY</b> before the first event,
-                <b>ENGAGEMENT</b> during active combat,
-                <b>RESOLUTION</b> after the last intercept or hit.
+                <b>PURSUIT</b> / <b>LAUNCH</b> / <b>INTERCEPT</b> /
+                <b>ROLL</b> / <b>ATTRITION</b> during active combat (driven
+                by the most recent event), and <b>RESOLUTION</b> after the
+                last intercept or hit.
             </p>
         </div>
     </div>
