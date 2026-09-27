@@ -1,6 +1,10 @@
 // js/scene.js
-// Three.js scene, camera, renderer, orbit controls, and procedural starfield.
-// Pure setup; no gameplay logic. Returns the handles other modules need.
+// Three.js scene, camera, renderer, and procedural starfield. Pure setup;
+// no gameplay logic. Returns the handles other modules need.
+//
+// The previous Phase-6-pre OrbitControls creation is removed in #32; the
+// remaining two camera modes (Center of Engagement, Chase) compute their
+// own transforms and no longer need a hand-controller.
 
 const THREE = window.THREE;
 
@@ -21,10 +25,6 @@ export function createScene(container) {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
-
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
 
     // Procedural starfield (6000 points, no texture assets)
     const starCount = 6000;
@@ -60,9 +60,8 @@ export function createScene(container) {
     }
 
     function render() {
-        controls.update();
         renderer.render(scene, camera);
     }
 
-    return { scene, camera, renderer, controls, stars, tickStars, render, onResize };
+    return { scene, camera, renderer, stars, tickStars, render, onResize };
 }

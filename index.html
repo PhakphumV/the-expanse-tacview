@@ -6,7 +6,6 @@
     <title>The Expanse Tacview</title>
     <link rel="stylesheet" href="css/tacview.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="vendor/OrbitControls.js"></script>
 </head>
 <body>
     <div id="container"></div>
@@ -104,9 +103,8 @@
             <option value="2">2x</option>
             <option value="4">4x</option>
         </select>
-        <button id="modeOrbitBtn" class="mode-btn active">Orbit</button>
+        <button id="modeCenterBtn" class="mode-btn active">Center</button>
         <button id="modeChaseBtn" class="mode-btn">Chase</button>
-        <button id="modeTopBtn" class="mode-btn">Top</button>
         <button id="trailsBtn">Trails: ON</button>
         <button id="helpBtn" title="Keyboard shortcuts (?)">?</button>
     </div>
@@ -127,7 +125,8 @@
                 <tr><td>&larr; / J</td><td>Previous event</td></tr>
                 <tr><td>&rarr; / L</td><td>Next event</td></tr>
                 <tr><td>T</td><td>Toggle trails</td></tr>
-                <tr><td>1 / 2 / 3</td><td>Orbit / Chase / Top-Down camera</td></tr>
+                <tr><td>1 / 2</td><td>Center / Chase camera</td></tr>
+                <tr><td>C</td><td>Cycle chase target (in Chase mode)</td></tr>
                 <tr><td>?</td><td>Toggle this help</td></tr>
                 <tr><td>Esc</td><td>Close this help</td></tr>
             </table>
