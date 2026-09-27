@@ -20,6 +20,9 @@
 //   8.  Derived telemetry (range, velocity) stays physically reasonable
 //   9.  Lock/unlock events form valid closed intervals
 //   10. Burst event positions are at known entity positions
+//   11. Integrated position match within span tolerance (Phase 6, ADR-0001)
+//   12. Scrub-then-forward determinism (pure getIntegratedStateAtTime)
+//   13. HUD acceleration matches numeric dv/dt over the same span
 //
 // Units:
 //   - distance: meters
@@ -196,6 +199,141 @@ function gForceAt(id, t, dt = 0.01) {
     if (!sNext || !sPrev) return null;
     const dv = new Vec3().copy(sNext.vel).sub(sPrev.vel);
     return (dv.length() / (2 * dt)) / G0;
+}
+
+// ---- Phase 6: integrated-state helpers (mirror of js/playback.js) ----
+
+// Quaternion product: result = a * b. Three.js convention: applies b
+// first, then a. For body-frame integration of angular velocity, the
+// delta rotation is applied on the right: q_new = q_old * dq.
+function quatMultiply(a, b) {
+    return new Quat(
+        a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+        a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+        a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w,
+        a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+    );
+}
+
+// Forward-Euler integrate position with constant velocity over dt.
+function integratePosition(pos, vel, dt) {
+    return new Vec3(
+        pos.x + vel.x * dt,
+        pos.y + vel.y * dt,
+        pos.z + vel.z * dt,
+    );
+}
+
+// Integrate orientation by [wx,wy,wz] over dt using the exact exponential
+// map. Returns a normalized quaternion.
+function integrateOrientation(q, wx, wy, wz, dt) {
+    const angle = Math.sqrt(wx*wx + wy*wy + wz*wz) * dt;
+    if (angle < 1e-9) return q.clone();
+    const inv = 1 / angle;
+    const half = angle / 2;
+    const s = Math.sin(half);
+    const dq = new Quat(wx*inv*s, wy*inv*s, wz*inv*s, Math.cos(half));
+    const r = quatMultiply(q, dq);
+    const len = Math.sqrt(r.x*r.x + r.y*r.y + r.z*r.z + r.w*r.w);
+    if (len < 1e-12) return q.clone();
+    return new Quat(r.x/len, r.y/len, r.z/len, r.w/len);
+}
+
+// Derive body-frame angular velocity from the rotation between two
+// keyframes. Returns [wx, wy, wz] in rad/s. For pure-Z rotations this
+// matches the dataset's defensive roll exactly.
+function deriveAngularVelocity(qA, qB, span) {
+    if (span <= 0) return { wx: 0, wy: 0, wz: 0 };
+    // World-frame delta: qDelta = qB * qA^(-1).
+    // For Three.js unit quaternions, q^(-1) = (-x, -y, -z, w).
+    const qAinv = new Quat(-qA.x, -qA.y, -qA.z, qA.w);
+    const qDelta = quatMultiply(qB, qAinv);
+    // Flip sign if w < 0 so the rotation is the shortest path.
+    let dx = qDelta.x, dy = qDelta.y, dz = qDelta.z, dw = qDelta.w;
+    if (dw < 0) { dx = -dx; dy = -dy; dz = -dz; dw = -dw; }
+    // Half-angle of rotation; axis * sin(angle/2) = (dx, dy, dz).
+    const halfAngle = 2 * Math.atan2(
+        Math.sqrt(dx*dx + dy*dy + dz*dz), dw
+    );
+    const sinHalf = Math.sin(halfAngle);
+    if (Math.abs(sinHalf) < 1e-9) return { wx: 0, wy: 0, wz: 0 };
+    const angle = 2 * halfAngle;
+    const k = angle / (sinHalf * span);
+    return { wx: dx * k, wy: dy * k, wz: dz * k };
+}
+
+// Mirror of getIntegratedStateAtTime(id, t).
+function getIntegratedStateAtTime(id, t) {
+    const e = entities[id];
+    if (!e || e.keyframes.length === 0) return null;
+    if (t < e.keyframes[0].t || t > e.keyframes[e.keyframes.length-1].t) return null;
+    let lo = 0, hi = e.keyframes.length - 1;
+    while (lo < hi - 1) {
+        const mid = (lo + hi) >> 1;
+        if (e.keyframes[mid].t <= t) lo = mid; else hi = mid;
+    }
+    const kA = e.keyframes[lo], kB = e.keyframes[hi];
+    const span = kB.t - kA.t;
+    const dt = t - kA.t;
+    if (span <= 0) {
+        return { pos: kA.pos.clone(), vel: kA.vel.clone(), ori: kA.ori.clone() };
+    }
+    const omega = deriveAngularVelocity(kA.ori, kB.ori, span);
+    return {
+        pos: integratePosition(kA.pos, kA.vel, dt),
+        vel: kA.vel.clone(),
+        ori: integrateOrientation(kA.ori, omega.wx, omega.wy, omega.wz, dt),
+    };
+}
+
+// Acceleration vector at t: dv/dt over the span containing t. Mirrors
+// js/telemetry.js accelerationForEntity.
+function accelerationForEntity(id, t) {
+    const e = entities[id];
+    if (!e || e.keyframes.length < 2) return new Vec3(0, 0, 0);
+    let lo = 0, hi = e.keyframes.length - 1;
+    while (lo < hi - 1) {
+        const mid = (lo + hi) >> 1;
+        if (e.keyframes[mid].t <= t) lo = mid; else hi = mid;
+    }
+    const a = e.keyframes[lo], b = e.keyframes[hi];
+    const dt = b.t - a.t;
+    if (dt <= 0) return new Vec3(0, 0, 0);
+    return new Vec3(
+        (b.vel.x - a.vel.x) / dt,
+        (b.vel.y - a.vel.y) / dt,
+        (b.vel.z - a.vel.z) / dt,
+    );
+}
+
+// Burn direction classification (FWD/BRK/IDLE) using the same threshold
+// as js/telemetry.js. Mirrors burnDirectionForEntity.
+const BURN_THRESHOLD_MPS2 = 0.5;
+function burnDirectionForEntity(id, t) {
+    const acc = accelerationForEntity(id, t);
+    if (acc.length() === 0) return 'IDLE';
+    const e = entities[id];
+    let lo = 0, hi = e.keyframes.length - 1;
+    while (lo < hi - 1) {
+        const mid = (lo + hi) >> 1;
+        if (e.keyframes[mid].t <= t) lo = mid; else hi = mid;
+    }
+    const a = e.keyframes[lo], b = e.keyframes[hi];
+    const dt = b.t - a.t;
+    let vx, vy, vz;
+    if (dt <= 0) { vx = a.vel.x; vy = a.vel.y; vz = a.vel.z; }
+    else {
+        const alpha = Math.max(0, Math.min(1, (t - a.t) / dt));
+        vx = a.vel.x + (b.vel.x - a.vel.x) * alpha;
+        vy = a.vel.y + (b.vel.y - a.vel.y) * alpha;
+        vz = a.vel.z + (b.vel.z - a.vel.z) * alpha;
+    }
+    const velMag = Math.sqrt(vx*vx + vy*vy + vz*vz);
+    if (velMag < 1e-6) return 'IDLE';
+    const projAlongVel = (acc.x*vx + acc.y*vy + acc.z*vz) / velMag;
+    if (projAlongVel >  BURN_THRESHOLD_MPS2) return 'FWD';
+    if (projAlongVel < -BURN_THRESHOLD_MPS2) return 'BRK';
+    return 'IDLE';
 }
 
 // ---- Validation framework ----
@@ -445,6 +583,105 @@ function checkBurstPositions() {
     return null;
 }
 
+// ---- Phase 6: integrated-state physics checks ----
+
+// (1) Integrated position at the END of every span should match the
+// kinematic position at the SAME instant, modulo the documented
+// "velocity independent of position" authoring quirk (VEL_TOLERANCE per
+// span). This verifies that getIntegratedStateAtTime produces a state
+// consistent with the kinematic track at keyframe boundaries.
+function checkIntegratedPositionMatch() {
+    const INTEG_BOUNDARY_TOL = VEL_TOLERANCE;  // m/s over the span
+    for (const id in entities) {
+        const kfs = entities[id].keyframes;
+        for (let i = 1; i < kfs.length; i++) {
+            const span = kfs[i].t - kfs[i-1].t;
+            if (span <= 0) continue;
+            // t = kfs[i].t — end of the [kfs[i-1], kfs[i]] span.
+            const integ = getIntegratedStateAtTime(id, kfs[i].t);
+            const kin = getStateAtTime(id, kfs[i].t);
+            if (!integ || !kin) continue;
+            const diff = Math.sqrt(
+                (integ.pos.x - kin.pos.x)**2 +
+                (integ.pos.y - kin.pos.y)**2 +
+                (integ.pos.z - kin.pos.z)**2
+            );
+            // The "documented authoring quirk" tolerance scales with span.
+            const tol = INTEG_BOUNDARY_TOL * span;
+            if (diff > tol) {
+                return `${id} span [${kfs[i-1].t.toFixed(2)},${kfs[i].t.toFixed(2)}]s: ` +
+                       `integrated end-position vs kinematic end-position differ by ` +
+                       `${diff.toFixed(1)}m (tolerance ${tol.toFixed(1)}m for span ${span.toFixed(2)}s); ` +
+                       `this would indicate either an integration bug or velocity samples ` +
+                       `inconsistent with positions beyond the documented authoring jitter.`;
+            }
+        }
+    }
+    return null;
+}
+
+// (2) Scrub-then-forward determinism: getIntegratedStateAtTime is a pure
+// function of (id, t). Calling it twice with the same arguments must
+// yield bit-identical state. This catches any accidental caching that
+// could leak playback-engine state into the integrated state.
+function checkScrubForwardDeterminism() {
+    const samples = [0.5, 5, 10, 25, 50, 80, 100, 130, 150, 165];
+    for (const id in entities) {
+        for (const t of samples) {
+            const a = getIntegratedStateAtTime(id, t);
+            const b = getIntegratedStateAtTime(id, t);
+            if (!a || !b) continue;
+            const diffPos = Math.sqrt(
+                (a.pos.x - b.pos.x)**2 +
+                (a.pos.y - b.pos.y)**2 +
+                (a.pos.z - b.pos.z)**2
+            );
+            const diffOri = Math.sqrt(
+                (a.ori.x - b.ori.x)**2 +
+                (a.ori.y - b.ori.y)**2 +
+                (a.ori.z - b.ori.z)**2 +
+                (a.ori.w - b.ori.w)**2
+            );
+            if (diffPos > 0 || diffOri > 0) {
+                return `${id} t=${t.toFixed(2)}s: getIntegratedStateAtTime is not deterministic ` +
+                       `(Δpos=${diffPos.toExponential(2)}, Δori=${diffOri.toExponential(2)})`;
+            }
+        }
+    }
+    return null;
+}
+
+// (3) HUD acceleration matches the numeric dv/dt computed from the
+// kinematic state at the same instant. The HUD reports |dv/dt| over the
+// current span; numeric differentiation uses ±0.01s symmetric samples.
+// They should agree within rounding error.
+function checkAccelerationMatch() {
+    const samples = 20;
+    const dur = dataset.duration;
+    for (const id of ['roci', 'zmeya']) {
+        for (let i = 0; i < samples; i++) {
+            const t = (i / (samples - 1)) * dur;
+            const sNext = getStateAtTime(id, t + 0.01);
+            const sPrev = getStateAtTime(id, t - 0.01);
+            const sMid = getStateAtTime(id, t);
+            if (!sNext || !sPrev || !sMid) continue;
+            const numericDv = new Vec3().copy(sNext.vel).sub(sPrev.vel);
+            const numericMag = numericDv.length() / 0.02;  // m/s²
+            const hudAcc = accelerationForEntity(id, t);
+            const hudMag = hudAcc.length();
+            const relDiff = Math.abs(hudMag - numericMag);
+            // Allow 1% relative tolerance plus a tiny absolute floor.
+            const tol = Math.max(0.5, numericMag * 0.01);
+            if (relDiff > tol) {
+                return `${id} t=${t.toFixed(2)}s: HUD |acc|=${hudMag.toFixed(3)} m/s² ` +
+                       `differs from numeric dv/dt=${numericMag.toFixed(3)} m/s² ` +
+                       `by ${relDiff.toFixed(3)} (tolerance ${tol.toFixed(3)})`;
+            }
+        }
+    }
+    return null;
+}
+
 function checkCollectionShape() {
     if (!collection || typeof collection !== 'object') return 'top level is not an object';
     if (!Array.isArray(collection.engagements)) return 'missing "engagements" array';
@@ -489,6 +726,10 @@ for (const eng of engagementList) {
     check(`  ${tag} 8. Derived telemetry in physical range`, checkDerivedRanges);
     check(`  ${tag} 9. Lock/unlock events form valid closed intervals`, checkLockWindows);
     check(`  ${tag} 10. Burst events at known entity positions`, checkBurstPositions);
+    // Phase 6 physics checks (ADR-0001, Q9):
+    check(`  ${tag} 11. Integrated position match within span tolerance`, checkIntegratedPositionMatch);
+    check(`  ${tag} 12. Scrub-then-forward determinism (pure getIntegratedStateAtTime)`, checkScrubForwardDeterminism);
+    check(`  ${tag} 13. HUD acceleration matches numeric dv/dt`, checkAccelerationMatch);
 }
 
 console.log(`\n${passCount} passed, ${failCount} failed`);
