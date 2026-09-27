@@ -18,9 +18,10 @@ import { createEventLog } from './event-log.js';
 import { createInfoPanel } from './info-panel.js';
 import { createEngagementSelector } from './engagement-selector.js';
 import { createPresentation, createRangeRings } from './presentation.js';
+import { createStarfield } from './starfield.js';
 
 const container = document.getElementById('container');
-const { scene, camera, render, tickStars } = createScene(container);
+const { scene, camera, render } = createScene(container);
 
 const playback = createPlaybackEngine();
 const telemetry = createTelemetry(playback);
@@ -37,6 +38,7 @@ const effects = createEffectsManager(scene, playback);
 const labels = createLabels(playback, camera);
 const presentation = createPresentation(playback);
 const rangeRings = createRangeRings(scene, playback);
+const starfield = createStarfield(scene, playback);
 
 entities.createShips();
 
@@ -159,8 +161,11 @@ function animate() {
     labels.update();
     cameraCtl.update(t);
     presentation.update();
+    // Drift each starfield layer opposite to the ships' mean velocity
+    // (Phase 6 #33). dt comes from the per-frame wall clock so the
+    // parallax displacement matches the rendered frame rate.
+    starfield.update(t, dt);
 
-    tickStars();
     render();
 }
 animate();

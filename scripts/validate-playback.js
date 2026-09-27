@@ -418,6 +418,7 @@ function checkSyntax() {
         'js/engagement-selector.js',
         'js/ship-models.js',
         'js/presentation.js',
+        'js/starfield.js',
         'scripts/browser-smoke.js',
         'scripts/resource-audit.js',
     ];
