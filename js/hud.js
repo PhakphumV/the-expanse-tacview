@@ -24,10 +24,16 @@ export function createHUD(playbackEngine, telemetry, lockState, missionState) {
             // New Phase 6 fields (Q7):
             setVal(id + '-acc', derived[id].acceleration.length().toFixed(2));
             setVal(id + '-burn', derived[id].burnDirection);
-            setVal(id + '-roll', formatAngle(derived[id].roll));
+            // 3D angular debug overlay (issue #30). Heading (yaw) / pitch /
+            // roll extracted from the integrated orientation in degrees; the
+            // telemetry layer guarantees all three are present together.
+            setVal(id + '-hdg',   formatAngle(derived[id].heading));
+            setVal(id + '-pitch', formatAngle(derived[id].pitch));
+            setVal(id + '-roll',  formatAngle(derived[id].roll));
         } else {
             [id + '-vel', id + '-g', id + '-rng', id + '-clos', id + '-asp',
-             id + '-acc', id + '-burn', id + '-roll']
+             id + '-acc', id + '-burn',
+             id + '-hdg', id + '-pitch', id + '-roll']
                 .forEach((el) => setVal(el, '---'));
         }
     }
