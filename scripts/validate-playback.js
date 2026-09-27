@@ -682,6 +682,71 @@ function checkAccelerationMatch() {
     return null;
 }
 
+// (4) Burn direction classification: a span with positive dv/dt along the
+// velocity vector must classify as FWD, negative as BRK, zero as IDLE.
+// Synthesizes three minimal entities (FWD ramp / BRK ramp / constant) and
+// samples burnDirectionForEntity at the midpoint of each span. The real
+// engagement's authored velocities in data/engagement.json are too small to
+// cross the 0.5 m/s² threshold (tactical maneuvers are encoded as discrete
+// velocity deltas over multi-second spans), so the production data stays
+// mostly IDLE — this unit check exercises the classification logic directly.
+function checkBurnDirectionClassification() {
+    const ID = '__test_burn';
+    // Save the real engagement's entity registry so the synthetic test does
+    // not leak into anything else in the per-engagement check sequence.
+    const saved = entities[ID];
+    try {
+        const baseOri = new Quat(0, 0, 0, 1);
+        // Three FWD keyframes: velocity climbs 1000 → 1500 → 2000 m/s on +Z.
+        // dv/dt in the [0,5] span is +100 m/s², well above BURN_THRESHOLD.
+        entities[ID] = {
+            type: 'ship', iff: 'blue',
+            keyframes: [
+                { t: 0,  pos: new Vec3(0, 0, 0),     vel: new Vec3(0, 0, 1000), ori: baseOri },
+                { t: 5,  pos: new Vec3(0, 0, 5000),  vel: new Vec3(0, 0, 1500), ori: baseOri },
+                { t: 10, pos: new Vec3(0, 0, 12500), vel: new Vec3(0, 0, 2000), ori: baseOri },
+            ],
+        };
+        const fwd = burnDirectionForEntity(ID, 2.5);
+        if (fwd !== 'FWD') {
+            return `FWD ramp classified as "${fwd}" (expected "FWD"); the ` +
+                   `acceleration vector should align with the velocity vector.`;
+        }
+        // Three BRK keyframes: velocity decays 2000 → 1500 → 1000 m/s on +Z.
+        entities[ID] = {
+            type: 'ship', iff: 'blue',
+            keyframes: [
+                { t: 0,  pos: new Vec3(0, 0, 0),     vel: new Vec3(0, 0, 2000), ori: baseOri },
+                { t: 5,  pos: new Vec3(0, 0, 8750),  vel: new Vec3(0, 0, 1500), ori: baseOri },
+                { t: 10, pos: new Vec3(0, 0, 15000), vel: new Vec3(0, 0, 1000), ori: baseOri },
+            ],
+        };
+        const brk = burnDirectionForEntity(ID, 2.5);
+        if (brk !== 'BRK') {
+            return `BRK ramp classified as "${brk}" (expected "BRK"); the ` +
+                   `acceleration vector should oppose the velocity vector.`;
+        }
+        // Three IDLE keyframes: constant 1000 m/s on +Z. dv/dt = 0.
+        entities[ID] = {
+            type: 'ship', iff: 'blue',
+            keyframes: [
+                { t: 0,  pos: new Vec3(0, 0, 0),    vel: new Vec3(0, 0, 1000), ori: baseOri },
+                { t: 5,  pos: new Vec3(0, 0, 5000), vel: new Vec3(0, 0, 1000), ori: baseOri },
+                { t: 10, pos: new Vec3(0, 0, 10000),vel: new Vec3(0, 0, 1000), ori: baseOri },
+            ],
+        };
+        const idle = burnDirectionForEntity(ID, 2.5);
+        if (idle !== 'IDLE') {
+            return `Constant-velocity span classified as "${idle}" (expected "IDLE"); ` +
+                   `no significant thrust should be detected.`;
+        }
+        return null;
+    } finally {
+        if (saved === undefined) delete entities[ID];
+        else entities[ID] = saved;
+    }
+}
+
 function checkCollectionShape() {
     if (!collection || typeof collection !== 'object') return 'top level is not an object';
     if (!Array.isArray(collection.engagements)) return 'missing "engagements" array';
@@ -730,6 +795,7 @@ for (const eng of engagementList) {
     check(`  ${tag} 11. Integrated position match within span tolerance`, checkIntegratedPositionMatch);
     check(`  ${tag} 12. Scrub-then-forward determinism (pure getIntegratedStateAtTime)`, checkScrubForwardDeterminism);
     check(`  ${tag} 13. HUD acceleration matches numeric dv/dt`, checkAccelerationMatch);
+    check(`  ${tag} 14. Burn direction classifies FWD/BRK/IDLE from acc·v`, checkBurnDirectionClassification);
 }
 
 console.log(`\n${passCount} passed, ${failCount} failed`);
