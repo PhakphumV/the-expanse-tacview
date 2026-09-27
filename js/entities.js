@@ -116,7 +116,10 @@ export function createEntitiesManager(scene, playbackEngine) {
     function getTrailsVisible() { return trailsVisible; }
 
     function update(t) {
-        const stateMap = playbackEngine.getStateAtTime(t);
+        // Ship transforms use the integrated state so the body's roll reads as
+        // a continuous rotation (synthetic ω from ADR-0002) rather than the
+        // slerp that the kinematic state happens to produce.
+        const stateMap = playbackEngine.getIntegratedStateAtTime(t);
         updateShips(t, stateMap);
         updateTrails(t);
         return stateMap;
@@ -159,7 +162,9 @@ export function createLabels(playbackEngine, camera) {
 
     function update() {
         const t = playbackEngine.getTime();
-        const stateMap = playbackEngine.getStateAtTime(t);
+        // Labels follow the integrated transform so the label stays attached
+        // to the body during a roll, matching the ship's orientation.
+        const stateMap = playbackEngine.getIntegratedStateAtTime(t);
         const widthHalf = window.innerWidth / 2;
         const heightHalf = window.innerHeight / 2;
         camera.updateMatrixWorld();
