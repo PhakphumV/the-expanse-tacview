@@ -32,6 +32,17 @@
 6. **Replay sweep**
    - `getStateAtTime(t)` is evaluated every 0.1 s from t=0 to t=90 and
      produces no `NaN`/`Infinity` in any interpolated component.
+7. **Phase 6 — Integrated state (ADR-0001)**
+   - `getIntegratedStateAtTime(t)` (Newtonian-aware forward integration
+     over the bracket span) agrees with the kinematic position at every
+     keyframe boundary within `VEL_TOLERANCE * span`, accounting for the
+     documented "velocity is independent of position" authoring quirk.
+   - `getIntegratedStateAtTime(t)` is a pure function of `(id, t)`:
+     calling it twice with the same arguments yields bit-identical state
+     regardless of how playback time was advanced.
+   - The HUD's reported `Acceleration (G)` matches the numeric `dv/dt`
+     computed from the kinematic state at the same instant within 1%
+     relative plus a 0.5 m/s² floor.
 
 ## How to reproduce
 
