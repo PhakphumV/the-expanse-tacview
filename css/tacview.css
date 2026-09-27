@@ -235,40 +235,6 @@ canvas { display: block; }
     z-index: 5;
 }
 
-/* ---- Mission state panel (TAC-020) ---- */
-#missionPanel {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.88);
-    border: 1px solid #555;
-    padding: 8px 16px;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    letter-spacing: 2px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.mission-label {
-    color: #888;
-    font-weight: normal;
-}
-#missionState {
-    font-weight: bold;
-    padding: 2px 8px;
-    border: 1px solid currentColor;
-}
-#missionState.standby    { color: #888;     background: rgba(60, 60, 60, 0.4); }
-#missionState.pursuit    { color: #7fd0ff;  background: rgba(0, 60, 80, 0.5); }
-#missionState.launch     { color: #ffcc00;  background: rgba(80, 60, 0, 0.5);  box-shadow: 0 0 8px #ffcc00; }
-#missionState.intercept  { color: #ff9933;  background: rgba(80, 40, 0, 0.5);  box-shadow: 0 0 6px #ff9933; }
-#missionState.roll       { color: #99ccff;  background: rgba(20, 40, 80, 0.5);  box-shadow: 0 0 6px #99ccff; }
-#missionState.attrition  { color: #ff5050;  background: rgba(80, 0, 0, 0.5);   box-shadow: 0 0 8px #ff5050; }
-#missionState.resolution { color: #ff8080;  background: rgba(80, 0, 0, 0.5); }
-
 /* ---- Dataset error banner ---- */
 #dataError {
     position: fixed;

@@ -7,7 +7,6 @@ import { createScene } from './scene.js';
 import { createPlaybackEngine } from './playback.js';
 import { createTelemetry } from './telemetry.js';
 import { createLockState } from './lock-state.js';
-import { createMissionState } from './mission-state.js';
 import { createEntitiesManager, createLabels } from './entities.js';
 import { createWeaponsManager } from './weapons.js';
 import { createEffectsManager } from './effects.js';
@@ -26,12 +25,11 @@ const { scene, camera, render } = createScene(container);
 const playback = createPlaybackEngine();
 const telemetry = createTelemetry(playback);
 const lockState = createLockState(playback);
-const missionState = createMissionState(playback);
 const cameraCtl = createCameraController(camera, playback);
 const timeline = createTimeline(playback);
 const eventLog = createEventLog(playback, timeline.formatTime);
 createInfoPanel(eventLog);
-const hud = createHUD(playback, telemetry, lockState, missionState);
+const hud = createHUD(playback, telemetry, lockState);
 const entities = createEntitiesManager(scene, playback);
 const weapons = createWeaponsManager(scene, playback, entities);
 const effects = createEffectsManager(scene, playback);
@@ -73,13 +71,12 @@ window.addEventListener('keydown', (e) => {
 });
 
 // Rebuild every per-engagement structure after the active engagement
-// changes: lock/mission state, trails, weapon and effect meshes, range
-// rings, labels, timeline markers, event log, and the summary panel.
+// changes: lock state, trails, weapon and effect meshes, range rings,
+// labels, timeline markers, event log, and the summary panel.
 // loadEntities/loadWeapons/loadBursts/build dispose their previous
 // meshes internally, so nothing from the prior engagement remains.
 function rebuildForEngagement() {
     lockState.build();
-    missionState.build();
     // Reset the chase target so the new engagement's chase_target
     // declaration (or the roci fallback) takes effect on the next chase
     // mode entry or C-key cycle.
