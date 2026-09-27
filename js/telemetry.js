@@ -80,13 +80,21 @@ function burnDirectionForEntity(ent, t) {
     return 'IDLE';
 }
 
-// Roll in degrees around the body's longitudinal axis. Uses the integrated
-// orientation (synthetic ω from ADR-0002) so the roll reads as a continuous
-// rotation rather than whatever slerp happens to produce.
-function rollDeg(integratedOrientation) {
-    if (!integratedOrientation || !integratedOrientation.active) return 0;
+// Body-frame Euler decomposition of the integrated orientation, in degrees.
+// Order is XYZ (aerospace convention): X = pitch, Y = heading/yaw, Z = roll.
+// Uses the integrated orientation (synthetic ω from ADR-0002) so heading,
+// pitch, and roll read as continuous rotations rather than whatever slerp
+// the kinematic state happens to produce.
+function eulerDegForEntity(integratedOrientation) {
+    if (!integratedOrientation || !integratedOrientation.active) {
+        return { heading: 0, pitch: 0, roll: 0 };
+    }
     _euler.setFromQuaternion(integratedOrientation.orientation, 'XYZ');
-    return _euler.z * 180 / Math.PI;
+    return {
+        heading: _euler.y * 180 / Math.PI,
+        pitch:  _euler.x * 180 / Math.PI,
+        roll:   _euler.z * 180 / Math.PI,
+    };
 }
 
 function aspectAngleDeg(shipPos, shipQuat, otherPos) {
@@ -110,6 +118,11 @@ export function createTelemetry(playbackEngine, shipA = 'roci', shipB = 'zmeya')
         let closure = 0;
         if (range > 1e-6) closure = sep.dot(relVel) / range;
         const ents = playbackEngine.getEntities();
+        // Heading (yaw) / pitch / roll decomposition of the integrated
+        // orientation. The shared module-level _euler is overwritten on
+        // each call, so decompose once per ship and reuse the result.
+        const eulA = eulerDegForEntity(iA);
+        const eulB = eulerDegForEntity(iB);
         return {
             range,
             closureRate: closure,
@@ -122,8 +135,14 @@ export function createTelemetry(playbackEngine, shipA = 'roci', shipB = 'zmeya')
             accelerationB: accelerationForEntity(ents[shipB], t),
             burnDirectionA: burnDirectionForEntity(ents[shipA], t),
             burnDirectionB: burnDirectionForEntity(ents[shipB], t),
-            rollA: rollDeg(iA),
-            rollB: rollDeg(iB),
+            // Heading (yaw) / pitch / roll angles in degrees, extracted from
+            // the integrated orientation via XYZ-Euler decomposition.
+            headingA: eulA.heading,
+            pitchA:  eulA.pitch,
+            rollA:   eulA.roll,
+            headingB: eulB.heading,
+            pitchB:  eulB.pitch,
+            rollB:   eulB.roll,
         };
     }
 
@@ -140,6 +159,8 @@ export function createTelemetry(playbackEngine, shipA = 'roci', shipB = 'zmeya')
                 closureRate: pair.closureRate,
                 acceleration: pair.accelerationA,
                 burnDirection: pair.burnDirectionA,
+                heading: pair.headingA,
+                pitch: pair.pitchA,
                 roll: pair.rollA,
             },
             [shipB]: {
@@ -149,6 +170,8 @@ export function createTelemetry(playbackEngine, shipA = 'roci', shipB = 'zmeya')
                 closureRate: pair.closureRate,
                 acceleration: pair.accelerationB,
                 burnDirection: pair.burnDirectionB,
+                heading: pair.headingB,
+                pitch: pair.pitchB,
                 roll: pair.rollB,
             },
         };
