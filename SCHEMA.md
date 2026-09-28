@@ -147,8 +147,7 @@ destroyed at t=18: their keyframes simply span `[12, 18]`.
 
 - `t` (number, seconds): event timestamp relative to engagement start.
   Must be a finite number.
-- `type` (string, required, must be in `EventModel.VALID_TYPES`): one of
-  the types listed below.
+- `type` (string, required): one of the types listed below.
 
 ### Optional fields
 
@@ -199,20 +198,6 @@ destroyed at t=18: their keyframes simply span `[12, 18]`.
 | `railgun_fire`   | firing ship    | target ship     | `null`     | Railgun discharged                     |
 | `zmeya_drive_disabled` | firing ship | disabled ship | `"hit"` | Railgun disables the target's drive cone |
 | `engagement_resolution` | ship | ship or `null` | `null`    | Engagement outcome settled             |
-
-### Shared module
-
-All event consumption goes through `js/event-model.js`, which provides:
-
-- `EventModel.normalize(raw)` / `EventModel.normalizeAll(rawList)` —
-  validate and coerce an event (or list) into the canonical shape.
-- `EventModel.byType / byActor / byTarget / byResult(events, key)` —
-  filtered views over an event list.
-- `EventModel.prevAt(events, t)` / `EventModel.nextAt(events, t)` —
-  deterministic navigation to the event strictly before / after a
-  given time.
-- `EventModel.describe(ev)` — display string for the event log.
-- `EventModel.typeClass(ev)` — CSS hook for timeline markers.
 
 Consumers (timeline markers, event log, lock indicator, burst
 effects, mission state) all read from `playbackEngine.getEvents()`

@@ -62,10 +62,6 @@ _Avoid_: live simulation, physics engine
 For the starfield, the velocity reference used to compute apparent star drift: `v_frame = 0.5 * (v_roci + v_zmeya)`. Stars drift opposite to this frame each frame.
 _Avoid_: world frame, camera frame
 
-**Event Model**:
-The shared module (`js/event-model.js`) that the timeline, event log, lock indicator, burst effects, and mission state all read from. There is exactly one source of truth for events.
-_Avoid_: event bus, event store
-
 **TacView**:
 The reference commercial tactical replay tool whose UI conventions inspired this project. The project is *inspired by* TacView; it is not a clone and does not consume the TacView binary format.
 _Avoid_: the application, the original
