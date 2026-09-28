@@ -136,3 +136,11 @@ What this repo can run automatically (no browser required):
 What must be run manually with a real browser:
 
 - Everything in sections 1–7 above.
+
+## Baseline comparison
+
+The expected outputs for the two automated scripts above, plus dataset
+hashes and HUD values at key timestamps, are recorded in
+[`REGRESSION_BASELINE.md`](REGRESSION_BASELINE.md). After every cleanup
+PR, run both scripts and diff their summary lines plus the dataset
+SHA-256 values against that file.
