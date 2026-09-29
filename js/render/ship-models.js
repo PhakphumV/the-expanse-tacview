@@ -1,4 +1,4 @@
-// js/ship-models.js
+// js/render/ship-models.js
 // Procedural tactical ship silhouettes built from Three.js primitives.
 // Original/synthetic designs inspired by generic corvette vs destroyer
 // archetypes. No copyrighted show assets are imported or reproduced.

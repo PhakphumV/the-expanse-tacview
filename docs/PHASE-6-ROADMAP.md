@@ -37,12 +37,12 @@ Land the Phase 6 pivot from kinematic keyframes to **Newtonian-aware playback**,
 
 ### PR 1 — Engine pivot (issues #30 + #31)
 
-- **New module**: `js/integrator.js` — pure math: forward Euler for position (`p += v * dt`), quaternion derivative for orientation (`qdot = 0.5 * ω ⊗ q` with body-frame `ω`), synthetic `ω` derivation from quaternion deltas when `angular_velocity` is absent.
-- **Modify** `js/playback.js` — expose `getIntegratedStateAtTime(t)` alongside the existing kinematic `getStateAtTime(t)`. Ship renderers, HUD, and consumers move to integrated state.
-- **Modify** `js/telemetry.js` — derive `Acceleration` (G), `Burn Direction` (FWD/BRK/IDLE via `acc · velocity` thresholds), `Roll` (° from orientation quaternion → Euler roll). The existing `velocity`, `range`, `closure rate`, `aspect angle`, `G-force` continue to work.
-- **Modify** `js/ship-models.js` — read integrated state from `playback.js` for ship transforms; the visual position is now the integrated position.
+- **New module**: `js/core/integrator.js` — pure math: forward Euler for position (`p += v * dt`), quaternion derivative for orientation (`qdot = 0.5 * ω ⊗ q` with body-frame `ω`), synthetic `ω` derivation from quaternion deltas when `angular_velocity` is absent.
+- **Modify** `js/core/playback.js` — expose `getIntegratedStateAtTime(t)` alongside the existing kinematic `getStateAtTime(t)`. Ship renderers, HUD, and consumers move to integrated state.
+- **Modify** `js/data/telemetry.js` — derive `Acceleration` (G), `Burn Direction` (FWD/BRK/IDLE via `acc · velocity` thresholds), `Roll` (° from orientation quaternion → Euler roll). The existing `velocity`, `range`, `closure rate`, `aspect angle`, `G-force` continue to work.
+- **Modify** `js/render/ship-models.js` — read integrated state from playback for ship transforms; the visual position is now the integrated position.
 - **Modify** `js/mission-state.js` — expand from 3 states (`STANDBY`/`ENGAGEMENT`/`RESOLUTION`) to 6 phase labels (`PURSUIT`/`LAUNCH`/`INTERCEPT`/`ROLL`/`ATTRITION`/`RESOLUTION`) via a `PHASE_BY_TYPE` map keyed off event type.
-- **Modify** `js/hud.js` — add the three new first-class HUD fields (`Acceleration`, `Burn Direction`, `Roll`); add the phase label next to the existing mission indicator.
+- **Modify** `js/ui/hud.js` — add the three new first-class HUD fields (`Acceleration`, `Burn Direction`, `Roll`); add the phase label next to the existing mission indicator.
 - **Schema**: add optional `angular_velocity: [wx, wy, wz]` (rad/s) to `SCHEMA.md` keyframe shape with the synthetic-fallback note. The existing `data/engagement.json` is **not** modified — the synthetic derivation handles the defensive roll on Roci.
 - **Validation**: extend `scripts/validate-playback.js` with three new checks:
   1. Integrated position at `t=X` matches keyframe position within tolerance when starting from the prior keyframe's velocity (drift check).
@@ -52,8 +52,8 @@ Land the Phase 6 pivot from kinematic keyframes to **Newtonian-aware playback**,
 
 ### PR 2 — Consumer features (issues #32 + #33)
 
-- **Modify** `js/camera.js` — remove `Orbit` and `Tactical Top-Down` modes; add `Center of Engagement` (auto-frames both ships) and `Chase` (follows one ship at close range). Chase target cycles via `C`; if the engagement declares a `chase_target` key, use that as the default.
-- **Modify** `js/scene.js` (or new `js/starfield.js` if the subsystem grows) — replace the existing starfield drift with inertial-frame parallax. Each frame: compute `v_frame = 0.5 * (v_roci + v_zmeya)` from `playback.js`'s integrated state; drift the starfield particles opposite to `v_frame`. Fall back to the most recent `v_frame` outside the active window.
+- **Modify** `js/render/camera.js` — remove `Orbit` and `Tactical Top-Down` modes; add `Center of Engagement` (auto-frames both ships) and `Chase` (follows one ship at close range). Chase target cycles via `C`; if the engagement declares a `chase_target` key, use that as the default.
+- **Modify** `js/render/scene.js` and `js/render/starfield.js` — implement inertial-frame starfield parallax. Each frame, compute `v_frame = 0.5 * (v_roci + v_zmeya)` from playback's integrated state and drift particles opposite to `v_frame`; fall back to the most recent `v_frame` outside the active window.
 - **Modify** `js/main.js` — remove `OrbitControls` from the camera switcher; the Center of Engagement mode replaces the previous top-down framing.
 
 ## QA checklist (Phase 6 closeout)
@@ -72,9 +72,9 @@ Land the Phase 6 pivot from kinematic keyframes to **Newtonian-aware playback**,
 
 ## Files touched (summary)
 
-- **New**: `CONTEXT.md`, `docs/adr/0001-newtonian-aware-interpolation.md`, `docs/adr/0002-angular-velocity-field-policy.md`, `docs/adr/0003-mission-state-phase-labels.md`, `docs/adr/0004-starfield-inertial-parallax.md`, `docs/PHASE-6-ROADMAP.md` (this file), `js/integrator.js`.
-- **Modified (PR 1)**: `js/playback.js`, `js/telemetry.js`, `js/ship-models.js`, `js/mission-state.js`, `js/hud.js`, `SCHEMA.md`, `scripts/validate-playback.js`, `VALIDATION.md`.
-- **Modified (PR 2)**: `js/camera.js`, `js/scene.js` (or new `js/starfield.js`), `js/main.js`.
+- **New**: `CONTEXT.md`, ADRs, `docs/PHASE-6-ROADMAP.md` (this file), `js/core/integrator.js`.
+- **Modified (PR 1)**: `js/core/playback.js`, `js/data/telemetry.js`, `js/render/ship-models.js`, `js/ui/hud.js`, `SCHEMA.md`, `scripts/validate-playback.js`, `VALIDATION.md`.
+- **Modified (PR 2)**: `js/render/camera.js`, `js/render/scene.js`, `js/render/starfield.js`, `js/main.js`.
 - **Untouched**: `data/engagement.json` (synthetic `ω` fallback handles the existing dataset).
 
 ## Out of scope (per Q13)
@@ -87,9 +87,9 @@ Land the Phase 6 pivot from kinematic keyframes to **Newtonian-aware playback**,
 
 ## How this maps to issues
 
-- Closes **#30** (orientation) — `js/integrator.js` provides quaternion derivative from `angular_velocity` (or synthetic from orientation deltas).
-- Closes **#31** (Newtonian physics) — `js/integrator.js` provides per-frame position integration; HUD gains `Acceleration` and `Burn Direction`.
-- Closes **#32** (cameras) — `js/camera.js` rewires to Center of Engagement + Chase; engagement may declare `chase_target`.
-- Closes **#33** (starfield) — `js/scene.js` (or `js/starfield.js`) implements inertial-frame parallax.
+- Closes **#30** (orientation) — `js/core/integrator.js` provides quaternion derivative from `angular_velocity` (or synthetic from orientation deltas).
+- Closes **#31** (Newtonian physics) — `js/core/integrator.js` provides per-frame position integration; HUD gains `Acceleration` and `Burn Direction`.
+- Closes **#32** (cameras) — `js/render/camera.js` rewires to Center of Engagement + Chase; engagement may declare `chase_target`.
+- Closes **#33** (starfield) — `js/render/starfield.js` implements inertial-frame parallax.
 
 All four issues close when both PRs merge. Phase 6 is the ceiling for the project's current vision; subsequent work would require a fresh roadmap pass.

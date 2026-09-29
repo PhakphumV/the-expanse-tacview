@@ -48,14 +48,25 @@ will block `fetch('data/engagement.json')`.
 ## Project structure
 
 ```
-index.html              — application entry (HTML, CSS, JS)
-SCHEMA.md               — telemetry contract
-VALIDATION.md           — validation report and repro steps
-README.md               — this file
-LICENSE                 — MIT license
+index.html              — page shell and stable JavaScript entry point
+js/main.js              — module composition and animation loop
+js/core/                 — playback and integration
+js/data/                 — telemetry, locks, and event semantics
+js/render/               — Three.js scene, cameras, and visual modules
+js/ui/                   — HUD, controls, timeline, and panels
+js/utils/                — shared configuration, math, and listeners
+SCHEMA.md                — telemetry contract
+ARCHITECTURE.md          — module and data-flow overview
+CONTRIBUTING.md          — contributor workflow
+AGENTS.md                — AI agent rules
+VALIDATION.md            — validation report and repro steps
+README.md                — this file
+LICENSE                  — MIT license
 data/
-  engagement.json       — primary replay dataset
-  example.json          — minimal reference dataset
+  engagement.json        — primary replay dataset
+  example.json           — minimal reference dataset
 scripts/
-  validate-playback.js  — Node validation harness
+  validate-playback.js   — Node validation harness
+  browser-smoke.js       — static browser compatibility scan
+  resource-audit.js      — static resource inventory
 ```

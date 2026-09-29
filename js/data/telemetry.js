@@ -1,4 +1,4 @@
-// js/telemetry.js
+// js/data/telemetry.js
 // Derived telemetry: G-force, aspect angle, range, closure rate,
 // Acceleration (G), Burn Direction (FWD/BRK/IDLE), Roll (°).
 // Pure computation; takes a playback engine and returns derived values per ship.
@@ -9,8 +9,8 @@ import {
     quaternionToEulerXYZ,
     radiansToDegrees,
     rotateVectorByQuaternion,
-} from './utils/math.js';
-import { CONFIG } from './utils/config.js';
+} from '../utils/math.js';
+import { CONFIG } from '../utils/config.js';
 
 const TELEMETRY_CONFIG = CONFIG.telemetry;
 

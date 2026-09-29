@@ -12,8 +12,8 @@ request and any more specific instructions in the edited directory.
 - There is no TypeScript compiler, build step, package manager, WebGPU/TSL
   renderer, or external model-loading pipeline in the current project. Do not
   write instructions or code that assumes those systems exist.
-- `main.js` composes the application. `playback.js` owns active dataset,
-  engagement, time, and entity state. Respect the dependency directions in
+- `js/main.js` composes the application. `js/core/playback.js` owns active
+  dataset, engagement, time, and entity state. Respect the dependency directions in
   `MODULES.md` and the current implementation described in `ARCHITECTURE.md`.
 
 ## Non-negotiable domain rules

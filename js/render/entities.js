@@ -1,7 +1,7 @@
-// js/entities.js
+// js/render/entities.js
 // Ship hull meshes, fading trails, and billboarded 2D entity labels.
-// Weapons (torpedoes, PDC tracers) live in js/weapons.js.
-// Hull geometry comes from js/ship-models.js (procedural silhouettes).
+// Weapons (torpedoes, PDC tracers) live in js/render/weapons.js.
+// Hull geometry comes from js/render/ship-models.js (procedural silhouettes).
 
 import { createRociModel, createZmeyaModel } from './ship-models.js';
 

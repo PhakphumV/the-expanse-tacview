@@ -65,7 +65,7 @@ const VALID_EVENT_TYPES = new Set([
 ]);
 
 // Types that spawn a burst effect, and which field locates the burst.
-// Mirrors js/event-model.js burst entity selection.
+// Mirrors js/data/event-model.js burst entity selection.
 const BURST_ENTITY_FIELD = {
     intercept: 'actor',
     hit: 'target',
@@ -201,7 +201,7 @@ function gForceAt(id, t, dt = 0.01) {
     return (dv.length() / (2 * dt)) / G0;
 }
 
-// ---- Phase 6: integrated-state helpers (mirror of js/playback.js) ----
+// ---- Phase 6: integrated-state helpers (mirror of js/core/playback.js) ----
 
 // Quaternion product: result = a * b. Three.js convention: applies b
 // first, then a. For body-frame integration of angular velocity, the
@@ -287,7 +287,7 @@ function getIntegratedStateAtTime(id, t) {
 }
 
 // Acceleration vector at t: dv/dt over the span containing t. Mirrors
-// js/telemetry.js accelerationForEntity.
+// js/data/telemetry.js accelerationForEntity.
 function accelerationForEntity(id, t) {
     const e = entities[id];
     if (!e || e.keyframes.length < 2) return new Vec3(0, 0, 0);
@@ -307,7 +307,7 @@ function accelerationForEntity(id, t) {
 }
 
 // Burn direction classification (FWD/BRK/IDLE) using the same threshold
-// as js/telemetry.js. Mirrors burnDirectionForEntity.
+// as js/data/telemetry.js. Mirrors burnDirectionForEntity.
 const BURN_THRESHOLD_MPS2 = 0.5;
 function burnDirectionForEntity(id, t) {
     const acc = accelerationForEntity(id, t);
@@ -411,14 +411,14 @@ function checkShape() {
 
 function checkSyntax() {
     const modules = [
-        'js/playback.js', 'js/telemetry.js', 'js/scene.js', 'js/lock-state.js',
-        'js/entities.js',
-        'js/weapons.js', 'js/effects.js', 'js/camera.js', 'js/hud.js',
-        'js/timeline.js', 'js/event-log.js', 'js/info-panel.js', 'js/main.js',
-        'js/engagement-selector.js',
-        'js/ship-models.js',
-        'js/presentation.js',
-        'js/starfield.js', 'js/event-model.js',
+        'js/core/playback.js', 'js/core/integrator.js',
+        'js/data/telemetry.js', 'js/data/lock-state.js', 'js/data/event-model.js',
+        'js/render/scene.js', 'js/render/entities.js', 'js/render/weapons.js',
+        'js/render/effects.js', 'js/render/camera.js', 'js/render/ship-models.js',
+        'js/render/presentation.js', 'js/render/starfield.js',
+        'js/ui/hud.js', 'js/ui/timeline.js', 'js/ui/event-log.js',
+        'js/ui/info-panel.js', 'js/ui/engagement-selector.js', 'js/main.js',
+        'js/utils/math.js', 'js/utils/config.js', 'js/utils/listeners.js',
         'scripts/browser-smoke.js',
         'scripts/resource-audit.js',
     ];

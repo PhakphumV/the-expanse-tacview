@@ -3,21 +3,21 @@
 // scene and entity managers, hooks the timeline and event log, and runs
 // the per-frame update/render loop.
 
-import { createScene } from './scene.js';
-import { createPlaybackEngine } from './playback.js';
-import { createTelemetry } from './telemetry.js';
-import { createLockState } from './lock-state.js';
-import { createEntitiesManager, createLabels } from './entities.js';
-import { createWeaponsManager } from './weapons.js';
-import { createEffectsManager } from './effects.js';
-import { createCameraController } from './camera.js';
-import { createHUD } from './hud.js';
-import { createTimeline } from './timeline.js';
-import { createEventLog } from './event-log.js';
-import { createInfoPanel } from './info-panel.js';
-import { createEngagementSelector } from './engagement-selector.js';
-import { createPresentation, createRangeRings } from './presentation.js';
-import { createStarfield } from './starfield.js';
+import { createPlaybackEngine } from './core/playback.js';
+import { createTelemetry } from './data/telemetry.js';
+import { createLockState } from './data/lock-state.js';
+import { createScene } from './render/scene.js';
+import { createEntitiesManager, createLabels } from './render/entities.js';
+import { createWeaponsManager } from './render/weapons.js';
+import { createEffectsManager } from './render/effects.js';
+import { createCameraController } from './render/camera.js';
+import { createPresentation, createRangeRings } from './render/presentation.js';
+import { createStarfield } from './render/starfield.js';
+import { createHUD } from './ui/hud.js';
+import { createTimeline } from './ui/timeline.js';
+import { createEventLog } from './ui/event-log.js';
+import { createInfoPanel } from './ui/info-panel.js';
+import { createEngagementSelector } from './ui/engagement-selector.js';
 
 const container = document.getElementById('container');
 const { scene, camera, renderer, render } = createScene(container);

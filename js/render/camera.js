@@ -1,4 +1,4 @@
-// js/camera.js
+// js/render/camera.js
 // Camera mode controller. Two modes only:
 //   center — frames both ships dynamically; falls back to one ship when the
 //            other is inactive.
@@ -9,9 +9,9 @@
 // lookAt target are smoothed with a lerp toward the desired frame so
 // engagement transitions and chase-target cycling produce a glide.
 
-import { clamp } from './utils/math.js';
-import { createListenerScope } from './utils/listeners.js';
-import { CONFIG } from './utils/config.js';
+import { clamp } from '../utils/math.js';
+import { createListenerScope } from '../utils/listeners.js';
+import { CONFIG } from '../utils/config.js';
 
 const THREE = window.THREE;
 const CAMERA_CONFIG = CONFIG.camera;

@@ -34,7 +34,7 @@ for (const k of Object.keys(counts).sort()) {
     console.log(`  ${k.padEnd(12)} ${counts[k]}`);
 }
 
-// Per-ship mesh parts (from js/ship-models.js).
+// Per-ship mesh parts (from js/render/ship-models.js).
 const shipParts = {
     roci:  ['hull', 'bow', 'leftNacelle', 'rightNacelle', 'mast', 'dish',
             'turretFwd', 'turretAft', 'glow1', 'glow2'],
@@ -101,7 +101,7 @@ console.log('  GC pressure: low-allocation goal; runtime allocation profiling re
 console.log('\nGraceful degradation:');
 console.log('  - Starfield point count is fixed (6000); reducing it would lower GPU');
 console.log('    vertex throughput at the cost of visual density.');
-console.log('  - Trail sample count (30) is fixed; reduce in js/entities.js for');
+console.log('  - Trail sample count (30) is fixed; reduce in js/render/entities.js for');
 console.log('    weaker hardware.');
 console.log('  - All meshes use MeshBasicMaterial (no lighting, no shadows); the');
 console.log('    application is intentionally low-cost on the GPU.');

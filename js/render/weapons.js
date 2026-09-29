@@ -1,4 +1,4 @@
-// js/weapons.js
+// js/render/weapons.js
 // Torpedo and PDC round rendering. Torpedoes are small sphere meshes with
 // spawn/despawn fade; explicit pdc_round entities render as short-lived
 // line-segment tracers. Additionally, compact `pdc_engagement` events
@@ -6,7 +6,7 @@
 // deterministic tracer streams — the telemetry stays small and no
 // thousands of individual rounds are encoded in the dataset.
 
-import { clamp } from './utils/math.js';
+import { clamp } from '../utils/math.js';
 
 const THREE = window.THREE;
 

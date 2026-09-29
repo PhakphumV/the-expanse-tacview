@@ -1,11 +1,11 @@
-// js/timeline.js
+// js/ui/timeline.js
 // Bottom timeline UI: play/pause, scrubbing, speed control, event markers,
 // and the TAC-020 replay controls (restart, jump-to-start/end, prev/next
 // event). Keyboard shortcuts are wired here too.
 
-import { clamp, formatTime as formatReplayTime } from './utils/math.js';
-import { createListenerScope } from './utils/listeners.js';
-import { CONFIG } from './utils/config.js';
+import { clamp, formatTime as formatReplayTime } from '../utils/math.js';
+import { createListenerScope } from '../utils/listeners.js';
+import { CONFIG } from '../utils/config.js';
 
 export function createTimeline(playbackEngine) {
     const listeners = createListenerScope();

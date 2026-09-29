@@ -11,6 +11,6 @@ The keyframe schema gains an optional `angular_velocity: [wx, wy, wz]` field (bo
 ## Consequences
 
 - `SCHEMA.md` adds `angular_velocity` to the keyframe shape with a one-line "optional; integrator derives from orientation deltas when absent" note.
-- `js/integrator.js` exposes both the explicit angular velocity path and the synthetic derivation; `js/playback.js` picks based on keyframe shape.
+- `js/core/integrator.js` exposes both the explicit angular velocity path and the synthetic derivation; `js/core/playback.js` picks based on keyframe shape.
 - A future engagement author can opt into the explicit field for higher-fidelity rolls at higher keyframe cadences without breaking older datasets.
 - Future "posture change" maneuvers (yaw flips, sustained burns while rolling) are natural extensions of the explicit field; no schema change needed.

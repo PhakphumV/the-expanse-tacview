@@ -1,4 +1,4 @@
-// js/playback.js
+// js/core/playback.js
 // Keyframe-driven playback engine. Loads a telemetry dataset, exposes
 // time-based state queries, and manages play/pause/speed/time controls.
 // No rendering, no DOM — pure data layer.
@@ -15,8 +15,8 @@
 //                              from orientation deltas when the optional
 //                              angular_velocity field is absent (ADR-0002).
 
-import { clamp } from './utils/math.js';
-import { CONFIG } from './utils/config.js';
+import { clamp } from '../utils/math.js';
+import { CONFIG } from '../utils/config.js';
 import {
     integratePosition,
     integrateOrientation,
@@ -164,7 +164,7 @@ export function createPlaybackEngine() {
             // integrator writes into the supplied out-parameter, so we
             // pre-allocate a THREE.Vector3 / THREE.Quaternion to keep
             // the returned shape consistent with the kinematic state
-            // (callers like js/entities.js rely on .clone() / .copy()).
+            // (callers like js/render/entities.js rely on .clone() / .copy()).
             const pos = new THREE.Vector3();
             integratePosition(kA.pos, kA.vel, dt, pos);
             const q = new THREE.Quaternion();

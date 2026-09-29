@@ -1,9 +1,9 @@
-// js/hud.js
+// js/ui/hud.js
 // Tactical HUD panels for ROCI and ZMEYA: velocity, G-load, range,
 // closure rate, aspect angle, plus the radar lock indicator.
 
 const THREE = window.THREE;
-import { CONFIG } from './utils/config.js';
+import { CONFIG } from '../utils/config.js';
 
 const SHIP_IDS = ['roci', 'zmeya'];
 

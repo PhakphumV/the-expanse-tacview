@@ -10,6 +10,6 @@ The mission indicator in the HUD derives its label from the most recent event ty
 ## Consequences
 
 - `js/mission-state.js` becomes a phase-label derivation function rather than a coarse state machine. The `STANDBY` boundary (before the first event) and the terminal `RESOLUTION` remain; the in-between states become phase labels instead of a single `ENGAGEMENT`.
-- `js/hud.js` gains a phase label field next to the existing mission indicator.
+- `js/ui/hud.js` gains a phase label field next to the existing mission indicator.
 - New event types added in future engagements must be classified into one of the six phases (or extend the catalogue). A `PHASE_BY_TYPE` map is the natural place to maintain the classification.
 - `mission-state.js` no longer maintains a `TERMINAL_TYPES` set for the RESOLUTION boundary — the terminal event types (`intercept`, `hit`, `torpedo_intercept`, `missile_intercept`, `railgun_fire`, `zmeya_drive_disabled`) collapse into the `RESOLUTION` phase boundary check.

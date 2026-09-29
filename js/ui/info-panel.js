@@ -1,9 +1,9 @@
-// js/info-panel.js
+// js/ui/info-panel.js
 // Shared info panel with Summary / Events tabs. Switching tabs only
 // toggles CSS classes on the tab strip and content panes — it never
 // touches playback time, camera mode, or event selection.
 
-import { createListenerScope } from './utils/listeners.js';
+import { createListenerScope } from '../utils/listeners.js';
 
 export function createInfoPanel(eventLog) {
     const listeners = createListenerScope();

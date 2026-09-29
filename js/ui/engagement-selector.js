@@ -1,4 +1,4 @@
-// js/engagement-selector.js
+// js/ui/engagement-selector.js
 // Engagement dropdown: populated from the loaded collection and switches
 // engagements without a page reload. Empty and malformed dataset states
 // are surfaced in the #dataError banner instead of failing silently.

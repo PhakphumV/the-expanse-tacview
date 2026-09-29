@@ -10,5 +10,5 @@ The playback engine reads keyframe telemetry as the source of truth, but integra
 ## Consequences
 
 - Keyframe positions will drift from the integrated trajectory between keyframe spans. This is intentional and matches the existing "velocity is independent of position" authoring rule in `VALIDATION.md`. The validator must check the integrated position against the next keyframe within a documented tolerance rather than expecting exact agreement.
-- The integrator lives in `js/integrator.js` as a pure-math module consumed by `js/playback.js`. Other modules read state from `playback.js` as before.
+- The integrator lives in `js/core/integrator.js` as a pure-math module consumed by `js/core/playback.js`. Other modules read state from playback as before.
 - Adding "thrust the ship" controls later would require revisiting this decision.

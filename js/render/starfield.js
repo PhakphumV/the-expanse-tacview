@@ -1,4 +1,4 @@
-// js/starfield.js
+// js/render/starfield.js
 // Procedural starfield with inertial-frame parallax (Phase 6 #33).
 //
 // Three layers at different depths drift each frame opposite to the
@@ -11,12 +11,12 @@
 // layers, producing differential parallax depth — the "brachistochrone
 // travel illusion" the issue describes.
 //
-// The previous Phase-6-pre starfield (in js/scene.js) rotated the
+// The previous Phase-6-pre starfield (in js/render/scene.js) rotated the
 // particles uniformly around the scene origin, which read as "orbiting
 // a fixed center" rather than traveling through deep space. That
 // behavior is removed by this module.
 
-import { CONFIG } from './utils/config.js';
+import { CONFIG } from '../utils/config.js';
 
 const THREE = window.THREE;
 

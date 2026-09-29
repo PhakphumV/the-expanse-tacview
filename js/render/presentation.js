@@ -1,11 +1,11 @@
-// js/presentation.js
+// js/render/presentation.js
 // Final presentation layer: mission title, replay status, elapsed/
 // remaining time, IFF legend, and engagement summary. All derived from
 // existing telemetry and events — no new gameplay mechanics.
 
-import { formatTime } from './utils/math.js';
-import { summarizeEvents } from './event-model.js';
-import { CONFIG } from './utils/config.js';
+import { formatTime } from '../utils/math.js';
+import { summarizeEvents } from '../data/event-model.js';
+import { CONFIG } from '../utils/config.js';
 
 const THREE = window.THREE;
 

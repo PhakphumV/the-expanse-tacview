@@ -15,6 +15,17 @@ const path = require('path');
 const repoRoot = path.resolve(__dirname, '..');
 const modulesDir = path.join(repoRoot, 'js');
 
+function listJavaScriptFiles(directory, relativeDirectory = '') {
+    const files = [];
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+        const relativePath = path.join(relativeDirectory, entry.name);
+        const fullPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) files.push(...listJavaScriptFiles(fullPath, relativePath));
+        else if (entry.isFile() && entry.name.endsWith('.js')) files.push(relativePath);
+    }
+    return files;
+}
+
 // Patterns that flag features needing a browser newer than our minimums.
 // Each pattern targets a specific syntax form.
 const PATTERNS = [
@@ -37,9 +48,8 @@ const PATTERNS = [
 
 let errorCount = 0;
 
-for (const fname of fs.readdirSync(modulesDir).sort()) {
-    if (!fname.endsWith('.js')) continue;
-    const filePath = path.join(modulesDir, fname);
+for (const relativePath of listJavaScriptFiles(modulesDir)) {
+    const filePath = path.join(modulesDir, relativePath);
     const content = fs.readFileSync(filePath, 'utf8');
     const lines = content.split('\n');
     for (const [i, line] of lines.entries()) {
@@ -48,7 +58,7 @@ for (const fname of fs.readdirSync(modulesDir).sort()) {
         if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) continue;
         for (const p of PATTERNS) {
             if (p.re.test(line)) {
-                console.error(`${fname}:${i + 1} [${p.name}] ${trimmed.slice(0, 80)}`);
+                console.error(`${relativePath}:${i + 1} [${p.name}] ${trimmed.slice(0, 80)}`);
                 console.error(`    needs: ${p.minVersion}`);
                 console.error(`    docs:  ${p.docs}`);
                 errorCount++;

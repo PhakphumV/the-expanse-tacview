@@ -18,11 +18,11 @@ WebGPU, TypeScript, TSL, model-loading, or live-simulation systems.
 ```mermaid
 flowchart TD
     HTML[index.html and Three.js r128 global] --> MAIN[js/main.js composition root]
-    JSON[data/engagement.json] --> PLAY[playback.js]
+    JSON[data/engagement.json] --> PLAY[core/playback.js]
     MAIN --> PLAY
-    MAIN --> SCENE[scene.js]
-    PLAY --> INTEGRATOR[integrator.js]
-    PLAY --> CONSUMERS[telemetry, lock state, entities, weapons, effects, camera, starfield]
+    MAIN --> SCENE[render/scene.js]
+    PLAY --> INTEGRATOR[core/integrator.js]
+    PLAY --> CONSUMERS[data modules, render modules, UI modules]
     MAIN --> CONSUMERS
     CONSUMERS --> VIEW[Three.js scene and DOM overlays]
     MAIN --> UI[HUD, timeline, event log, selector, presentation]
@@ -43,11 +43,11 @@ second copy of the telemetry model.
 
 | Domain | Current modules | Responsibility and boundary |
 | --- | --- | --- |
-| SYS-CORE / SYS-DATA | `playback.js`, `integrator.js`, `telemetry.js`, `lock-state.js` | Load and validate engagement shape, answer time-based state queries, integrate authored velocity/angular velocity between keyframes, and derive telemetry and lock intervals. This is deterministic replay processing, not a rigid-body or propulsion simulation. |
-| SYS-CAM | `camera.js` | Center and Chase target framing, target selection, orbit/pan/zoom input, and camera smoothing. Depends on playback state and the Three.js camera; does not own entity transforms. |
-| SYS-RENDER | `scene.js`, `ship-models.js`, `entities.js`, `weapons.js`, `effects.js`, `starfield.js`, `presentation.js` | Create the WebGL scene and original procedural geometry; update ships, trails, ordnance, bursts, range rings, and inertial starfield; dispose or rebuild engagement-scoped resources as the owning module defines. |
-| SYS-UI | `hud.js`, `timeline.js`, `event-log.js`, `info-panel.js`, `engagement-selector.js` | Reflect playback and telemetry in DOM controls and overlays. UI actions call injected playback APIs or callbacks; UI modules do not mutate entity keyframes. |
-| Composition | `main.js` | Construct modules, connect event handlers, rebuild engagement-scoped data, advance playback, order per-frame updates, and render. |
+| SYS-CORE / SYS-DATA | `js/core/playback.js`, `js/core/integrator.js`, `js/data/telemetry.js`, `js/data/lock-state.js`, `js/data/event-model.js` | Load and validate engagement shape, answer time-based state queries, integrate authored velocity/angular velocity between keyframes, and derive telemetry and event semantics. This is deterministic replay processing, not a rigid-body or propulsion simulation. |
+| SYS-CAM | `js/render/camera.js` | Center and Chase target framing, target selection, orbit/pan/zoom input, and camera smoothing. Depends on playback state and the Three.js camera; does not own entity transforms. |
+| SYS-RENDER | `js/render/scene.js`, `js/render/ship-models.js`, `js/render/entities.js`, `js/render/weapons.js`, `js/render/effects.js`, `js/render/starfield.js`, `js/render/presentation.js` | Create the WebGL scene and original procedural geometry; update ships, trails, ordnance, bursts, range rings, and inertial starfield; dispose or rebuild engagement-scoped resources as the owning module defines. |
+| SYS-UI | `js/ui/hud.js`, `js/ui/timeline.js`, `js/ui/event-log.js`, `js/ui/info-panel.js`, `js/ui/engagement-selector.js` | Reflect playback and telemetry in DOM controls and overlays. UI actions call injected playback APIs or callbacks; UI modules do not mutate entity keyframes. |
+| Composition | `js/main.js` | Construct modules, connect event handlers, rebuild engagement-scoped data, advance playback, order per-frame updates, and render. |
 
 Other boundaries: `entities.js` also owns projected ship labels; `presentation.js`
 also builds the engagement summary. `MODULES.md` lists each module and its
@@ -60,20 +60,22 @@ integration helpers, not classes or a package API:
 
 | Module | Main exports |
 | --- | --- |
-| `playback.js` | `createPlaybackEngine()` |
-| `integrator.js` | `integratePosition()`, `integrateOrientation()`, `deriveAngularVelocity()` |
-| `telemetry.js` | `createTelemetry()` |
-| `lock-state.js` | `createLockState()` |
-| `camera.js` | `createCameraController()` |
-| `entities.js` | `createEntitiesManager()`, `createLabels()` |
-| `weapons.js`, `effects.js` | `createWeaponsManager()`, `createEffectsManager()` |
-| `scene.js`, `starfield.js` | `createScene()`, `createStarfield()` |
-| `hud.js`, `timeline.js`, `event-log.js` | `createHUD()`, `createTimeline()`, `createEventLog()` |
-| `info-panel.js`, `engagement-selector.js` | `createInfoPanel()`, `createEngagementSelector()` |
-| `presentation.js` | `createPresentation()`, `createRangeRings()` |
-| `ship-models.js` | `createRociModel()`, `createZmeyaModel()` |
+| `js/core/playback.js` | `createPlaybackEngine()` |
+| `js/core/integrator.js` | `integratePosition()`, `integrateOrientation()`, `deriveAngularVelocity()` |
+| `js/data/telemetry.js` | `createTelemetry()` |
+| `js/data/lock-state.js` | `createLockState()` |
+| `js/data/event-model.js` | Pure event classification/description helpers |
+| `js/render/camera.js` | `createCameraController()` |
+| `js/render/entities.js` | `createEntitiesManager()`, `createLabels()` |
+| `js/render/weapons.js`, `js/render/effects.js` | `createWeaponsManager()`, `createEffectsManager()` |
+| `js/render/scene.js`, `js/render/starfield.js` | `createScene()`, `createStarfield()` |
+| `js/ui/hud.js`, `js/ui/timeline.js`, `js/ui/event-log.js` | `createHUD()`, `createTimeline()`, `createEventLog()` |
+| `js/ui/info-panel.js`, `js/ui/engagement-selector.js` | `createInfoPanel()`, `createEngagementSelector()` |
+| `js/render/presentation.js` | `createPresentation()`, `createRangeRings()` |
+| `js/render/ship-models.js` | `createRociModel()`, `createZmeyaModel()` |
+| `js/utils/config.js`, `js/utils/math.js`, `js/utils/listeners.js` | Shared settings, plain math, and listener lifecycle |
 
-`playback.js` exposes collection/engagement selection, time and speed controls,
+`js/core/playback.js` exposes collection/engagement selection, time and speed controls,
 state queries, and read access to the active dataset, entities, and events.
 See the implementation for the complete method set. It returns fresh query
 results; consumers should treat results as read-only and must not mutate the
@@ -84,7 +86,7 @@ stored keyframes.
 ### Dataset load and selection
 
 1. `main.js` fetches the JSON collection and calls `loadCollection()`.
-2. `playback.js` selects the first engagement by default and validates an
+2. `js/core/playback.js` selects the first engagement by default and validates an
   engagement's required top-level fields when it is loaded. It prepares
   selected entity keyframes as Three.js vectors/quaternions.
 3. The selector calls `selectEngagement(id)`; `main.js` then rebuilds
@@ -102,7 +104,7 @@ camera, presentation, and starfield are then updated before `WebGLRenderer`
 renders the scene. The renderer is WebGL via Three.js `WebGLRenderer`; WebGPU
 and TSL are not dependencies.
 
-`playback.js` offers both kinematic interpolation and Newtonian-aware
+`js/core/playback.js` offers both kinematic interpolation and Newtonian-aware
 integration. Position is integrated from the authored velocity within each
 keyframe span; orientation uses optional body-frame angular velocity or a
 derived value. The authored keyframes remain the source of truth, so integrated

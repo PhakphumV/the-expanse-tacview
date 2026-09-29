@@ -1,4 +1,4 @@
-// js/effects.js
+// js/render/effects.js
 // Procedural burst effects spawned at intercept/hit-class events. Each
 // burst is an additive-blended sphere that fades and expands over
 // BURST_DURATION seconds.
@@ -10,7 +10,7 @@
 //   missile_intercept      -> target  (the destroyed missile)
 //   zmeya_drive_disabled   -> target  (the disabled ship)
 
-import { getBurstEntityId, isHitEvent } from './event-model.js';
+import { getBurstEntityId, isHitEvent } from '../data/event-model.js';
 
 const THREE = window.THREE;
 

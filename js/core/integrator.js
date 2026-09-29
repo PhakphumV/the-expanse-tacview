@@ -1,4 +1,4 @@
-// js/integrator.js
+// js/core/integrator.js
 // Pure-math forward integration utilities for Newtonian-aware playback.
 //
 //   Position:     forward Euler from velocity.
@@ -13,8 +13,8 @@
 // THREE.Vector3 / THREE.Quaternion, Node tests pass plain Vec3 / Quat
 // stubs. The integrator never mutates its inputs.
 
-import { multiplyQuaternions, normalizeQuaternion } from './utils/math.js';
-import { CONFIG } from './utils/config.js';
+import { multiplyQuaternions, normalizeQuaternion } from '../utils/math.js';
+import { CONFIG } from '../utils/config.js';
 
 const quaternionScratch = { x: 0, y: 0, z: 0, w: 1 };
 

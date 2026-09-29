@@ -86,16 +86,16 @@ The application is intentionally lightweight:
 - Starfield point count is fixed at 6000; reducing it lowers GPU
   vertex throughput at the cost of visual density
 - Trail sample count is fixed at 30; reduce `TRAIL_SAMPLES` in
-  `js/entities.js` for weaker hardware
+  `js/render/entities.js` for weaker hardware
 - Burst duration is 1.0 s; shorter bursts reduce overdraw cost
 
 If a future deployment runs on much weaker hardware (mobile, low-end
 Chromebook), the levers are:
 
-1. Lower `TRAIL_SAMPLES` in `js/entities.js`
-2. Lower the starfield point count in `js/scene.js`
+1. Lower `TRAIL_SAMPLES` in `js/render/entities.js`
+2. Lower the starfield point count in `js/render/starfield.js`
 3. Reduce the number of PDC rounds / torpedoes in the dataset
-4. Reduce `BURST_DURATION` in `js/effects.js`
+4. Reduce `BURST_DURATION` in `js/render/effects.js`
 
 Each lever is documented inline at its definition site.
 

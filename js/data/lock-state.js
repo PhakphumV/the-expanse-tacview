@@ -1,4 +1,4 @@
-// js/lock-state.js
+// js/data/lock-state.js
 // Builds closed lock intervals from discrete lock/unlock events and answers
 // isLockedAt(t) queries. Driven by the dataset's events array.
 

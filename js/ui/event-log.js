@@ -1,4 +1,4 @@
-// js/event-log.js
+// js/ui/event-log.js
 // Right-side event log: chronological list of events with click-to-seek
 // and auto-scroll that tracks playback time.
 //
@@ -9,7 +9,7 @@
 //   touches `style.display` and `scrollTop` when the visible index
 //   changes — the common case is a no-op.
 
-import { describeEvent } from './event-model.js';
+import { describeEvent } from '../data/event-model.js';
 
 export function createEventLog(playbackEngine, formatTime) {
     const entries = [];

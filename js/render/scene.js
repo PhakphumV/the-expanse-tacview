@@ -1,6 +1,6 @@
-// js/scene.js
+// js/render/scene.js
 // Three.js scene, camera, renderer. Pure setup; no gameplay logic. The
-// starfield subsystem moved to js/starfield.js in Phase 6 #33, and the
+// starfield subsystem moved to js/render/starfield.js in Phase 6 #33, and the
 // OrbitControls creation was removed in Phase 6 #32 (the two remaining
 // camera modes compute their own transforms).
 
