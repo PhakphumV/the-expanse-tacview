@@ -16,26 +16,13 @@
 // a fixed center" rather than traveling through deep space. That
 // behavior is removed by this module.
 
-const THREE = window.THREE;
+import { CONFIG } from './utils/config.js';
 
-// Per-layer configuration. Total particle count is 6000, matching the
-// pre-rework budget documented in docs/PERFORMANCE.md so the existing
-// vertex-throughput target is preserved.
-//
-// Parallax factor notes:
-//   * 0 = star moves with the camera (no parallax, "infinite distance")
-//   * 1 = star moves at 2x the camera (full parallax, very near)
-// The values below put the near layer at ~1.5x camera motion and the
-// far layer at ~1.05x — the difference is the visible parallax depth.
-const LAYERS = [
-    { count: 1500, radius: 400,  size: 1.0,  parallax: 0.5  },  // near
-    { count: 2500, radius: 700,  size: 0.85, parallax: 0.2  },  // mid
-    { count: 2000, radius: 1100, size: 0.7,  parallax: 0.05 },  // far
-];
+const THREE = window.THREE;
 
 export function createStarfield(scene, playbackEngine) {
     const layers = [];
-    for (const cfg of LAYERS) {
+    for (const cfg of CONFIG.starfield.layers) {
         const positions = new Float32Array(cfg.count * 3);
         for (let i = 0; i < cfg.count; i++) {
             // Uniform distribution on a sphere of `radius`. Star

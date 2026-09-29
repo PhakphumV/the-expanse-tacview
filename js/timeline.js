@@ -5,6 +5,7 @@
 
 import { clamp, formatTime as formatReplayTime } from './utils/math.js';
 import { createListenerScope } from './utils/listeners.js';
+import { CONFIG } from './utils/config.js';
 
 export function createTimeline(playbackEngine) {
     const listeners = createListenerScope();
@@ -24,6 +25,15 @@ export function createTimeline(playbackEngine) {
     const jumpEndBtn = document.getElementById('jumpEndBtn');
     const prevEvtBtn = document.getElementById('prevEventBtn');
     const nextEvtBtn = document.getElementById('nextEventBtn');
+
+    speedSelect.replaceChildren();
+    for (const speed of CONFIG.playback.speedOptions) {
+        const option = document.createElement('option');
+        option.value = String(speed);
+        option.textContent = speed + 'x';
+        option.selected = speed === playbackEngine.getSpeed();
+        speedSelect.appendChild(option);
+    }
 
     function refreshPlayPauseLabel() {
         const want = playbackEngine.isPlaying() ? 'Pause' : 'Play';

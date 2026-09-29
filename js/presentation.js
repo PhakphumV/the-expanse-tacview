@@ -5,6 +5,7 @@
 
 import { formatTime } from './utils/math.js';
 import { summarizeEvents } from './event-model.js';
+import { CONFIG } from './utils/config.js';
 
 const THREE = window.THREE;
 
@@ -62,8 +63,7 @@ export function createPresentation(playbackEngine) {
 // A flat ring on the XZ plane at each ship's position. Radius is 10 km
 // (10000 m). Renders as a LineLoop so it's cheap and consistent with
 // the existing trail rendering style.
-function createRangeRing(radius) {
-    const segments = 64;
+function createRangeRing(radius, segments) {
     const positions = new Float32Array((segments + 1) * 3);
     const geom = new THREE.BufferGeometry();
     geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -85,7 +85,6 @@ function createRangeRing(radius) {
 }
 
 export function createRangeRings(scene, playbackEngine) {
-    const RING_RADIUS = 10000; // 10 km
     const rings = {};
 
     function build() {
@@ -94,7 +93,7 @@ export function createRangeRings(scene, playbackEngine) {
         for (const id in ents) {
             if (ents[id].type !== 'ship') continue;
             const color = id === 'roci' ? 0x66aaff : 0xff8888;
-            const ring = createRangeRing(RING_RADIUS);
+            const ring = createRangeRing(CONFIG.rangeRing.radiusMeters, CONFIG.rangeRing.segments);
             ring.material.color.setHex(color);
             ring.visible = false;
             scene.add(ring);

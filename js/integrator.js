@@ -14,11 +14,12 @@
 // stubs. The integrator never mutates its inputs.
 
 import { multiplyQuaternions, normalizeQuaternion } from './utils/math.js';
+import { CONFIG } from './utils/config.js';
 
 const quaternionScratch = { x: 0, y: 0, z: 0, w: 1 };
 
 // Standard gravity used for G-force display.
-export const G = 9.80665;
+export const G = CONFIG.telemetry.gravity;
 
 // Integrate position forward by dt seconds at velocity v.
 //   p, v:  read .x / .y / .z

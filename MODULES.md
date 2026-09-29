@@ -13,6 +13,9 @@ loads `js/main.js` with `<script type="module">`.
 | `js/telemetry.js`   | Derived G-force, aspect angle, range, closure rate, Acceleration, Burn Direction, Heading / Pitch / Roll |
 | `js/lock-state.js`  | Builds lock intervals from `lock`/`unlock` events                  |
 | `js/event-model.js` | Pure event semantics shared by summaries, lock state, effects, and event descriptions |
+| `js/utils/config.js` | Shared runtime tuning for camera, starfield, telemetry, HUD, and playback |
+| `js/utils/math.js`  | Three.js-independent scalar, vector, quaternion, and formatting helpers |
+| `js/utils/listeners.js` | Listener registration scope with idempotent teardown              |
 | `js/entities.js`    | Ship hulls, fading trails, and 2D entity labels                    |
 | `js/weapons.js`     | Torpedo meshes and PDC tracer line segments                        |
 | `js/effects.js`     | Procedural burst effects at intercept/hit events                   |
@@ -40,20 +43,22 @@ The composition root calls teardown on `pagehide`.
 main → scene, playback, telemetry, lock-state, entities, weapons,
        effects, camera, hud, timeline, event-log, info-panel,
        engagement-selector, starfield
-playback → integrator        (forward integration primitives)
-telemetry   → playback
+playback → integrator, math, config
+integrator → math, config
+telemetry   → playback, math, config
 lock-state  → playback, event-model
 effects     → playback, event-model
 event-log   → playback, event-model
-presentation → playback, event-model
-entities    → playback
-weapons     → playback, entities   (shares trail history)
-camera      → playback
-starfield   → playback           (reads integrated velocity for v_frame)
-hud         → playback, telemetry, lock-state
-timeline    → playback
-info-panel  → event-log            (re-syncs scroll on tab show)
+presentation → playback, event-model, math, config
+entities    → playback, ship-models
+weapons     → playback, entities, math   (shares trail history)
+camera      → playback, math, listeners, config
+starfield   → playback, config    (reads integrated velocity for v_frame)
+hud         → playback, telemetry, lock-state, config
+timeline    → playback, math, listeners, config
+info-panel  → event-log, listeners (re-syncs scroll on tab show)
 engagement-selector → playback     (collection metadata + selection)
+config, math, listeners, ship-models → no dependencies
 ```
 
 No circular dependencies. `playback` is the only stateful singleton that

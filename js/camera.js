@@ -11,25 +11,28 @@
 
 import { clamp } from './utils/math.js';
 import { createListenerScope } from './utils/listeners.js';
+import { CONFIG } from './utils/config.js';
 
 const THREE = window.THREE;
+const CAMERA_CONFIG = CONFIG.camera;
 
 // Center-cam framing. The camera height grows with the inter-ship range so
 // the ships stay legible as the engagement opens up; the floor prevents the
 // camera from collapsing into a ship at zero separation.
-const CENTER_BASE_HEIGHT = 80;     // height above midpoint at 1 km separation
-const CENTER_RANGE_SCALE = 0.05;   // additional height per meter of separation
-const CENTER_MIN_HEIGHT = 60;
-const CENTER_BACK_OFFSET = 1;
-const ORBIT_PITCH_LIMIT = Math.PI / 2 - 0.01;
-const MIN_ORBIT_DISTANCE_SCALE = 0.01;
-const MAX_ORBIT_DISTANCE_SCALE = 100;
-const ORBIT_SENSITIVITY = 0.005;
-const ZOOM_SENSITIVITY = 0.001;
+const CENTER_BASE_HEIGHT = CAMERA_CONFIG.centerBaseHeight;
+const CENTER_RANGE_SCALE = CAMERA_CONFIG.centerRangeScale;
+const CENTER_MIN_HEIGHT = CAMERA_CONFIG.centerMinHeight;
+const CENTER_BACK_OFFSET = CAMERA_CONFIG.centerBackOffset;
+const CHASE_OFFSET = CAMERA_CONFIG.chaseOffset;
+const ORBIT_PITCH_LIMIT = CAMERA_CONFIG.orbitPitchLimit;
+const MIN_ORBIT_DISTANCE_SCALE = CAMERA_CONFIG.minOrbitDistanceScale;
+const MAX_ORBIT_DISTANCE_SCALE = CAMERA_CONFIG.maxOrbitDistanceScale;
+const ORBIT_SENSITIVITY = CAMERA_CONFIG.rotationSensitivity;
+const ZOOM_SENSITIVITY = CAMERA_CONFIG.zoomSensitivity;
 
 // Per-frame lerp factor for the smoothed camera transform. 0 = no smoothing
 // (snap), 1 = no movement. 0.12 produces a noticeable glide over ~0.2 s.
-const CAMERA_LERP_FACTOR = 0.12;
+const CAMERA_LERP_FACTOR = CAMERA_CONFIG.damping;
 
 export function createCameraController(camera, playbackEngine, canvas) {
     const listeners = createListenerScope();
@@ -49,7 +52,7 @@ export function createCameraController(camera, playbackEngine, canvas) {
         },
         chase: {
             yaw: 0,
-            pitch: Math.atan2(12, 40),
+            pitch: Math.atan2(CHASE_OFFSET.y, CHASE_OFFSET.z),
             distanceScale: 1,
         },
     };
@@ -206,7 +209,7 @@ export function createCameraController(camera, playbackEngine, canvas) {
         return computeOrbitFrame(target, {
             yaw: state.yaw,
             pitch: state.pitch,
-            distance: Math.hypot(12, 40) * state.distanceScale,
+            distance: Math.hypot(CHASE_OFFSET.y, CHASE_OFFSET.z) * state.distanceScale,
         });
     }
 

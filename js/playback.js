@@ -16,6 +16,7 @@
 //                              angular_velocity field is absent (ADR-0002).
 
 import { clamp } from './utils/math.js';
+import { CONFIG } from './utils/config.js';
 import {
     integratePosition,
     integrateOrientation,
@@ -30,7 +31,7 @@ export function createPlaybackEngine() {
         entities: {},
         duration: 0,
         currentTime: 0,
-        speed: 1.0,
+        speed: CONFIG.playback.defaultSpeed,
         playing: true,
         engagementData: [],
         activeId: null,
@@ -181,7 +182,11 @@ export function createPlaybackEngine() {
 
     function setTime(t) { state.currentTime = clamp(t, 0, state.duration); }
     function getTime() { return state.currentTime; }
-    function setSpeed(s) { state.speed = s; }
+    function setSpeed(s) {
+        if (Number.isFinite(s)) {
+            state.speed = clamp(s, CONFIG.playback.minSpeed, CONFIG.playback.maxSpeed);
+        }
+    }
     function getSpeed() { return state.speed; }
     function play() { state.playing = true; }
     function pause() { state.playing = false; }

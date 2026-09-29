@@ -3,12 +3,13 @@
 // closure rate, aspect angle, plus the radar lock indicator.
 
 const THREE = window.THREE;
+import { CONFIG } from './utils/config.js';
 
 const SHIP_IDS = ['roci', 'zmeya'];
 
-function formatVelocity(v) { return (v / 1000).toFixed(2); }
-function formatKm(m) { return (m / 1000).toFixed(2); }
-function formatAngle(deg) { return deg.toFixed(1); }
+function formatVelocity(v) { return (v / 1000).toFixed(CONFIG.hud.numericPrecision); }
+function formatKm(m) { return (m / 1000).toFixed(CONFIG.hud.numericPrecision); }
+function formatAngle(deg) { return deg.toFixed(CONFIG.hud.anglePrecision); }
 
 function setVal(id, v) { document.getElementById(id).textContent = v; }
 
@@ -21,13 +22,16 @@ export function createHUD(playbackEngine, telemetry, lockState) {
         if (derived && state && state.active) {
             const vel = state.velocity.length();
             setVal(id + '-vel', formatVelocity(vel));
-            setVal(id + '-g',   derived[id].gForce.toFixed(2));
+            setVal(id + '-g',   derived[id].gForce.toFixed(CONFIG.hud.numericPrecision));
             setVal(id + '-rng', formatKm(derived[id].range));
             setVal(id + '-clos', formatKm(derived[id].closureRate));
             setVal(id + '-asp', formatAngle(derived[id].aspectAngle));
             // New Phase 6 fields (Q7):
             const acceleration = derived[id].acceleration;
-            setVal(id + '-acc', Math.hypot(acceleration.x, acceleration.y, acceleration.z).toFixed(2));
+            setVal(
+                id + '-acc',
+                Math.hypot(acceleration.x, acceleration.y, acceleration.z).toFixed(CONFIG.hud.numericPrecision)
+            );
             setVal(id + '-burn', derived[id].burnDirection);
             // 3D angular debug overlay (issue #30). Heading (yaw) / pitch /
             // roll extracted from the integrated orientation in degrees; the

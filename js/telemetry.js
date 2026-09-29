@@ -10,15 +10,9 @@ import {
     radiansToDegrees,
     rotateVectorByQuaternion,
 } from './utils/math.js';
+import { CONFIG } from './utils/config.js';
 
-const G = 9.8;
-
-// Threshold for the FWD/BRK/IDLE classification: |acc·v|/|v| > THRESHOLD
-// means a thrust component along velocity exceeds this many m/s². At 0.5
-// m/s² (about 0.05 G), it filters out drift / numerical noise without
-// hiding genuine burns (sustained 8 G pursuit burns will obviously clear
-// this bar by orders of magnitude).
-const BURN_THRESHOLD_MPS2 = 0.5;
+const TELEMETRY_CONFIG = CONFIG.telemetry;
 
 function findBracket(kfs, t) {
     if (kfs.length === 0) return null;
@@ -44,7 +38,7 @@ function gForceForEntity(ent, t) {
     const dy = b.vel.y - a.vel.y;
     const dz = b.vel.z - a.vel.z;
     const aMag = Math.hypot(dx, dy, dz) / dt;
-    return aMag / G;
+    return aMag / TELEMETRY_CONFIG.gravity;
 }
 
 // Acceleration vector in m/s², computed from adjacent keyframes' velocities.
@@ -87,8 +81,8 @@ function burnDirectionForEntity(ent, t) {
     if (velMag < 1e-6) return 'IDLE';
     const dot = acc.x * velX + acc.y * velY + acc.z * velZ;
     const projAlongVel = dot / velMag;  // m/s² along velocity direction
-    if (projAlongVel > BURN_THRESHOLD_MPS2) return 'FWD';
-    if (projAlongVel < -BURN_THRESHOLD_MPS2) return 'BRK';
+    if (projAlongVel > TELEMETRY_CONFIG.burnThresholdMps2) return 'FWD';
+    if (projAlongVel < -TELEMETRY_CONFIG.burnThresholdMps2) return 'BRK';
     return 'IDLE';
 }
 
