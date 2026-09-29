@@ -84,9 +84,9 @@ stored keyframes.
 ### Dataset load and selection
 
 1. `main.js` fetches the JSON collection and calls `loadCollection()`.
-2. `playback.js` validates each engagement's required top-level fields,
-   prepares entity keyframes as Three.js vectors/quaternions, and selects the
-   first engagement by default.
+2. `playback.js` selects the first engagement by default and validates an
+  engagement's required top-level fields when it is loaded. It prepares
+  selected entity keyframes as Three.js vectors/quaternions.
 3. The selector calls `selectEngagement(id)`; `main.js` then rebuilds
    engagement-scoped lock intervals, entity meshes/trails, weapons, effects,
    labels, event markers, range rings, and summary data.
