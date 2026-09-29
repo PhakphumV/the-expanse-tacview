@@ -10,6 +10,7 @@
 // engagement transitions and chase-target cycling produce a glide.
 
 import { clamp } from './utils/math.js';
+import { createListenerScope } from './utils/listeners.js';
 
 const THREE = window.THREE;
 
@@ -31,6 +32,8 @@ const ZOOM_SENSITIVITY = 0.001;
 const CAMERA_LERP_FACTOR = 0.12;
 
 export function createCameraController(camera, playbackEngine, canvas) {
+    const listeners = createListenerScope();
+    let cancelPointer = null;
     // Mode state. Default is 'center' per the Phase 6 roadmap.
     let mode = 'center';
     // Chase target id. null = unselected (resolves to defaultChaseTarget
@@ -214,7 +217,17 @@ export function createCameraController(camera, playbackEngine, canvas) {
         let lastX = 0;
         let lastY = 0;
 
-        element.addEventListener('pointerdown', (event) => {
+        function cancelActivePointer() {
+            if (activePointer !== null && typeof element.hasPointerCapture === 'function' &&
+                element.hasPointerCapture(activePointer)) {
+                element.releasePointerCapture(activePointer);
+            }
+            activePointer = null;
+            dragButton = -1;
+        }
+        cancelPointer = cancelActivePointer;
+
+        listeners.listen(element, 'pointerdown', (event) => {
             if (event.button !== 0 && event.button !== 1) return;
             if (event.button === 1 && mode !== 'center') return;
             activePointer = event.pointerId;
@@ -224,7 +237,7 @@ export function createCameraController(camera, playbackEngine, canvas) {
             element.setPointerCapture(event.pointerId);
             event.preventDefault();
         });
-        element.addEventListener('pointermove', (event) => {
+        listeners.listen(element, 'pointermove', (event) => {
             if (event.pointerId !== activePointer) return;
             const dx = event.clientX - lastX;
             const dy = event.clientY - lastY;
@@ -252,14 +265,31 @@ export function createCameraController(camera, playbackEngine, canvas) {
             activePointer = null;
             dragButton = -1;
         };
-        element.addEventListener('pointerup', finishPointer);
-        element.addEventListener('pointercancel', finishPointer);
-        element.addEventListener('wheel', (event) => {
+        listeners.listen(element, 'pointerup', finishPointer);
+        listeners.listen(element, 'pointercancel', finishPointer);
+        listeners.listen(element, 'wheel', (event) => {
             event.preventDefault();
             const state = orbitStates[mode];
             state.distanceScale *= Math.exp(event.deltaY * ZOOM_SENSITIVITY);
             state.distanceScale = clamp(state.distanceScale, MIN_ORBIT_DISTANCE_SCALE, MAX_ORBIT_DISTANCE_SCALE);
         }, { passive: false });
+    }
+
+    function reset() {
+        orbitStates.center.yaw = 0;
+        orbitStates.center.pitch = Math.atan2(CENTER_BASE_HEIGHT, CENTER_BACK_OFFSET);
+        orbitStates.center.distanceScale = 1;
+        orbitStates.center.pan.set(0, 0, 0);
+        orbitStates.chase.yaw = 0;
+        orbitStates.chase.pitch = Math.atan2(12, 40);
+        orbitStates.chase.distanceScale = 1;
+        chaseTarget = null;
+        setMode('center');
+    }
+
+    function destroy() {
+        listeners.destroy();
+        if (cancelPointer) cancelPointer();
     }
 
     function update(t) {
@@ -298,5 +328,7 @@ export function createCameraController(camera, playbackEngine, canvas) {
         cycleChaseTarget,
         onEngagementChanged,
         update,
+        reset,
+        destroy,
     };
 }

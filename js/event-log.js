@@ -17,9 +17,15 @@ export function createEventLog(playbackEngine, formatTime) {
     let lastVisibleIdx = -1;
     let lastScrollIdx = -1;
 
-    function populate() {
+    function reset() {
         entries.length = 0;
         if (listEl) listEl.innerHTML = '';
+        lastVisibleIdx = -1;
+        lastScrollIdx = -1;
+    }
+
+    function populate() {
+        reset();
         const events = playbackEngine.getEvents();
         events.forEach(function (ev) {
             const entry = document.createElement('div');
@@ -34,8 +40,6 @@ export function createEventLog(playbackEngine, formatTime) {
             if (listEl) listEl.appendChild(entry);
             entries.push({ el: entry, ev });
         });
-        lastVisibleIdx = -1;
-        lastScrollIdx = -1;
     }
 
     // Binary search: largest index with ev.t <= t. -1 if none.
@@ -53,8 +57,7 @@ export function createEventLog(playbackEngine, formatTime) {
         return found;
     }
 
-    function update() {
-        const t = playbackEngine.getTime();
+    function update(t = playbackEngine.getTime()) {
         const idx = findLastVisible(t);
         if (idx === lastVisibleIdx) return; // no change — skip DOM work
         // Hide entries past the new visible index.
@@ -80,10 +83,14 @@ export function createEventLog(playbackEngine, formatTime) {
 
     // Re-sync scroll after the pane was hidden (display:none zeroes
     // offsetTop); called by the info panel when the Events tab shows.
-    function refresh() {
+    function refresh(t = playbackEngine.getTime()) {
         lastScrollIdx = -1;
-        update();
+        update(t);
     }
 
-    return { populate, update, refresh };
+    function destroy() {
+        reset();
+    }
+
+    return { populate, update, refresh, reset, destroy };
 }

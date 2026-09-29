@@ -4,8 +4,10 @@
 // event). Keyboard shortcuts are wired here too.
 
 import { clamp, formatTime as formatReplayTime } from './utils/math.js';
+import { createListenerScope } from './utils/listeners.js';
 
 export function createTimeline(playbackEngine) {
+    const listeners = createListenerScope();
     function formatTime(t) {
         return formatReplayTime(t, 1, 'T+');
     }
@@ -29,40 +31,40 @@ export function createTimeline(playbackEngine) {
     }
     let lastPlayingState = null;
 
-    playPauseBtn.addEventListener('click', function () {
+    listeners.listen(playPauseBtn, 'click', function () {
         if (playbackEngine.isPlaying()) playbackEngine.pause();
         else playbackEngine.play();
         refreshPlayPauseLabel();
     });
 
-    if (restartBtn) restartBtn.addEventListener('click', function () {
+    if (restartBtn) listeners.listen(restartBtn, 'click', function () {
         playbackEngine.restart();
         refreshPlayPauseLabel();
     });
-    if (jumpStartBtn) jumpStartBtn.addEventListener('click', function () {
+    if (jumpStartBtn) listeners.listen(jumpStartBtn, 'click', function () {
         playbackEngine.jumpToStart();
         refreshPlayPauseLabel();
     });
-    if (jumpEndBtn) jumpEndBtn.addEventListener('click', function () {
+    if (jumpEndBtn) listeners.listen(jumpEndBtn, 'click', function () {
         playbackEngine.jumpToEnd();
         refreshPlayPauseLabel();
     });
-    if (prevEvtBtn) prevEvtBtn.addEventListener('click', function () {
+    if (prevEvtBtn) listeners.listen(prevEvtBtn, 'click', function () {
         playbackEngine.prevEvent();
         refreshPlayPauseLabel();
     });
-    if (nextEvtBtn) nextEvtBtn.addEventListener('click', function () {
+    if (nextEvtBtn) listeners.listen(nextEvtBtn, 'click', function () {
         playbackEngine.nextEvent();
         refreshPlayPauseLabel();
     });
 
-    speedSelect.addEventListener('change', function () {
+    listeners.listen(speedSelect, 'change', function () {
         playbackEngine.setSpeed(parseFloat(speedSelect.value));
     });
 
     // ---- Keyboard shortcuts (TAC-020) ----
     // Documented in the help overlay (#helpOverlay).
-    window.addEventListener('keydown', function (e) {
+    listeners.listen(window, 'keydown', function (e) {
         // Ignore keys when the user is typing in a control.
         const tag = (e.target && e.target.tagName) || '';
         if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
@@ -97,13 +99,13 @@ export function createTimeline(playbackEngine) {
     const helpOverlay = document.getElementById('helpOverlay');
     const helpClose = document.getElementById('helpClose');
     if (helpBtn && helpOverlay) {
-        helpBtn.addEventListener('click', function () {
+        listeners.listen(helpBtn, 'click', function () {
             helpOverlay.style.display = (helpOverlay.style.display === 'block') ? 'none' : 'block';
         });
-        if (helpClose) helpClose.addEventListener('click', function () {
+        if (helpClose) listeners.listen(helpClose, 'click', function () {
             helpOverlay.style.display = 'none';
         });
-        window.addEventListener('keydown', function (e) {
+        listeners.listen(window, 'keydown', function (e) {
             if (e.key === '?' || e.key === '/') {
                 helpOverlay.style.display = (helpOverlay.style.display === 'block') ? 'none' : 'block';
             } else if (e.key === 'Escape') {
@@ -120,14 +122,14 @@ export function createTimeline(playbackEngine) {
         const dur = playbackEngine.getDuration();
         playbackEngine.setTime(frac * dur);
     }
-    scrubBar.addEventListener('mousedown', function (e) {
+    listeners.listen(scrubBar, 'mousedown', function (e) {
         scrubbing = true;
         scrubFromEvent(e);
     });
-    window.addEventListener('mousemove', function (e) {
+    listeners.listen(window, 'mousemove', function (e) {
         if (scrubbing) scrubFromEvent(e);
     });
-    window.addEventListener('mouseup', function () { scrubbing = false; });
+    listeners.listen(window, 'mouseup', function () { scrubbing = false; });
 
     function populateMarkers() {
         eventMarkersEl.innerHTML = '';
@@ -146,8 +148,7 @@ export function createTimeline(playbackEngine) {
         });
     }
 
-    function updateUI() {
-        const t = playbackEngine.getTime();
+    function updateUI(t = playbackEngine.getTime()) {
         const dur = playbackEngine.getDuration();
         if (dur > 0) {
             const frac = t / dur;
@@ -164,5 +165,21 @@ export function createTimeline(playbackEngine) {
 
     function isScrubbing() { return scrubbing; }
 
-    return { populateMarkers, updateUI, isScrubbing, formatTime };
+    function update(t) { updateUI(t); }
+
+    function reset() {
+        scrubbing = false;
+        lastPlayingState = null;
+        if (eventMarkersEl) eventMarkersEl.innerHTML = '';
+        scrubProgress.style.width = '0%';
+        scrubHandle.style.left = '0%';
+        updateUI();
+    }
+
+    function destroy() {
+        listeners.destroy();
+        reset();
+    }
+
+    return { update, reset, destroy, populateMarkers, updateUI, isScrubbing, formatTime };
 }

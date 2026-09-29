@@ -25,6 +25,15 @@ loads `js/main.js` with `<script type="module">`.
 | `js/engagement-selector.js` | Engagement dropdown and dataset error states             |
 | `css/tacview.css`   | All application styles                                             |
 
+## Factory lifecycle
+
+Factories receive their collaborators as arguments. The camera, HUD, timeline,
+event log, presentation, and info-panel factories expose a common
+`update(time)`, `reset()`, and `destroy()` lifecycle; module-specific methods
+remain available for actions such as populating markers or selecting a camera
+mode. `destroy()` is idempotent and releases listeners owned by the module.
+The composition root calls teardown on `pagehide`.
+
 ## Dependency direction
 
 ```

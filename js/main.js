@@ -28,7 +28,7 @@ const lockState = createLockState(playback);
 const cameraCtl = createCameraController(camera, playback, renderer.domElement);
 const timeline = createTimeline(playback);
 const eventLog = createEventLog(playback, timeline.formatTime);
-createInfoPanel(eventLog);
+const infoPanel = createInfoPanel(eventLog);
 const hud = createHUD(playback, telemetry, lockState);
 const entities = createEntitiesManager(scene, playback);
 const weapons = createWeaponsManager(scene, playback, entities);
@@ -85,6 +85,7 @@ function rebuildForEngagement() {
     weapons.loadWeapons();
     effects.loadBursts();
     labels.createShipLabels();
+    timeline.reset();
     timeline.populateMarkers();
     eventLog.populate();
     rangeRings.build();
@@ -94,11 +95,11 @@ function rebuildForEngagement() {
     weapons.update(t0, playback.getStateAtTime(t0));
     effects.update(t0);
     rangeRings.update(t0);
-    timeline.updateUI();
-    hud.update();
-    eventLog.update();
+    timeline.update(t0);
+    hud.update(t0);
+    eventLog.update(t0);
     labels.update();
-    presentation.update();
+    presentation.update(t0);
 }
 
 // Engagement dropdown. Switching pauses the replay, resets time to
@@ -116,6 +117,16 @@ function onEngagementSelected(id) {
     }
 }
 const selector = createEngagementSelector(playback, onEngagementSelected);
+
+function destroyPlaybackModules() {
+    cameraCtl.destroy();
+    timeline.destroy();
+    eventLog.destroy();
+    infoPanel.destroy();
+    hud.destroy();
+    presentation.destroy();
+}
+window.addEventListener('pagehide', destroyPlaybackModules, { once: true });
 
 // Load dataset, build per-entity meshes, populate UI
 fetch('data/engagement.json')
@@ -152,12 +163,12 @@ function animate() {
     weapons.update(t, stateMap);
     effects.update(t);
     rangeRings.update(t);
-    timeline.updateUI();
-    hud.update();
-    eventLog.update();
+    timeline.update(t);
+    hud.update(t);
+    eventLog.update(t);
     labels.update();
     cameraCtl.update(t);
-    presentation.update();
+    presentation.update(t);
     // Drift each starfield layer opposite to the ships' mean velocity
     // (Phase 6 #33). dt comes from the per-frame wall clock so the
     // parallax displacement matches the rendered frame rate.

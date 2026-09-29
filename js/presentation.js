@@ -33,8 +33,7 @@ export function createPresentation(playbackEngine) {
             counts.locks + '</span></div>';
     }
 
-    function update() {
-        const t = playbackEngine.getTime();
+    function update(t = playbackEngine.getTime()) {
         const dur = playbackEngine.getDuration();
         const remaining = Math.max(0, dur - t);
         if (elapsedEl) elapsedEl.textContent = formatTime(t);
@@ -47,7 +46,16 @@ export function createPresentation(playbackEngine) {
 
     buildSummary();
 
-    return { update, buildSummary };
+    function reset() {
+        buildSummary();
+        update();
+    }
+
+    function destroy() {
+        if (summaryEl) summaryEl.innerHTML = '';
+    }
+
+    return { update, buildSummary, reset, destroy };
 }
 
 // ---- Range ring (tactical visual aid) ----

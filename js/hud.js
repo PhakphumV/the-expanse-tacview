@@ -13,6 +13,10 @@ function formatAngle(deg) { return deg.toFixed(1); }
 function setVal(id, v) { document.getElementById(id).textContent = v; }
 
 export function createHUD(playbackEngine, telemetry, lockState) {
+    const VALUE_IDS = [
+        'vel', 'g', 'rng', 'clos', 'asp', 'acc', 'burn', 'hdg', 'pitch', 'roll',
+    ];
+
     function updateShip(id, state, derived) {
         if (derived && state && state.active) {
             const vel = state.velocity.length();
@@ -39,10 +43,10 @@ export function createHUD(playbackEngine, telemetry, lockState) {
         }
     }
 
-    function updateLock() {
+    function updateLock(t) {
         const el = document.getElementById('roci-lock');
         if (!el) return;
-        const locked = lockState.isLockedAt(playbackEngine.getTime());
+        const locked = lockState.isLockedAt(t);
         if (locked) {
             el.textContent = 'LOCK: ON';
             el.classList.add('on');
@@ -54,13 +58,21 @@ export function createHUD(playbackEngine, telemetry, lockState) {
         }
     }
 
-    function update() {
-        const t = playbackEngine.getTime();
+    function update(t = playbackEngine.getTime()) {
         const derived = telemetry.getDerived(t);
         const stateMap = playbackEngine.getStateAtTime(t);
         SHIP_IDS.forEach((id) => updateShip(id, stateMap[id], derived));
-        updateLock();
+        updateLock(t);
     }
 
-    return { update };
+    function reset() {
+        SHIP_IDS.forEach((id) => VALUE_IDS.forEach((value) => setVal(id + '-' + value, '---')));
+        updateLock(playbackEngine.getTime());
+    }
+
+    function destroy() {
+        reset();
+    }
+
+    return { update, reset, destroy };
 }
