@@ -13,29 +13,43 @@
 
 const THREE = window.THREE;
 
-// Chase-cam offset, in the chase target's body frame (forward = -Z, up = +Y).
-// Higher Y + further +Z than a true cockpit view so the chase target stays
-// visible as the camera looks toward the ship.
-const CHASE_OFFSET = new THREE.Vector3(0, 12, 40);
-
 // Center-cam framing. The camera height grows with the inter-ship range so
 // the ships stay legible as the engagement opens up; the floor prevents the
 // camera from collapsing into a ship at zero separation.
 const CENTER_BASE_HEIGHT = 80;     // height above midpoint at 1 km separation
 const CENTER_RANGE_SCALE = 0.05;   // additional height per meter of separation
 const CENTER_MIN_HEIGHT = 60;
-const CENTER_BACK_OFFSET = 1;      // small +Z offset so the camera looks toward -Z
+const CENTER_BACK_OFFSET = 1;
+const ORBIT_PITCH_LIMIT = Math.PI / 2 - 0.01;
+const MIN_ORBIT_DISTANCE_SCALE = 0.01;
+const MAX_ORBIT_DISTANCE_SCALE = 100;
+const ORBIT_SENSITIVITY = 0.005;
+const ZOOM_SENSITIVITY = 0.001;
 
 // Per-frame lerp factor for the smoothed camera transform. 0 = no smoothing
 // (snap), 1 = no movement. 0.12 produces a noticeable glide over ~0.2 s.
 const CAMERA_LERP_FACTOR = 0.12;
 
-export function createCameraController(camera, playbackEngine) {
+export function createCameraController(camera, playbackEngine, canvas) {
     // Mode state. Default is 'center' per the Phase 6 roadmap.
     let mode = 'center';
     // Chase target id. null = unselected (resolves to defaultChaseTarget
     // when the chase mode is entered or cycleChaseTarget() is called).
     let chaseTarget = null;
+
+    const orbitStates = {
+        center: {
+            yaw: 0,
+            pitch: Math.atan2(CENTER_BASE_HEIGHT, CENTER_BACK_OFFSET),
+            distanceScale: 1,
+            pan: new THREE.Vector3(),
+        },
+        chase: {
+            yaw: 0,
+            pitch: Math.atan2(12, 40),
+            distanceScale: 1,
+        },
+    };
 
     // Smoothed camera position and look-at target. null until the first
     // frame after mode initialization, at which point they snap to the
@@ -78,6 +92,30 @@ export function createCameraController(camera, playbackEngine) {
 
     function getMode() { return mode; }
 
+    function getOrbitState() {
+        const state = orbitStates[mode];
+        return {
+            yaw: state.yaw,
+            pitch: state.pitch,
+            distanceScale: state.distanceScale,
+        };
+    }
+
+    function setOrbitState(next = {}) {
+        const state = orbitStates[mode];
+        if (Number.isFinite(next.yaw)) state.yaw = next.yaw;
+        if (Number.isFinite(next.pitch)) {
+            state.pitch = THREE.MathUtils.clamp(next.pitch, -ORBIT_PITCH_LIMIT, ORBIT_PITCH_LIMIT);
+        }
+        if (Number.isFinite(next.distanceScale) && next.distanceScale > 0) {
+            state.distanceScale = THREE.MathUtils.clamp(
+                next.distanceScale,
+                MIN_ORBIT_DISTANCE_SCALE,
+                MAX_ORBIT_DISTANCE_SCALE
+            );
+        }
+    }
+
     function getChaseTarget() { return chaseTarget || defaultChaseTarget(); }
 
     function setChaseTarget(id) {
@@ -115,25 +153,49 @@ export function createCameraController(camera, playbackEngine) {
         chaseTarget = null;
     }
 
-    // Compute the desired Center of Engagement camera frame. Midpoint of
-    // both ships when both are active; one ship alone otherwise.
+    // Convert a target pose and orbit state into a camera frame. The target
+    // can be any positioned/oriented object; entity lookup stays outside this
+    // transform.
+    function computeOrbitFrame(target, orbit) {
+        const cosPitch = Math.cos(orbit.pitch);
+        const offset = new THREE.Vector3(
+            cosPitch * Math.sin(orbit.yaw),
+            Math.sin(orbit.pitch),
+            cosPitch * Math.cos(orbit.yaw)
+        ).multiplyScalar(orbit.distance).applyQuaternion(target.orientation);
+        return {
+            camPos: target.position.clone().add(offset),
+            lookAt: target.position.clone(),
+        };
+    }
+
     function computeCenterFrame(stateMap) {
-        const roci = stateMap['roci'];
-        const zmeya = stateMap['zmeya'];
-        let mid = null, range = 0;
-        if (roci && roci.active && zmeya && zmeya.active) {
-            mid = new THREE.Vector3().addVectors(roci.position, zmeya.position).multiplyScalar(0.5);
-            range = roci.position.distanceTo(zmeya.position);
-        } else if (roci && roci.active) {
-            mid = roci.position.clone();
-        } else if (zmeya && zmeya.active) {
-            mid = zmeya.position.clone();
-        } else {
-            return null;
-        }
+        const entities = playbackEngine.getEntities();
+        const activeShips = Object.keys(entities)
+            .filter((id) => entities[id] && entities[id].type === 'ship')
+            .map((id) => stateMap[id])
+            .filter((state) => state && state.active);
+        if (activeShips.length === 0) return null;
+
+        const center = activeShips.reduce(
+            (sum, state) => sum.add(state.position),
+            new THREE.Vector3()
+        ).multiplyScalar(1 / activeShips.length);
+        const range = activeShips.reduce(
+            (maxRange, state) => Math.max(maxRange, center.distanceTo(state.position) * 2),
+            0
+        );
         const height = Math.max(CENTER_MIN_HEIGHT, CENTER_BASE_HEIGHT + range * CENTER_RANGE_SCALE);
-        const camPos = new THREE.Vector3(mid.x, mid.y + height, mid.z + CENTER_BACK_OFFSET);
-        return { camPos, lookAt: mid };
+        const state = orbitStates.center;
+        const orbit = {
+            yaw: state.yaw,
+            pitch: state.pitch,
+            distance: Math.hypot(height, CENTER_BACK_OFFSET) * state.distanceScale,
+        };
+        return computeOrbitFrame({
+            position: center.add(state.pan),
+            orientation: new THREE.Quaternion(),
+        }, orbit);
     }
 
     function computeChaseFrame(stateMap) {
@@ -141,9 +203,71 @@ export function createCameraController(camera, playbackEngine) {
         if (!id) return null;
         const target = stateMap[id];
         if (!target || !target.active) return null;
-        const offsetWorld = CHASE_OFFSET.clone().applyQuaternion(target.orientation);
-        const camPos = new THREE.Vector3().copy(target.position).add(offsetWorld);
-        return { camPos, lookAt: target.position.clone() };
+        const state = orbitStates.chase;
+        return computeOrbitFrame(target, {
+            yaw: state.yaw,
+            pitch: state.pitch,
+            distance: Math.hypot(12, 40) * state.distanceScale,
+        });
+    }
+
+    function attachControls(element) {
+        if (!element) return;
+        let activePointer = null;
+        let dragButton = -1;
+        let lastX = 0;
+        let lastY = 0;
+
+        element.addEventListener('pointerdown', (event) => {
+            if (event.button !== 0 && event.button !== 1) return;
+            if (event.button === 1 && mode !== 'center') return;
+            activePointer = event.pointerId;
+            dragButton = event.button;
+            lastX = event.clientX;
+            lastY = event.clientY;
+            element.setPointerCapture(event.pointerId);
+            event.preventDefault();
+        });
+        element.addEventListener('pointermove', (event) => {
+            if (event.pointerId !== activePointer) return;
+            const dx = event.clientX - lastX;
+            const dy = event.clientY - lastY;
+            lastX = event.clientX;
+            lastY = event.clientY;
+
+            const state = orbitStates[mode];
+            if (dragButton === 0) {
+                state.yaw -= dx * ORBIT_SENSITIVITY;
+                state.pitch = THREE.MathUtils.clamp(
+                    state.pitch + dy * ORBIT_SENSITIVITY,
+                    -ORBIT_PITCH_LIMIT,
+                    ORBIT_PITCH_LIMIT
+                );
+            } else if (dragButton === 1 && mode === 'center') {
+                const distance = camera.position.distanceTo(smoothLook || camera.position);
+                const panScale = distance * ORBIT_SENSITIVITY;
+                state.pan.x -= Math.cos(state.yaw) * dx * panScale;
+                state.pan.z += Math.sin(state.yaw) * dx * panScale;
+                state.pan.y += dy * panScale;
+            }
+        });
+        const finishPointer = (event) => {
+            if (event.pointerId !== activePointer) return;
+            activePointer = null;
+            dragButton = -1;
+        };
+        element.addEventListener('pointerup', finishPointer);
+        element.addEventListener('pointercancel', finishPointer);
+        element.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            const state = orbitStates[mode];
+            state.distanceScale *= Math.exp(event.deltaY * ZOOM_SENSITIVITY);
+            state.distanceScale = THREE.MathUtils.clamp(
+                state.distanceScale,
+                MIN_ORBIT_DISTANCE_SCALE,
+                MAX_ORBIT_DISTANCE_SCALE
+            );
+        }, { passive: false });
     }
 
     function update(t) {
@@ -170,9 +294,13 @@ export function createCameraController(camera, playbackEngine) {
         camera.lookAt(smoothLook);
     }
 
+    attachControls(canvas);
+
     return {
         setMode,
         getMode,
+        getOrbitState,
+        setOrbitState,
         getChaseTarget,
         setChaseTarget,
         cycleChaseTarget,

@@ -20,12 +20,12 @@ import { createPresentation, createRangeRings } from './presentation.js';
 import { createStarfield } from './starfield.js';
 
 const container = document.getElementById('container');
-const { scene, camera, render } = createScene(container);
+const { scene, camera, renderer, render } = createScene(container);
 
 const playback = createPlaybackEngine();
 const telemetry = createTelemetry(playback);
 const lockState = createLockState(playback);
-const cameraCtl = createCameraController(camera, playback);
+const cameraCtl = createCameraController(camera, playback, renderer.domElement);
 const timeline = createTimeline(playback);
 const eventLog = createEventLog(playback, timeline.formatTime);
 createInfoPanel(eventLog);
