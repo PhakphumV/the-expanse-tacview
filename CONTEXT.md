@@ -45,7 +45,7 @@ _Avoid_: deep-space travel effect
 ## Camera
 
 **Center of Engagement**:
-A camera mode that dynamically frames both ships in the engagement, regardless of their relative position. Replaces the older Tactical Top-Down mode.
+A camera mode that dynamically frames the active ships in the engagement, regardless of their relative position.
 _Avoid_: overhead, both-ships view
 
 **Chase**:

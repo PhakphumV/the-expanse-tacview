@@ -30,8 +30,8 @@ will block `fetch('data/engagement.json')`.
   angle) and an event-driven radar lock indicator.
 - Timeline with event markers, scrolling event log (click to seek),
   ship/torpedo trails (toggleable with `T`), and entity labels.
-- Three camera modes: Free Orbit, Chase Cam (locked to Rocinante),
-  Tactical Top-Down (auto-framing both ships).
+- Two camera modes: Center dynamically frames active ships; Chase follows
+  the selected ship and allows cycling targets with `C`.
 - HUD panels docked at the bottom of the viewport and a tabbed
   Summary / Events panel for engagement stats and the event log.
 

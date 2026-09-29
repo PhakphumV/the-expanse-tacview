@@ -5,11 +5,9 @@
 //   chase  — follows one ship at close range; cycles between active ships
 //            via cycleChaseTarget() (the `C` key in main.js).
 //
-// Both modes compute their own transform each frame; the previous OrbitControls-
-// driven Free Orbit and Tactical Top-Down modes from the pre-Phase-6 camera
-// system are removed (Phase 6 roadmap, PR 2). The camera position and lookAt
-// target are smoothed with a lerp toward the desired frame so engagement
-// transitions and chase-target cycling produce a glide rather than a jump.
+// Both modes compute their own transform each frame. Camera position and
+// lookAt target are smoothed with a lerp toward the desired frame so
+// engagement transitions and chase-target cycling produce a glide.
 
 import { clamp } from './utils/math.js';
 
