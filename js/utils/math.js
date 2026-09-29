@@ -40,6 +40,29 @@ export function normalizeQuaternion(quaternion, out = {}) {
     return out;
 }
 
+export function rotateVectorByQuaternion(vector, quaternion, out = {}) {
+    const tx = 2 * (quaternion.y * vector.z - quaternion.z * vector.y);
+    const ty = 2 * (quaternion.z * vector.x - quaternion.x * vector.z);
+    const tz = 2 * (quaternion.x * vector.y - quaternion.y * vector.x);
+    out.x = vector.x + quaternion.w * tx + quaternion.y * tz - quaternion.z * ty;
+    out.y = vector.y + quaternion.w * ty + quaternion.z * tx - quaternion.x * tz;
+    out.z = vector.z + quaternion.w * tz + quaternion.x * ty - quaternion.y * tx;
+    return out;
+}
+
+export function quaternionToEulerXYZ(quaternion, out = {}) {
+    const x = quaternion.x, y = quaternion.y, z = quaternion.z, w = quaternion.w;
+    const m11 = 1 - 2 * (y * y + z * z);
+    const m13 = 2 * (x * z + y * w);
+    const m21 = 2 * (x * y + z * w);
+    const m32 = 2 * (y * z + x * w);
+    const m33 = 1 - 2 * (x * x + y * y);
+    out.x = Math.atan2(m32, m33);
+    out.y = Math.asin(clamp(m13, -1, 1));
+    out.z = Math.atan2(m21, m11);
+    return out;
+}
+
 export function formatVector3(vector, precision = 2) {
     return '(' + vector.x.toFixed(precision) + ', ' +
         vector.y.toFixed(precision) + ', ' + vector.z.toFixed(precision) + ')';

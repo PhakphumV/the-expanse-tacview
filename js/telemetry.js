@@ -3,9 +3,14 @@
 // Acceleration (G), Burn Direction (FWD/BRK/IDLE), Roll (°).
 // Pure computation; takes a playback engine and returns derived values per ship.
 
-import { clamp, radiansToDegrees } from './utils/math.js';
+import {
+    clamp,
+    lerp,
+    quaternionToEulerXYZ,
+    radiansToDegrees,
+    rotateVectorByQuaternion,
+} from './utils/math.js';
 
-const THREE = window.THREE;
 const G = 9.8;
 
 // Threshold for the FWD/BRK/IDLE classification: |acc·v|/|v| > THRESHOLD
@@ -14,9 +19,6 @@ const G = 9.8;
 // hiding genuine burns (sustained 8 G pursuit burns will obviously clear
 // this bar by orders of magnitude).
 const BURN_THRESHOLD_MPS2 = 0.5;
-
-// Three.js Euler instance for extracting the body's longitudinal (z) rotation.
-const _euler = new THREE.Euler();
 
 function findBracket(kfs, t) {
     if (kfs.length === 0) return null;
@@ -38,44 +40,52 @@ function gForceForEntity(ent, t) {
     const a = bracket.a, b = bracket.b;
     const dt = b.t - a.t;
     if (dt <= 0) return 0;
-    const dv = new THREE.Vector3().subVectors(b.vel, a.vel);
-    const aMag = dv.length() / dt;
+    const dx = b.vel.x - a.vel.x;
+    const dy = b.vel.y - a.vel.y;
+    const dz = b.vel.z - a.vel.z;
+    const aMag = Math.hypot(dx, dy, dz) / dt;
     return aMag / G;
 }
 
 // Acceleration vector in m/s², computed from adjacent keyframes' velocities.
 function accelerationForEntity(ent, t, out) {
     const kfs = ent.keyframes;
-    if (!out) out = new THREE.Vector3();
-    if (kfs.length < 2) { out.set(0, 0, 0); return out; }
+    if (!out) out = { x: 0, y: 0, z: 0 };
+    if (kfs.length < 2) { out.x = 0; out.y = 0; out.z = 0; return out; }
     const bracket = findBracket(kfs, t);
-    if (!bracket) { out.set(0, 0, 0); return out; }
+    if (!bracket) { out.x = 0; out.y = 0; out.z = 0; return out; }
     const a = bracket.a, b = bracket.b;
     const dt = b.t - a.t;
-    if (dt <= 0) { out.set(0, 0, 0); return out; }
-    out.subVectors(b.vel, a.vel).divideScalar(dt);
+    if (dt <= 0) { out.x = 0; out.y = 0; out.z = 0; return out; }
+    out.x = (b.vel.x - a.vel.x) / dt;
+    out.y = (b.vel.y - a.vel.y) / dt;
+    out.z = (b.vel.z - a.vel.z) / dt;
     return out;
 }
 
 function burnDirectionForEntity(ent, t) {
     const acc = accelerationForEntity(ent, t);
-    if (acc.length() === 0) return 'IDLE';
+    if (Math.hypot(acc.x, acc.y, acc.z) === 0) return 'IDLE';
     // Need the velocity at the same instant. Find the bracket and lerp the velocity.
     const kfs = ent.keyframes;
     const bracket = findBracket(kfs, t);
     if (!bracket) return 'IDLE';
     const a = bracket.a, b = bracket.b;
     const dt = b.t - a.t;
-    let vel;
+    let velX, velY, velZ;
     if (dt <= 0) {
-        vel = a.vel.clone();
+        velX = a.vel.x;
+        velY = a.vel.y;
+        velZ = a.vel.z;
     } else {
         const alpha = clamp((t - a.t) / dt, 0, 1);
-        vel = new THREE.Vector3().copy(a.vel).lerp(b.vel, alpha);
+        velX = lerp(a.vel.x, b.vel.x, alpha);
+        velY = lerp(a.vel.y, b.vel.y, alpha);
+        velZ = lerp(a.vel.z, b.vel.z, alpha);
     }
-    const velMag = vel.length();
+    const velMag = Math.hypot(velX, velY, velZ);
     if (velMag < 1e-6) return 'IDLE';
-    const dot = acc.x * vel.x + acc.y * vel.y + acc.z * vel.z;
+    const dot = acc.x * velX + acc.y * velY + acc.z * velZ;
     const projAlongVel = dot / velMag;  // m/s² along velocity direction
     if (projAlongVel > BURN_THRESHOLD_MPS2) return 'FWD';
     if (projAlongVel < -BURN_THRESHOLD_MPS2) return 'BRK';
@@ -91,21 +101,22 @@ function eulerDegForEntity(integratedOrientation) {
     if (!integratedOrientation || !integratedOrientation.active) {
         return { heading: 0, pitch: 0, roll: 0 };
     }
-    _euler.setFromQuaternion(integratedOrientation.orientation, 'XYZ');
+    const euler = quaternionToEulerXYZ(integratedOrientation.orientation);
     return {
-        heading: radiansToDegrees(_euler.y),
-        pitch:  radiansToDegrees(_euler.x),
-        roll:   radiansToDegrees(_euler.z),
+        heading: radiansToDegrees(euler.y),
+        pitch:  radiansToDegrees(euler.x),
+        roll:   radiansToDegrees(euler.z),
     };
 }
 
 function aspectAngleDeg(shipPos, shipQuat, otherPos) {
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(shipQuat).normalize();
-    const dir = new THREE.Vector3().subVectors(otherPos, shipPos);
-    const dist = dir.length();
+    const forward = rotateVectorByQuaternion({ x: 0, y: 0, z: -1 }, shipQuat);
+    const dx = otherPos.x - shipPos.x;
+    const dy = otherPos.y - shipPos.y;
+    const dz = otherPos.z - shipPos.z;
+    const dist = Math.hypot(dx, dy, dz);
     if (dist < 1e-6) return 0;
-    dir.normalize();
-    const dot = clamp(forward.dot(dir), -1, 1);
+    const dot = clamp((forward.x * dx + forward.y * dy + forward.z * dz) / dist, -1, 1);
     return radiansToDegrees(Math.acos(dot));
 }
 
@@ -114,11 +125,17 @@ export function createTelemetry(playbackEngine, shipA = 'roci', shipB = 'zmeya')
         const a = stateMap[shipA], b = stateMap[shipB];
         const iA = integratedMap[shipA], iB = integratedMap[shipB];
         if (!a || !b || !a.active || !b.active) return null;
-        const range = new THREE.Vector3().subVectors(b.position, a.position).length();
-        const relVel = new THREE.Vector3().subVectors(b.velocity, a.velocity);
-        const sep = new THREE.Vector3().subVectors(b.position, a.position);
+        const sepX = b.position.x - a.position.x;
+        const sepY = b.position.y - a.position.y;
+        const sepZ = b.position.z - a.position.z;
+        const range = Math.hypot(sepX, sepY, sepZ);
+        const relVelX = b.velocity.x - a.velocity.x;
+        const relVelY = b.velocity.y - a.velocity.y;
+        const relVelZ = b.velocity.z - a.velocity.z;
         let closure = 0;
-        if (range > 1e-6) closure = sep.dot(relVel) / range;
+        if (range > 1e-6) {
+            closure = (sepX * relVelX + sepY * relVelY + sepZ * relVelZ) / range;
+        }
         const ents = playbackEngine.getEntities();
         // Heading (yaw) / pitch / roll decomposition of the integrated
         // orientation. The shared module-level _euler is overwritten on

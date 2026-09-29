@@ -22,7 +22,8 @@ export function createHUD(playbackEngine, telemetry, lockState) {
             setVal(id + '-clos', formatKm(derived[id].closureRate));
             setVal(id + '-asp', formatAngle(derived[id].aspectAngle));
             // New Phase 6 fields (Q7):
-            setVal(id + '-acc', derived[id].acceleration.length().toFixed(2));
+            const acceleration = derived[id].acceleration;
+            setVal(id + '-acc', Math.hypot(acceleration.x, acceleration.y, acceleration.z).toFixed(2));
             setVal(id + '-burn', derived[id].burnDirection);
             // 3D angular debug overlay (issue #30). Heading (yaw) / pitch /
             // roll extracted from the integrated orientation in degrees; the
