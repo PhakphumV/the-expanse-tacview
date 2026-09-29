@@ -56,12 +56,13 @@ for the lifetime of the page:
 are all reused across the full replay. No new geometry is created
 mid-playback.
 
-**Disposal:** `dispose()` is not currently called on individual
-geometries/materials. Resources are bounded by the dataset size, not
-by replay duration, so there is no leak in normal use. If a future
-feature loads multiple datasets sequentially, the dataset swap should
-call `scene.remove` + `geometry.dispose` + `material.dispose` for
-each entry in the previous load.
+**Disposal:** Engagement-scoped managers remove and dispose replaced
+objects when an engagement is rebuilt (`entities.js`, `weapons.js`,
+`effects.js`, and `presentation.js`). Scene-level resources persist for
+the lifetime of the page. The static resource audit reports expected
+counts; it does not measure runtime GPU memory or prove that every new
+resource is released. Keep disposal with the module that creates and owns
+the resource, and verify the lifecycle when adding new Three.js objects.
 
 ## Memory growth test
 

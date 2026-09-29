@@ -66,7 +66,7 @@ const domUpdates = [
     { module: 'event-log.js',    work: 'N style.display toggles, 1 scrollTop', bounded: 'yes — only when last-visible index changes' },
     { module: 'info-panel.js',   work: 'class toggles on tab click', bounded: 'yes — user-driven only, no per-frame work' },
     { module: 'labels (entities)', work: '2 style.left/top writes per visible ship', bounded: 'yes — only ships on screen' },
-    { module: 'main.js loop',    work: 'animate() calls entities/weapons/effects/timeline/hud/eventLog/labels/camera updates', bounded: 'yes — no per-frame allocations in the hot path' },
+    { module: 'main.js loop',    work: 'animate() calls entities/weapons/effects/timeline/hud/eventLog/labels/camera updates', bounded: 'call fan-out is fixed; query allocations are not measured by this audit' },
 ];
 for (const u of domUpdates) {
     console.log(`  [${u.module}] ${u.work}`);
@@ -86,8 +86,8 @@ console.log('    - burst_count SphereGeometries (one per burst-class event)');
 console.log('  Materials: MeshBasicMaterial per mesh (color-only, no textures)');
 console.log('  Reuse: bursts, trails, and HUD/label elements are reused across the');
 console.log('         full replay; new geometry is never created mid-playback.');
-console.log('  Disposal: not currently called. Resources are bounded by the dataset');
-console.log('            size, not by replay duration, so no leak in normal use.');
+console.log('  Disposal: engagement-scoped managers dispose replaced resources;');
+console.log('            this static audit does not verify runtime GPU memory.');
 
 // ---- Performance targets ----
 console.log('\nPerformance targets (target hardware: integrated GPU, 60Hz display):');
@@ -96,7 +96,7 @@ console.log('  Frame rate: >= 30 fps at 4K (3840x2160)');
 console.log('  Draw calls: <= 50 per frame');
 console.log('  JS heap:    bounded — no growth across repeated replay cycles');
 console.log('  DOM writes per frame: <= 30');
-console.log('  GC pressure: minimal — no allocations in animate() hot path');
+console.log('  GC pressure: low-allocation goal; runtime allocation profiling required');
 
 console.log('\nGraceful degradation:');
 console.log('  - Starfield point count is fixed (6000); reducing it would lower GPU');
