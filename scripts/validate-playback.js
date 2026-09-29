@@ -65,7 +65,7 @@ const VALID_EVENT_TYPES = new Set([
 ]);
 
 // Types that spawn a burst effect, and which field locates the burst.
-// Mirrors js/effects.js.
+// Mirrors js/event-model.js burst entity selection.
 const BURST_ENTITY_FIELD = {
     intercept: 'actor',
     hit: 'target',
@@ -418,7 +418,7 @@ function checkSyntax() {
         'js/engagement-selector.js',
         'js/ship-models.js',
         'js/presentation.js',
-        'js/starfield.js',
+        'js/starfield.js', 'js/event-model.js',
         'scripts/browser-smoke.js',
         'scripts/resource-audit.js',
     ];

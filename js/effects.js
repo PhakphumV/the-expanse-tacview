@@ -10,6 +10,8 @@
 //   missile_intercept      -> target  (the destroyed missile)
 //   zmeya_drive_disabled   -> target  (the disabled ship)
 
+import { getBurstEntityId, isHitEvent } from './event-model.js';
+
 const THREE = window.THREE;
 
 const BURST_DURATION = 1.0;
@@ -29,26 +31,16 @@ function createBurstMesh(color) {
 export function createEffectsManager(scene, playbackEngine) {
     const bursts = [];
 
-    const BURST_ENTITY_FIELD = {
-        intercept: 'actor',
-        hit: 'target',
-        torpedo_intercept: 'target',
-        missile_intercept: 'target',
-        zmeya_drive_disabled: 'target',
-    };
-
     function loadBursts() {
         reset();
         const events = playbackEngine.getEvents();
         for (const ev of events) {
-            const field = BURST_ENTITY_FIELD[ev.type];
-            if (!field) continue;
-            const burstEntityId = ev[field];
+            const burstEntityId = getBurstEntityId(ev);
             if (!burstEntityId) continue;
             const sMap = playbackEngine.getStateAtTime(ev.t);
             const s = sMap[burstEntityId];
             if (s && s.active) {
-                const color = (ev.type === 'hit' || ev.type === 'zmeya_drive_disabled')
+                const color = isHitEvent(ev)
                     ? 0xff3333 : 0xffaa33;
                 const mesh = createBurstMesh(color);
                 mesh.position.copy(s.position);

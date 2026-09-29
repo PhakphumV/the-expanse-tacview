@@ -2,6 +2,8 @@
 // Builds closed lock intervals from discrete lock/unlock events and answers
 // isLockedAt(t) queries. Driven by the dataset's events array.
 
+import { isLockEndEvent, isLockStartEvent } from './event-model.js';
+
 export function createLockState(playbackEngine) {
     let intervals = [];
 
@@ -10,9 +12,9 @@ export function createLockState(playbackEngine) {
         const events = playbackEngine.getEvents().slice().sort((a, b) => a.t - b.t);
         let open = null;
         for (const ev of events) {
-            if (ev.type === 'lock') {
+            if (isLockStartEvent(ev)) {
                 if (!open) open = { start: ev.t, end: Infinity };
-            } else if (ev.type === 'unlock') {
+            } else if (isLockEndEvent(ev)) {
                 if (open) { open.end = ev.t; intervals.push(open); open = null; }
             }
         }

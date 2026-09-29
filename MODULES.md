@@ -12,6 +12,7 @@ loads `js/main.js` with `<script type="module">`.
 | `js/integrator.js`  | Pure-math forward integration: position (`pos += vel·dt`) and orientation (exponential map from body-frame ω, with synthetic ω derivation from quaternion deltas) |
 | `js/telemetry.js`   | Derived G-force, aspect angle, range, closure rate, Acceleration, Burn Direction, Heading / Pitch / Roll |
 | `js/lock-state.js`  | Builds lock intervals from `lock`/`unlock` events                  |
+| `js/event-model.js` | Pure event semantics shared by summaries, lock state, effects, and event descriptions |
 | `js/entities.js`    | Ship hulls, fading trails, and 2D entity labels                    |
 | `js/weapons.js`     | Torpedo meshes and PDC tracer line segments                        |
 | `js/effects.js`     | Procedural burst effects at intercept/hit events                   |
@@ -32,15 +33,16 @@ main → scene, playback, telemetry, lock-state, entities, weapons,
        engagement-selector, starfield
 playback → integrator        (forward integration primitives)
 telemetry   → playback
-lock-state  → playback
+lock-state  → playback, event-model
+effects     → playback, event-model
+event-log   → playback, event-model
+presentation → playback, event-model
 entities    → playback
 weapons     → playback, entities   (shares trail history)
-effects     → playback
 camera      → playback
 starfield   → playback           (reads integrated velocity for v_frame)
 hud         → playback, telemetry, lock-state
 timeline    → playback
-event-log   → playback
 info-panel  → event-log            (re-syncs scroll on tab show)
 engagement-selector → playback     (collection metadata + selection)
 ```

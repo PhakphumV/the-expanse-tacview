@@ -4,6 +4,7 @@
 // existing telemetry and events — no new gameplay mechanics.
 
 import { formatTime } from './utils/math.js';
+import { summarizeEvents } from './event-model.js';
 
 const THREE = window.THREE;
 
@@ -15,30 +16,21 @@ export function createPresentation(playbackEngine) {
     const remainEl  = document.getElementById('remainingReadout');
     const summaryEl = document.getElementById('engagementSummary');
 
-    const LAUNCH_TYPES = new Set(['launch', 'roci_torpedo_launch', 'zmeya_barrage_launch']);
-    const INTERCEPT_TYPES = new Set(['intercept', 'torpedo_intercept', 'missile_intercept']);
-    const HIT_TYPES = new Set(['hit', 'zmeya_drive_disabled']);
-    const LOCK_TYPES = new Set(['lock', 'missile_lock']);
-
     function buildSummary() {
         if (!summaryEl) return;
-        const events = playbackEngine.getEvents();
-        const intercepts = events.filter(e => INTERCEPT_TYPES.has(e.type)).length;
-        const hits = events.filter(e => HIT_TYPES.has(e.type)).length;
-        const locks = events.filter(e => LOCK_TYPES.has(e.type)).length;
-        const launches = events.filter(e => LAUNCH_TYPES.has(e.type)).length;
+        const counts = summarizeEvents(playbackEngine.getEvents());
         const dur = playbackEngine.getDuration();
         summaryEl.innerHTML =
             '<div class="summary-row"><span class="k">DURATION</span><span class="v">' +
             formatTime(dur, 0) + '</span></div>' +
             '<div class="summary-row"><span class="k">LAUNCHES</span><span class="v">' +
-            launches + '</span></div>' +
+            counts.launches + '</span></div>' +
             '<div class="summary-row"><span class="k">INTERCEPTS</span><span class="v">' +
-            intercepts + '</span></div>' +
+            counts.intercepts + '</span></div>' +
             '<div class="summary-row"><span class="k">HITS</span><span class="v">' +
-            hits + '</span></div>' +
+            counts.hits + '</span></div>' +
             '<div class="summary-row"><span class="k">LOCKS</span><span class="v">' +
-            locks + '</span></div>';
+            counts.locks + '</span></div>';
     }
 
     function update() {

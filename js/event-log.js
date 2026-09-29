@@ -9,6 +9,8 @@
 //   touches `style.display` and `scrollTop` when the visible index
 //   changes — the common case is a no-op.
 
+import { describeEvent } from './event-model.js';
+
 export function createEventLog(playbackEngine, formatTime) {
     const entries = [];
     const listEl = document.getElementById('eventLogList');
@@ -19,14 +21,10 @@ export function createEventLog(playbackEngine, formatTime) {
         entries.length = 0;
         if (listEl) listEl.innerHTML = '';
         const events = playbackEngine.getEvents();
-        events.forEach(function (ev, i) {
+        events.forEach(function (ev) {
             const entry = document.createElement('div');
             entry.className = 'event-log-entry ' + ev.type;
-            const desc = ev.description ||
-                [ev.actor && ev.actor.toUpperCase(), ev.type,
-                 ev.target && ('-> ' + ev.target.toUpperCase()),
-                 ev.result && ('(' + ev.result + ')')]
-                    .filter(Boolean).join(' ');
+            const desc = describeEvent(ev);
             entry.textContent = formatTime(ev.t) + ' — ' + desc;
             entry.title = 'Jump to ' + formatTime(ev.t);
             entry.addEventListener('click', function () {
@@ -35,7 +33,6 @@ export function createEventLog(playbackEngine, formatTime) {
             entry.style.display = 'none';
             if (listEl) listEl.appendChild(entry);
             entries.push({ el: entry, ev });
-            void i;
         });
         lastVisibleIdx = -1;
         lastScrollIdx = -1;
