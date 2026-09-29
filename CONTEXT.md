@@ -1,6 +1,6 @@
 # The Expanse Tacview
 
-A static, browser-only tactical replay viewer for *Expanse*-inspired synthetic engagements, with no backend and no live ingest. This glossary captures the project-specific language used in the codebase, the telemetry dataset, and the Phase 6 design discussions.
+A static, browser-only tactical replay viewer for *Expanse*-inspired synthetic engagements, with no backend and no live ingest. This glossary captures project-specific language used by the codebase and telemetry dataset.
 
 ## Replay domain
 

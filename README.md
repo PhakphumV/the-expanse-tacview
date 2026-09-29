@@ -1,6 +1,6 @@
 # The Expanse Tacview
 
-A static, single-file WebGL telemetry viewer built with Three.js, inspired
+A static, browser-only WebGL telemetry viewer built with Three.js, inspired
 by the *Expanse* universe. This project is an original, synthetic
 visualization. **All ship models and telemetry data are original creations
 and are not reproductions or extracts from any copyrighted source

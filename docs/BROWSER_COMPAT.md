@@ -4,7 +4,7 @@ This document tracks the browsers and minimum versions the application
 supports, the features each one provides, and any browser-specific
 defects discovered during regression testing.
 
-## Supported browsers
+## Browser targets
 
 | Browser | Minimum version | Notes                                  |
 | ------- | --------------- | -------------------------------------- |
@@ -12,7 +12,12 @@ defects discovered during regression testing.
 | Firefox | 90+             | ES modules, WebGL 2 verified           |
 | Safari  | 14+             | macOS Big Sur / iOS 14; WebGL 2 needed |
 
-All three targets support:
+These versions are compatibility targets, not a claim that every release has
+been manually certified. The repository has no automated cross-browser runtime
+suite; verify rendering and input in each target browser before changing this
+matrix.
+
+The target versions provide the APIs the app requires:
 - ES modules (`<script type="module">`, `import` / `export`)
 - `fetch()` for `data/engagement.json`
 - `requestAnimationFrame`
@@ -20,7 +25,7 @@ All three targets support:
 - WebGL 2 (required by Three.js r128 with `WebGLRenderer`)
 - Native `Promise` / async iteration
 
-## Feature usage by browser
+## API baseline
 
 | Feature                                   | Chrome 90+ | Firefox 90+ | Safari 14+ |
 | ----------------------------------------- | ---------- | ----------- | ---------- |
@@ -36,7 +41,7 @@ All three targets support:
 
 ## Static analysis
 
-`scripts/browser-smoke.js` scans every JS module for modern features
+`scripts/browser-smoke.js` recursively scans every JS module for modern features
 that may not work in older browsers (private class fields, etc.). Run
 with:
 

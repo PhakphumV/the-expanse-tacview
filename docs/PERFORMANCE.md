@@ -28,33 +28,33 @@ count as "good enough" on the supported hardware.
 The animate loop runs the following updates every frame. Each item is
 bounded so it does not scale with replay duration:
 
-| Module              | Work                                            | Bounded by                         |
-| ------------------- | ----------------------------------------------- | ---------------------------------- |
-| `hud.js`            | 12 `textContent` writes, mission state class    | Cached — skipped when unchanged    |
-| `timeline.js`       | 2 `style.width`/`left` writes, 1 `textContent`  | Per-frame time advance only        |
-| `event-log.js`      | N `style.display` toggles, 1 `scrollTop`        | Only when last-visible index moves |
-| `entities.js`       | 2 ship meshes + 2 trail buffers                 | Bounded by entity count            |
-| `weapons.js`        | 4 torpedo spheres + 6 PDC line segments         | Bounded by entity count            |
-| `effects.js`        | burst_count additive spheres                    | Bounded by intercept/hit events    |
-| `labels`            | 2 ship `style.left`/`top` writes                | Only visible ships                 |
+| Module | Work | Bounded by |
+| --- | --- | --- |
+| `js/ui/hud.js` | 20 ship-value text updates plus lock text/class updates | Two displayed ships; values are currently assigned each frame, not cached |
+| `js/ui/timeline.js` | 2 scrub style updates and 1 time-readout text update | Fixed per frame while an engagement is loaded |
+| `js/ui/event-log.js` | Event visibility toggles and scroll position | Only when the last-visible event index changes |
+| `js/render/entities.js` | Ship transforms and trail buffers | Bounded by active ship/entity count |
+| `js/render/weapons.js` | Torpedo spheres and PDC tracer segments | Bounded by engagement entities and PDC event windows |
+| `js/render/effects.js` | Burst meshes | Bounded by supported burst events with active targets |
+| `js/render/entities.js` labels | Position/visibility updates for ship labels | At most two labels in the current UI |
 
 ## Three.js resource lifecycle
 
-Geometries and materials are created once during `load()` and reused
-for the lifetime of the page:
+Scene-level geometries and materials are created once and reused for the page;
+engagement-scoped resources are replaced on engagement rebuild. The committed
+dataset currently creates:
 
-- 2 ship models (composite Groups built from primitives; original
-  procedural silhouettes, no external assets)
-- 4 torpedo SphereGeometries + MeshBasicMaterials
-- 6 PDC BufferGeometries + LineBasicMaterials
+- 2 ship models (19 original procedural mesh parts in composite Groups)
+- 24 torpedo SphereGeometries + MeshBasicMaterials
+- 100 PDC tracer segments from 20 `pdc_engagement` event windows
 - 2 trail BufferGeometries (30-sample ring buffers)
 - 6000-point starfield BufferGeometry
-- burst_count SphereGeometries (one per `intercept`/`hit` event)
+- 23 burst meshes from supported events whose target entity is active
 - MeshBasicMaterial per mesh (color-only, no textures)
 
-**Reuse:** bursts, trails, labels, HUD elements, and event-log entries
-are all reused across the full replay. No new geometry is created
-mid-playback.
+**Reuse:** trails, labels, HUD elements, and event-log entries are reused
+across playback. Burst and tracer geometry is built for the selected engagement,
+not allocated as each event is reached in time.
 
 **Disposal:** Engagement-scoped managers remove and dispose replaced
 objects when an engagement is rebuilt (`entities.js`, `weapons.js`,
