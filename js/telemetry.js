@@ -3,6 +3,8 @@
 // Acceleration (G), Burn Direction (FWD/BRK/IDLE), Roll (°).
 // Pure computation; takes a playback engine and returns derived values per ship.
 
+import { clamp, radiansToDegrees } from './utils/math.js';
+
 const THREE = window.THREE;
 const G = 9.8;
 
@@ -68,7 +70,7 @@ function burnDirectionForEntity(ent, t) {
     if (dt <= 0) {
         vel = a.vel.clone();
     } else {
-        const alpha = Math.max(0, Math.min(1, (t - a.t) / dt));
+        const alpha = clamp((t - a.t) / dt, 0, 1);
         vel = new THREE.Vector3().copy(a.vel).lerp(b.vel, alpha);
     }
     const velMag = vel.length();
@@ -91,9 +93,9 @@ function eulerDegForEntity(integratedOrientation) {
     }
     _euler.setFromQuaternion(integratedOrientation.orientation, 'XYZ');
     return {
-        heading: _euler.y * 180 / Math.PI,
-        pitch:  _euler.x * 180 / Math.PI,
-        roll:   _euler.z * 180 / Math.PI,
+        heading: radiansToDegrees(_euler.y),
+        pitch:  radiansToDegrees(_euler.x),
+        roll:   radiansToDegrees(_euler.z),
     };
 }
 
@@ -103,8 +105,8 @@ function aspectAngleDeg(shipPos, shipQuat, otherPos) {
     const dist = dir.length();
     if (dist < 1e-6) return 0;
     dir.normalize();
-    const dot = THREE.MathUtils.clamp(forward.dot(dir), -1, 1);
-    return Math.acos(dot) * 180 / Math.PI;
+    const dot = clamp(forward.dot(dir), -1, 1);
+    return radiansToDegrees(Math.acos(dot));
 }
 
 export function createTelemetry(playbackEngine, shipA = 'roci', shipB = 'zmeya') {

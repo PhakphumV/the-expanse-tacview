@@ -13,6 +13,10 @@
 // THREE.Vector3 / THREE.Quaternion, Node tests pass plain Vec3 / Quat
 // stubs. The integrator never mutates its inputs.
 
+import { multiplyQuaternions, normalizeQuaternion } from './utils/math.js';
+
+const quaternionScratch = { x: 0, y: 0, z: 0, w: 1 };
+
 // Standard gravity used for G-force display.
 export const G = 9.80665;
 
@@ -76,24 +80,14 @@ export function integrateOrientation(q, wx, wy, wz, dt, out) {
         dw = cosV;
     }
 
-    // q' = q ⊗ dq.
-    // Hamilton product with q = (qx, qy, qz, qw), dq = (dx, dy, dz, dw):
-    const qx = q.x, qy = q.y, qz = q.z, qw = q.w;
-    const nx = qw * dx + qx * dw + qy * dz - qz * dy;
-    const ny = qw * dy - qx * dz + qy * dw + qz * dx;
-    const nz = qw * dz + qx * dy - qy * dx + qz * dw;
-    const nw = qw * dw - qx * dx - qy * dy - qz * dz;
-
-    const norm = Math.sqrt(nx * nx + ny * ny + nz * nz + nw * nw);
-    if (norm < 1e-12) {
-        out.x = 0; out.y = 0; out.z = 0; out.w = 1;
-        return out;
-    }
-    out.x = nx / norm;
-    out.y = ny / norm;
-    out.z = nz / norm;
-    out.w = nw / norm;
-    return out;
+    // q' = q ⊗ dq. Reuse module scratch so the shared pure-math helper
+    // does not add objects to the per-frame integration path.
+    quaternionScratch.x = dx;
+    quaternionScratch.y = dy;
+    quaternionScratch.z = dz;
+    quaternionScratch.w = dw;
+    multiplyQuaternions(q, quaternionScratch, out);
+    return normalizeQuaternion(out, out);
 }
 
 // Derive an effective body-frame angular velocity ω from the orientation
@@ -122,30 +116,27 @@ export function deriveAngularVelocity(qA, qB, tA, tB, out) {
         return out;
     }
 
-    // qA⁻¹ for a unit quaternion is (-qx, -qy, -qz, qw).
-    const aInvx = -qA.x, aInvy = -qA.y, aInvz = -qA.z, aInvw = qA.w;
+    // delta = qB ⊗ qA⁻¹; qA⁻¹ for a unit quaternion is (-x, -y, -z, w).
+    quaternionScratch.x = -qA.x;
+    quaternionScratch.y = -qA.y;
+    quaternionScratch.z = -qA.z;
+    quaternionScratch.w = qA.w;
+    multiplyQuaternions(qB, quaternionScratch, quaternionScratch);
 
-    // delta = qB ⊗ qA⁻¹.
-    // Hamilton product qB ⊗ aInv:
-    const bx = qB.x, by = qB.y, bz = qB.z, bw = qB.w;
-    const dx = bw * aInvx + bx * aInvw + by * aInvz - bz * aInvy;
-    const dy = bw * aInvy - bx * aInvz + by * aInvw + bz * aInvx;
-    const dz = bw * aInvz + bx * aInvy - by * aInvx + bz * aInvw;
-    const dw = bw * aInvw - bx * aInvx - by * aInvy - bz * aInvz;
-
-    // Renormalize to compensate for accumulated numerical drift.
-    const dnorm = Math.sqrt(dx * dx + dy * dy + dz * dz + dw * dw);
+    const dnorm = Math.hypot(
+        quaternionScratch.x,
+        quaternionScratch.y,
+        quaternionScratch.z,
+        quaternionScratch.w
+    );
     if (dnorm < 1e-12) {
         out[0] = 0; out[1] = 0; out[2] = 0;
         return out;
     }
-    const ndx = dx / dnorm;
-    const ndy = dy / dnorm;
-    const ndz = dz / dnorm;
-    const ndw = dw / dnorm;
+    normalizeQuaternion(quaternionScratch, quaternionScratch);
 
     // Choose the short rotation direction (|angle| <= π).
-    let w = ndw;
+    let w = quaternionScratch.w;
     if (w > 1) w = 1;
     if (w < -1) w = -1;
     const angle = (w >= 0)
@@ -165,9 +156,9 @@ export function deriveAngularVelocity(qA, qB, tA, tB, out) {
     }
 
     // delta.xyz is already in A's body frame.
-    const axisX = ndx / sinHalf;
-    const axisY = ndy / sinHalf;
-    const axisZ = ndz / sinHalf;
+    const axisX = quaternionScratch.x / sinHalf;
+    const axisY = quaternionScratch.y / sinHalf;
+    const axisZ = quaternionScratch.z / sinHalf;
 
     out[0] = axisX * angle / dt;
     out[1] = axisY * angle / dt;

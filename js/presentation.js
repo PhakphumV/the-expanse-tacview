@@ -3,19 +3,9 @@
 // remaining time, IFF legend, and engagement summary. All derived from
 // existing telemetry and events — no new gameplay mechanics.
 
-const THREE = window.THREE;
+import { formatTime } from './utils/math.js';
 
-function pad(n) { return n < 10 ? '0' + n : '' + n; }
-function formatMmSs(t) {
-    const m = Math.floor(t / 60);
-    const s = Math.floor(t - m * 60);
-    return pad(m) + ':' + pad(s);
-}
-function formatMmSsTenths(t) {
-    const m = Math.floor(t / 60);
-    const s = t - m * 60;
-    return pad(m) + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
-}
+const THREE = window.THREE;
 
 export function createPresentation(playbackEngine) {
     const titleEl   = document.getElementById('missionTitle');
@@ -40,7 +30,7 @@ export function createPresentation(playbackEngine) {
         const dur = playbackEngine.getDuration();
         summaryEl.innerHTML =
             '<div class="summary-row"><span class="k">DURATION</span><span class="v">' +
-            formatMmSs(dur) + '</span></div>' +
+            formatTime(dur, 0) + '</span></div>' +
             '<div class="summary-row"><span class="k">LAUNCHES</span><span class="v">' +
             launches + '</span></div>' +
             '<div class="summary-row"><span class="k">INTERCEPTS</span><span class="v">' +
@@ -55,8 +45,8 @@ export function createPresentation(playbackEngine) {
         const t = playbackEngine.getTime();
         const dur = playbackEngine.getDuration();
         const remaining = Math.max(0, dur - t);
-        if (elapsedEl) elapsedEl.textContent = formatMmSsTenths(t);
-        if (remainEl)  remainEl.textContent  = '-' + formatMmSsTenths(remaining);
+        if (elapsedEl) elapsedEl.textContent = formatTime(t);
+        if (remainEl)  remainEl.textContent  = '-' + formatTime(remaining);
         if (statusEl) {
             const label = playbackEngine.isPlaying() ? 'REPLAYING' : 'PAUSED';
             if (statusEl.textContent !== label) statusEl.textContent = label;

@@ -3,13 +3,13 @@
 // and the TAC-020 replay controls (restart, jump-to-start/end, prev/next
 // event). Keyboard shortcuts are wired here too.
 
-function formatTime(t) {
-    const m = Math.floor(t / 60);
-    const s = t - m * 60;
-    return 'T+' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
-}
+import { clamp, formatTime as formatReplayTime } from './utils/math.js';
 
 export function createTimeline(playbackEngine) {
+    function formatTime(t) {
+        return formatReplayTime(t, 1, 'T+');
+    }
+
     const playPauseBtn = document.getElementById('playPauseBtn');
     const timeReadout = document.getElementById('timeReadout');
     const scrubBar = document.getElementById('scrubBar');
@@ -116,7 +116,7 @@ export function createTimeline(playbackEngine) {
     function scrubFromEvent(e) {
         const rect = scrubBar.getBoundingClientRect();
         const x = (e.clientX !== undefined ? e.clientX : 0) - rect.left;
-        let frac = Math.max(0, Math.min(1, x / rect.width));
+        const frac = clamp(x / rect.width, 0, 1);
         const dur = playbackEngine.getDuration();
         playbackEngine.setTime(frac * dur);
     }

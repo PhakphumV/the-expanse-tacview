@@ -11,6 +11,8 @@
 // target are smoothed with a lerp toward the desired frame so engagement
 // transitions and chase-target cycling produce a glide rather than a jump.
 
+import { clamp } from './utils/math.js';
+
 const THREE = window.THREE;
 
 // Center-cam framing. The camera height grows with the inter-ship range so
@@ -105,14 +107,10 @@ export function createCameraController(camera, playbackEngine, canvas) {
         const state = orbitStates[mode];
         if (Number.isFinite(next.yaw)) state.yaw = next.yaw;
         if (Number.isFinite(next.pitch)) {
-            state.pitch = THREE.MathUtils.clamp(next.pitch, -ORBIT_PITCH_LIMIT, ORBIT_PITCH_LIMIT);
+            state.pitch = clamp(next.pitch, -ORBIT_PITCH_LIMIT, ORBIT_PITCH_LIMIT);
         }
         if (Number.isFinite(next.distanceScale) && next.distanceScale > 0) {
-            state.distanceScale = THREE.MathUtils.clamp(
-                next.distanceScale,
-                MIN_ORBIT_DISTANCE_SCALE,
-                MAX_ORBIT_DISTANCE_SCALE
-            );
+            state.distanceScale = clamp(next.distanceScale, MIN_ORBIT_DISTANCE_SCALE, MAX_ORBIT_DISTANCE_SCALE);
         }
     }
 
@@ -238,7 +236,7 @@ export function createCameraController(camera, playbackEngine, canvas) {
             const state = orbitStates[mode];
             if (dragButton === 0) {
                 state.yaw -= dx * ORBIT_SENSITIVITY;
-                state.pitch = THREE.MathUtils.clamp(
+                state.pitch = clamp(
                     state.pitch + dy * ORBIT_SENSITIVITY,
                     -ORBIT_PITCH_LIMIT,
                     ORBIT_PITCH_LIMIT
@@ -262,11 +260,7 @@ export function createCameraController(camera, playbackEngine, canvas) {
             event.preventDefault();
             const state = orbitStates[mode];
             state.distanceScale *= Math.exp(event.deltaY * ZOOM_SENSITIVITY);
-            state.distanceScale = THREE.MathUtils.clamp(
-                state.distanceScale,
-                MIN_ORBIT_DISTANCE_SCALE,
-                MAX_ORBIT_DISTANCE_SCALE
-            );
+            state.distanceScale = clamp(state.distanceScale, MIN_ORBIT_DISTANCE_SCALE, MAX_ORBIT_DISTANCE_SCALE);
         }, { passive: false });
     }
 

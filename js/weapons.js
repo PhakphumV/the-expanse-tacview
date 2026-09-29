@@ -6,6 +6,8 @@
 // deterministic tracer streams — the telemetry stays small and no
 // thousands of individual rounds are encoded in the dataset.
 
+import { clamp } from './utils/math.js';
+
 const THREE = window.THREE;
 
 const TRACERS_PER_ENGAGEMENT = 5;
@@ -127,7 +129,7 @@ export function createWeaponsManager(scene, playbackEngine, entitiesManager) {
                 const a = e.keyframes[0];
                 const b = e.keyframes[1];
                 const span = b.t - a.t;
-                const alpha = span > 0 ? Math.min(1, Math.max(0, (t - a.t) / span)) : 0;
+                const alpha = span > 0 ? clamp((t - a.t) / span, 0, 1) : 0;
                 const pos = new THREE.Vector3().copy(a.pos).lerp(b.pos, alpha);
                 const positions = entry.mesh.geometry.attributes.position.array;
                 positions[0] = a.pos.x; positions[1] = a.pos.y; positions[2] = a.pos.z;

@@ -15,13 +15,14 @@
 //                              from orientation deltas when the optional
 //                              angular_velocity field is absent (ADR-0002).
 
-const THREE = window.THREE;
-
+import { clamp } from './utils/math.js';
 import {
     integratePosition,
     integrateOrientation,
     deriveAngularVelocity,
 } from './integrator.js';
+
+const THREE = window.THREE;
 
 export function createPlaybackEngine() {
     const state = {
@@ -178,7 +179,7 @@ export function createPlaybackEngine() {
         return out;
     }
 
-    function setTime(t) { state.currentTime = Math.max(0, Math.min(t, state.duration)); }
+    function setTime(t) { state.currentTime = clamp(t, 0, state.duration); }
     function getTime() { return state.currentTime; }
     function setSpeed(s) { state.speed = s; }
     function getSpeed() { return state.speed; }
