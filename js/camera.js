@@ -1,43 +1,63 @@
 // js/camera.js
-// Camera mode controller: Free Orbit (default, OrbitControls-driven),
-// Chase Cam (locked to Rocinante), Tactical Top-Down (auto-framing both ships).
+// Camera mode controller focused on space-object viewing:
+//   orbit    – free OrbitControls (mouse rotate/pan/zoom around target)
+//   follow   – locked to the active track (chase cam behind its velocity)
+//   inertial – fixed ECI framing of the whole orbit + Earth (no rotation)
+//
+// The controller owns controls.update() so Follow/Inertial never fight the
+// OrbitControls lookAt (the vendored controls orbit the target in those modes).
+//
+// Classic-script module: attaches Tacview.createCameraController.
 
-const THREE = window.THREE;
+(function (global) {
+    'use strict';
+    const THREE = global.THREE;
 
-const CHASE_OFFSET = new THREE.Vector3(0, 12, 40);
+    const CHASE_BACK = 3500;   // m behind the object (against velocity)
+    const CHASE_UP   = 1400;   // m above the object
 
-export function createCameraController(camera, controls, playbackEngine) {
-    let mode = 'orbit';
+    function createCameraController(camera, controls, engine) {
+        let mode = 'orbit';
 
-    function setMode(m) {
-        mode = m;
-        controls.enabled = (m === 'orbit');
-        const o = document.getElementById('modeOrbitBtn');
-        const c = document.getElementById('modeChaseBtn');
-        const tp = document.getElementById('modeTopBtn');
-        if (o) o.classList.toggle('active', m === 'orbit');
-        if (c) c.classList.toggle('active', m === 'chase');
-        if (tp) tp.classList.toggle('active', m === 'top');
-    }
-
-    function getMode() { return mode; }
-
-    function update(t) {
-        const stateMap = playbackEngine.getStateAtTime(t);
-        const roci = stateMap['roci'];
-        const zmeya = stateMap['zmeya'];
-        if (mode === 'chase' && roci && roci.active) {
-            const offsetWorld = CHASE_OFFSET.clone().applyQuaternion(roci.orientation);
-            camera.position.copy(roci.position).add(offsetWorld);
-            camera.up.set(0, 1, 0);
-            camera.lookAt(roci.position);
-        } else if (mode === 'top' && roci && roci.active && zmeya && zmeya.active) {
-            const mid = new THREE.Vector3().addVectors(roci.position, zmeya.position).multiplyScalar(0.5);
-            camera.position.set(mid.x, mid.y + 150, mid.z + 1);
-            camera.up.set(0, 0, -1);
-            camera.lookAt(mid);
+        function setActiveButtons(m) {
+            const ids = { orbit: 'modeOrbitBtn', follow: 'modeFollowBtn', inertial: 'modeInertialBtn' };
+            for (const key in ids) {
+                const btn = document.getElementById(ids[key]);
+                if (btn) btn.classList.toggle('active', key === m);
+            }
         }
+
+        function frameScene() {
+            controls.target.set(0, 0, 0);
+            camera.position.set(1.2e7, 1.1e7, 2.2e7);
+            camera.lookAt(0, 0, 0);
+        }
+
+        function setMode(m) {
+            mode = m;
+            controls.enabled = (m === 'orbit');
+            setActiveButtons(m);
+            if (m === 'inertial') frameScene();
+            if (m === 'orbit') controls.update();
+        }
+
+        function getMode() { return mode; }
+
+        function update(t) {
+            if (mode === 'orbit') { controls.update(); return; }
+            const st = engine.getStateAtTime(t);
+            if (mode === 'follow' && st) {
+                const v = st.velocity.clone().normalize();
+                camera.position.copy(st.position).addScaledVector(v, -CHASE_BACK);
+                camera.position.y += CHASE_UP;
+                camera.lookAt(st.position);
+            }
+            // inertial: static framing set in setMode(); nothing per-frame.
+        }
+
+        return { setMode, getMode, update };
     }
 
-    return { setMode, getMode, update };
-}
+    global.Tacview = global.Tacview || {};
+    global.Tacview.createCameraController = createCameraController;
+})(window);
