@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/validate-telemetry.js
 //
-// End-to-end telemetry validation against data/iss.json. No browser, no
+// End-to-end telemetry validation against data/orbits.json. No browser, no
 // Three.js — pure Node.
 //
 // Checks:
@@ -20,7 +20,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const repoRoot = path.resolve(__dirname, '..');
-const datasetPath = path.join(repoRoot, 'data', 'iss.json');
+const datasetPath = path.join(repoRoot, 'data', 'orbits.json');
 const ORIENT_TOL = 1e-4;      // unit-quaternion tolerance
 const FWD_DOT_MIN = 0.98;     // attitude.forward vs velocity unit direction
 
@@ -65,7 +65,7 @@ function checkSyntax() {
     const modules = [
         'js/ephemeris.js', 'js/scene.js', 'js/entities.js', 'js/spacecraft-model.js',
         'js/camera.js', 'js/hud.js', 'js/timeline.js', 'js/labels.js', 'js/main.js',
-        'js/iss-data.js',
+        'js/orbits-data.js',
     ];
     for (const m of modules) {
         const fp = path.join(repoRoot, m);
