@@ -1,457 +1,213 @@
-/* The Expanse Tacview — application styles */
+/* The Expanse Tacview — orbital telemetry viewer */
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-    margin: 0;
+html, body {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
-    background: #000;
-    font-family: monospace;
-    color: #fff;
-}
-canvas { display: block; }
-#container {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-}
-
-/* ---- Timeline bar ---- */
-#timeline {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.88);
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    z-index: 10;
-    border-top: 1px solid #333;
-    box-sizing: border-box;
-}
-#timeline button {
-    background: #222; color: #fff; border: 1px solid #555;
-    padding: 4px 10px; font-family: monospace; cursor: pointer;
-}
-#timeline button:hover { background: #333; }
-#timeline select {
-    background: #222; color: #fff; border: 1px solid #555;
-    padding: 4px; font-family: monospace;
-}
-.mode-btn {
-    background: #222; color: #fff; border: 1px solid #555;
-    padding: 4px 10px; font-family: monospace; cursor: pointer;
-}
-.mode-btn.active {
-    background: #3a7bd5;
-    border-color: #3a7bd5;
-}
-#timeReadout {
-    min-width: 110px;
-    text-align: center;
-    font-size: 14px;
-    color: #7fd07f;
-}
-#scrubBar {
-    position: relative;
-    flex: 1;
-    height: 16px;
-    background: #1a1a1a;
-    border: 1px solid #444;
-    cursor: pointer;
-    user-select: none;
-}
-#scrubProgress {
-    position: absolute;
-    top: 0; left: 0; bottom: 0;
-    background: linear-gradient(90deg, #2a5fa0, #3a7bd5);
-    width: 0%;
-}
-#scrubHandle {
-    position: absolute;
-    top: -4px;
-    width: 4px; height: 24px;
-    background: #ffffff;
-    margin-left: -2px;
-    left: 0%;
-    pointer-events: none;
-}
-.eventMarker {
-    position: absolute;
-    top: 0;
-    width: 2px;
-    height: 16px;
-    background: #ffcc00;
-    pointer-events: none;
-}
-.eventMarker.launch { background: #66aaff; }
-.eventMarker.intercept { background: #ffaa33; }
-.eventMarker.hit { background: #ff5555; }
-.eventMarker.miss { background: #aaaaaa; }
-.eventMarker.pdc_engage { background: #ffdd66; }
-.eventMarker.maneuver_start, .eventMarker.maneuver_end { background: #cc66ff; }
-.eventMarker.lock, .eventMarker.unlock { background: #ff66cc; }
-
-/* ---- HUD panels ---- */
-.hud-panel {
-    position: fixed;
-    bottom: 70px;
-    width: 190px;
-    background: rgba(0, 20, 0, 0.85);
-    border: 1px solid;
-    padding: 10px 12px;
-    font-size: 13px;
-    line-height: 1.6;
-    z-index: 10;
-    font-family: 'Courier New', monospace;
-}
-#hud-roci {
-    left: 20px;
-    border-color: #3a7bd5;
-    color: #7fd0ff;
-}
-#hud-zmeya {
-    right: 20px;
-    border-color: #d53a3a;
-    color: #ff8080;
-}
-.hud-title {
-    font-weight: bold;
-    text-align: center;
-    border-bottom: 1px solid currentColor;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
-    letter-spacing: 2px;
-}
-.hud-lock {
-    margin-top: 8px;
-    padding: 4px 8px;
-    text-align: center;
-    font-weight: bold;
-    border: 1px solid currentColor;
-    background: rgba(0,0,0,0.4);
-}
-.hud-lock.on {
-    color: #00ff00;
-    background: rgba(0, 60, 0, 0.6);
-    box-shadow: 0 0 8px #00ff00;
-}
-.hud-lock.off {
-    color: #555;
-}
-
-/* ---- Info panel: tabbed summary + event log ---- */
-.info-panel {
-    position: fixed;
-    top: 170px;
-    right: 20px;
-    width: 280px;
-    max-height: calc(100vh - 240px);
-    background: rgba(0, 20, 0, 0.88);
-    border: 1px solid #555;
-    color: #cccccc;
+    background: #000010;
+    color: #cfe3ff;
     font-family: 'Courier New', monospace;
     font-size: 12px;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
 }
-.info-tabs {
-    display: flex;
-    border-bottom: 1px solid #555;
-    flex-shrink: 0;
-}
-.info-tab {
-    flex: 1;
-    background: transparent;
-    color: #888;
-    border: none;
-    border-right: 1px solid #333;
-    padding: 8px 0;
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    cursor: pointer;
-    text-transform: uppercase;
-}
-.info-tab:last-child {
-    border-right: none;
-}
-.info-tab:hover {
-    background: rgba(255,255,255,0.05);
-    color: #ffffff;
-}
-.info-tab.active {
-    background: rgba(58, 123, 213, 0.25);
-    color: #ffffff;
-    border-bottom: 2px solid #3a7bd5;
-}
-.info-content {
-    display: none;
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 10px;
-    min-height: 0;
-}
-.info-content.active {
+
+#container, #container canvas {
+    position: fixed;
+    inset: 0;
     display: block;
 }
-.info-content-title {
-    font-weight: bold;
-    text-align: center;
-    border-bottom: 1px solid #555;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
-    letter-spacing: 2px;
-    color: #ffffff;
-}
-.event-log-entry {
-    padding: 3px 4px;
-    border-bottom: 1px solid #222;
-    cursor: pointer;
-}
-.event-log-entry:hover {
-    background: rgba(255,255,255,0.1);
-}
 
-/* ---- Entity labels ---- */
-.entity-label {
-    position: absolute;
-    color: #fff;
-    font-family: monospace;
-    font-size: 12px;
-    background: rgba(0,0,0,0.5);
-    padding: 2px 6px;
-    border: 1px solid currentColor;
-    pointer-events: none;
-    white-space: nowrap;
-    transform: translate(-50%, -50%);
-    z-index: 5;
-}
-
-/* ---- Mission state panel (TAC-020) ---- */
-#missionPanel {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.88);
-    border: 1px solid #555;
-    padding: 8px 16px;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    letter-spacing: 2px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.mission-label {
-    color: #888;
-    font-weight: normal;
-}
-#missionState {
-    font-weight: bold;
-    padding: 2px 8px;
-    border: 1px solid currentColor;
-}
-#missionState.standby     { color: #888; background: rgba(60, 60, 60, 0.4); }
-#missionState.engagement  { color: #ffcc00; background: rgba(80, 60, 0, 0.5); box-shadow: 0 0 8px #ffcc00; }
-#missionState.resolution  { color: #ff8080; background: rgba(80, 0, 0, 0.5); }
-
-/* ---- Help overlay (TAC-020) ---- */
-#helpBtn {
-    background: #2a2a2a !important;
-    border-color: #888 !important;
-    font-weight: bold;
-}
-#helpOverlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.78);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-#helpContent {
-    background: #111;
-    border: 1px solid #888;
-    padding: 20px 28px;
-    font-family: 'Courier New', monospace;
-    color: #fff;
-    min-width: 420px;
-    max-width: 90%;
-}
-#helpHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #555;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    font-size: 14px;
-}
-#helpClose {
-    background: transparent;
-    color: #fff;
-    border: 1px solid #555;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 0 8px;
-}
-#helpClose:hover { background: #333; }
-#helpContent table {
-    border-collapse: collapse;
-    width: 100%;
-}
-#helpContent td {
-    padding: 4px 8px;
-    border-bottom: 1px solid #222;
-}
-#helpContent td:first-child {
-    color: #ffcc00;
-    font-weight: bold;
-    width: 35%;
-    white-space: nowrap;
-}
-.helpNote {
-    margin-top: 14px;
-    padding-top: 10px;
-    border-top: 1px solid #444;
-    color: #aaa;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-/* ---- Mission header (TAC-024) ---- */
+/* ---- Header ---- */
 #missionHeader {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0) 100%);
-    padding: 14px 20px 22px;
-    z-index: 10;
+    padding: 10px 14px;
+    background: linear-gradient(to bottom, rgba(4, 10, 24, 0.9), rgba(4, 10, 24, 0));
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     pointer-events: none;
-    font-family: 'Courier New', monospace;
+    z-index: 5;
 }
 #missionTitle {
-    font-size: 16px;
     font-weight: bold;
     letter-spacing: 3px;
-    color: #ffffff;
-    text-shadow: 0 0 6px rgba(120,180,255,0.4);
+    font-size: 13px;
+    color: #9fd0ff;
+    text-shadow: 0 0 8px rgba(90, 160, 255, 0.5);
 }
 #replayStatusRow {
-    margin-top: 6px;
-    font-size: 12px;
-    letter-spacing: 1.5px;
-    color: #cccccc;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #9fb8d8;
 }
 #liveDot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: #ff3333;
-    box-shadow: 0 0 8px #ff3333;
-    animation: livePulse 1.4s ease-in-out infinite;
+    background: #3acf6a;
+    box-shadow: 0 0 8px #3acf6a;
 }
-@keyframes livePulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: 0.4; transform: scale(0.85); }
-}
-#replayStatus {
-    color: #ff8080;
-    font-weight: bold;
-}
-.timeGroup {
-    margin-left: 8px;
-    color: #888;
-}
-.timeGroup span {
-    color: #7fd0ff;
-    font-weight: bold;
-    margin-left: 4px;
-}
+#liveDot.paused { background: #d58a2a; box-shadow: 0 0 8px #d58a2a; }
+#replayStatus { letter-spacing: 2px; font-weight: bold; }
 
-/* ---- IFF legend (TAC-024) ---- */
-#iffLegend {
+/* ---- HUD panel ---- */
+.hud-panel {
     position: fixed;
-    top: 100px;
-    left: 20px;
-    background: rgba(0,0,0,0.85);
-    border: 1px solid #444;
-    padding: 8px 12px;
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: #ccc;
-    z-index: 10;
+    top: 64px;
+    right: 14px;
+    min-width: 210px;
+    padding: 10px 12px;
+    background: rgba(6, 14, 30, 0.78);
+    border: 1px solid #24406a;
+    border-radius: 4px;
+    line-height: 1.7;
+    color: #bcd4f2;
+    z-index: 5;
     letter-spacing: 1px;
+    font-size: 11px;
 }
-.iff-row {
+.hud-panel .hud-title {
+    font-weight: bold;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #ffd27f;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #24406a;
+    padding-bottom: 4px;
+}
+.hud-panel span { color: #eaf4ff; }
+
+/* ---- Timeline ---- */
+#timeline {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 2px 0;
-}
-.iff-swatch {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border: 1px solid rgba(255,255,255,0.5);
-}
-.iff-swatch.roci  { background: #3a7bd5; }
-.iff-swatch.zmeya { background: #d53a3a; }
-.iff-side {
-    color: #888;
-    font-size: 10px;
-    letter-spacing: 2px;
-}
-.iff-hint {
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px solid #333;
-    color: #66ffaa;
-    font-size: 10px;
-}
-
-/* ---- Engagement summary (TAC-024, inside info panel) ---- */
-#engagementSummary {
-    padding: 0;
+    padding: 8px 10px;
+    background: linear-gradient(to top, rgba(4, 10, 24, 0.95), rgba(4, 10, 24, 0));
+    z-index: 5;
     font-size: 11px;
-    color: #ccc;
+}
+#timeline button {
+    background: rgba(10, 22, 46, 0.85);
+    color: #cfe3ff;
+    border: 1px solid #2b406a;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
     letter-spacing: 1px;
 }
-.summary-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 2px 0;
-    border-bottom: 1px solid #222;
+#timeline button:hover { border-color: #3a7bd5; color: #ffffff; }
+#timeline button.mode-btn.active {
+    background: #2b6cb0;
+    border-color: #5aa0e8;
+    color: #fff;
+    box-shadow: 0 0 6px rgba(90, 160, 232, 0.6);
 }
-.summary-row .k {
-    color: #888;
+#timeReadout { min-width: 92px; text-align: center; color: #9fd0ff; }
+
+#scrubBar {
+    position: relative;
+    flex: 1;
+    height: 12px;
+    min-width: 120px;
+    background: rgba(10, 22, 46, 0.85);
+    border: 1px solid #2b406a;
+    border-radius: 3px;
+    cursor: pointer;
 }
-.summary-row .v {
-    color: #ffcc00;
-    font-weight: bold;
+#scrubProgress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: #2b6cb0;
+    border-radius: 3px 0 0 3px;
 }
-#engagementSummary .summary-row:last-child {
-    border-bottom: none;
+#scrubHandle {
+    position: absolute;
+    top: -2px;
+    width: 4px;
+    height: 14px;
+    background: #9fd0ff;
+    border-radius: 2px;
+    transform: translateX(-50%);
+}
+#speedSelect {
+    background: rgba(10, 22, 46, 0.85);
+    color: #cfe3ff;
+    border: 1px solid #2b406a;
+    padding: 3px;
+    font-family: inherit;
+    font-size: 11px;
 }
 
-/* ---- Responsive: stack left panels on narrower viewports ---- */
-@media (max-width: 1280px) {
-    #iffLegend {
-        left: 10px;
-        font-size: 10px;
-        top: 90px;
-    }
-    .info-panel { width: 240px; font-size: 11px; }
-    .hud-panel { bottom: 80px; }
+/* ---- Entity label ---- */
+#labelsContainer { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+.entity-label {
+    position: absolute;
+    transform: translate(-50%, -130%);
+    padding: 2px 6px;
+    background: rgba(4, 10, 24, 0.7);
+    border: 1px solid #3a7bd5;
+    border-radius: 3px;
+    color: #9fd0ff;
+    font-size: 11px;
+    letter-spacing: 1px;
+    white-space: nowrap;
 }
+
+/* ---- Help overlay ---- */
+#helpOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 16, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+#helpContent {
+    min-width: 320px;
+    max-width: 90vw;
+    background: #071024;
+    border: 1px solid #2b406a;
+    border-radius: 6px;
+    padding: 16px 20px;
+    color: #cfe3ff;
+}
+#helpHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+}
+#helpHeader button {
+    background: none;
+    border: none;
+    color: #9fd0ff;
+    font-size: 18px;
+    cursor: pointer;
+}
+#helpContent table { border-collapse: collapse; width: 100%; }
+#helpContent td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #12203c;
+    font-size: 11px;
+}
+#helpContent td:first-child { color: #9fd0ff; white-space: nowrap; }
+.helpNote { margin-top: 12px; font-size: 10px; color: #7f97b8; line-height: 1.6; }

@@ -65,6 +65,7 @@ function checkSyntax() {
     const modules = [
         'js/ephemeris.js', 'js/scene.js', 'js/entities.js', 'js/spacecraft-model.js',
         'js/camera.js', 'js/hud.js', 'js/timeline.js', 'js/labels.js', 'js/main.js',
+        'js/iss-data.js',
     ];
     for (const m of modules) {
         const fp = path.join(repoRoot, m);

@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Expanse Tacview</title>
+    <title>The Expanse Tacview &mdash; Orbital Telemetry</title>
     <link rel="stylesheet" href="css/tacview.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="vendor/OrbitControls.js"></script>
 </head>
 <body>
     <div id="container"></div>
-
     <div id="labelsContainer"></div>
 
-    <!-- Mission header + live replay indicator -->
+    <!-- Header -->
     <div id="missionHeader">
-        <div id="missionTitle">EXPANSE TACVIEW &mdash; LIVE REPLAY</div>
+        <div id="missionTitle">THE EXPANSE TACVIEW &mdash; ORBITAL TELEMETRY</div>
         <div id="replayStatusRow">
             <span id="liveDot"></span>
             <span id="replayStatus">REPLAYING</span>
@@ -24,66 +23,24 @@
         </div>
     </div>
 
-    <!-- IFF / side legend -->
-    <div id="iffLegend">
-        <div class="iff-row"><span class="iff-swatch roci"></span>ROCI &mdash; <span class="iff-side">BLUE</span></div>
-        <div class="iff-row"><span class="iff-swatch zmeya"></span>ZMEYA &mdash; <span class="iff-side">RED</span></div>
-        <div class="iff-hint">Range ring: 10 km</div>
+    <!-- Orbital telemetry HUD -->
+    <div id="hudPanel" class="hud-panel">
+        <div class="hud-title" id="trackName">—</div>
+        <div>ALT: <span id="hud-alt">—</span> km</div>
+        <div>SPD: <span id="hud-speed">—</span> km/s</div>
+        <div>POS: <span id="hud-pos">—</span> km</div>
     </div>
 
-    <!-- Engagement summary + event log in a tabbed panel -->
-    <div id="infoPanel" class="info-panel">
-        <div class="info-tabs">
-            <button id="summaryTabBtn" class="info-tab active" data-tab="summary">Summary</button>
-            <button id="eventsTabBtn" class="info-tab" data-tab="events">Events</button>
-        </div>
-        <div id="summaryContent" class="info-content active" data-tab="summary">
-            <div class="info-content-title">ENGAGEMENT SUMMARY</div>
-            <div id="engagementSummary"></div>
-        </div>
-        <div id="eventsContent" class="info-content" data-tab="events">
-            <div class="info-content-title">EVENT LOG</div>
-            <div id="eventLogList"></div>
-        </div>
-    </div>
-
-    <!-- Existing HUD panels -->
-    <div id="hud-roci" class="hud-panel">
-        <div class="hud-title">ROCI</div>
-        <div id="roci-lock" class="hud-lock off">LOCK: OFF</div>
-        <div>VEL: <span id="roci-vel">---</span> km/s</div>
-        <div>G:&nbsp;&nbsp; <span id="roci-g">---</span></div>
-        <div>RNG: <span id="roci-rng">---</span> km</div>
-        <div>CLOS: <span id="roci-clos">---</span> km/s</div>
-        <div>ASP: <span id="roci-asp">---</span>&deg;</div>
-    </div>
-
-    <div id="hud-zmeya" class="hud-panel">
-        <div class="hud-title">ZMEYA</div>
-        <div>VEL: <span id="zmeya-vel">---</span> km/s</div>
-        <div>G:&nbsp;&nbsp; <span id="zmeya-g">---</span></div>
-        <div>RNG: <span id="zmeya-rng">---</span> km</div>
-        <div>CLOS: <span id="zmeya-clos">---</span> km/s</div>
-        <div>ASP: <span id="zmeya-asp">---</span>&deg;</div>
-    </div>
-
-    <div id="missionPanel">
-        <span class="mission-label">MISSION:</span>
-        <span id="missionState" class="standby">STANDBY</span>
-    </div>
-
+    <!-- Playback timeline -->
     <div id="timeline">
         <button id="restartBtn" title="Restart (R)">|&laquo;</button>
         <button id="jumpStartBtn" title="Jump to start (Home/0)">|<</button>
-        <button id="prevEventBtn" title="Previous event (Left/J)">&laquo;</button>
         <button id="playPauseBtn" title="Play/Pause (Space)">Pause</button>
-        <button id="nextEventBtn" title="Next event (Right/L)">&raquo;</button>
         <button id="jumpEndBtn" title="Jump to end (End)">>|</button>
         <span id="timeReadout">T+00:00.0</span>
         <div id="scrubBar">
             <div id="scrubProgress"></div>
             <div id="scrubHandle"></div>
-            <div id="eventMarkers"></div>
         </div>
         <select id="speedSelect" title="Playback speed">
             <option value="0.25">0.25x</option>
@@ -91,14 +48,16 @@
             <option value="1" selected>1x</option>
             <option value="2">2x</option>
             <option value="4">4x</option>
+            <option value="8">8x</option>
         </select>
         <button id="modeOrbitBtn" class="mode-btn active">Orbit</button>
-        <button id="modeChaseBtn" class="mode-btn">Chase</button>
-        <button id="modeTopBtn" class="mode-btn">Top</button>
-        <button id="trailsBtn">Trails: ON</button>
+        <button id="modeFollowBtn" class="mode-btn">Follow</button>
+        <button id="modeInertialBtn" class="mode-btn">Inertial</button>
+        <button id="trailsBtn">Trail: ON</button>
         <button id="helpBtn" title="Keyboard shortcuts (?)">?</button>
     </div>
 
+    <!-- Help overlay -->
     <div id="helpOverlay" style="display:none;">
         <div id="helpContent">
             <div id="helpHeader">
@@ -107,24 +66,33 @@
             </div>
             <table>
                 <tr><td>Space</td><td>Play / Pause</td></tr>
-                <tr><td>R</td><td>Restart (jump to start & resume)</td></tr>
+                <tr><td>R</td><td>Restart (jump to start &amp; resume)</td></tr>
                 <tr><td>Home / 0</td><td>Jump to start</td></tr>
                 <tr><td>End</td><td>Jump to end</td></tr>
-                <tr><td>&larr; / J</td><td>Previous event</td></tr>
-                <tr><td>&rarr; / L</td><td>Next event</td></tr>
-                <tr><td>T</td><td>Toggle trails</td></tr>
-                <tr><td>1 / 2 / 3</td><td>Orbit / Chase / Top-Down camera</td></tr>
+                <tr><td>1 / 2 / 3</td><td>Orbit / Follow / Inertial camera</td></tr>
+                <tr><td>Mouse drag</td><td>Rotate (Orbit view)</td></tr>
+                <tr><td>Wheel</td><td>Zoom</td></tr>
+                <tr><td>T</td><td>Toggle trail</td></tr>
                 <tr><td>?</td><td>Toggle this help</td></tr>
                 <tr><td>Esc</td><td>Close this help</td></tr>
             </table>
             <p class="helpNote">
-                Mission state: <b>STANDBY</b> before the first event,
-                <b>ENGAGEMENT</b> during active combat,
-                <b>RESOLUTION</b> after the last intercept or hit.
+                Telemetry contract: <b>SCHEMA.md</b>. Data: ISS (NORAD 25544),
+                pre-baked two-orbit LVLH ephemeris &mdash; no runtime propagation.
             </p>
         </div>
     </div>
 
-    <script type="module" src="js/main.js"></script>
+    <script>window.Tacview = {};</script>
+    <script src="js/iss-data.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/spacecraft-model.js"></script>
+    <script src="js/entities.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/ephemeris.js"></script>
+    <script src="js/hud.js"></script>
+    <script src="js/timeline.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

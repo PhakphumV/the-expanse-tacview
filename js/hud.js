@@ -1,67 +1,45 @@
 // js/hud.js
-// Tactical HUD panels for ROCI and ZMEYA: velocity, G-load, range,
-// closure rate, aspect angle, plus the radar lock indicator.
+// Orbital telemetry readouts for the active track: altitude, ground speed,
+// and ECI position. Derived inline from the state vector (no combat
+// telemetry). Values displayed in km / km/s.
+//
+// Classic-script module: attaches Tacview.createHUD.
 
-const THREE = window.THREE;
+(function (global) {
+    'use strict';
+    const EARTH_RADIUS = global.Tacview.EARTH_RADIUS;
 
-const SHIP_IDS = ['roci', 'zmeya'];
+    function setVal(id, v) {
+        const el = document.getElementById(id);
+        if (el && el.textContent !== v) el.textContent = v;
+    }
 
-function formatVelocity(v) { return (v / 1000).toFixed(2); }
-function formatKm(m) { return (m / 1000).toFixed(2); }
-function formatAngle(deg) { return deg.toFixed(1); }
+    function createHUD(engine) {
+        function update() {
+            const t = engine.getTime();
+            const st = engine.getStateAtTime(t);
+            const track = engine.getActiveTrack();
 
-function setVal(id, v) { document.getElementById(id).textContent = v; }
+            setVal('trackName', (track && track.meta.OBJECT_NAME) || engine.getActiveTrackId() || '—');
 
-export function createHUD(playbackEngine, telemetry, lockState, missionState) {
-    function updateShip(id, state, derived) {
-        if (derived && state && state.active) {
-            const vel = state.velocity.length();
-            setVal(id + '-vel', formatVelocity(vel));
-            setVal(id + '-g',   derived[id].gForce.toFixed(2));
-            setVal(id + '-rng', formatKm(derived[id].range));
-            setVal(id + '-clos', formatKm(derived[id].closureRate));
-            setVal(id + '-asp', formatAngle(derived[id].aspectAngle));
-        } else {
-            [id + '-vel', id + '-g', id + '-rng', id + '-clos', id + '-asp']
-                .forEach((el) => setVal(el, '---'));
+            if (!st) {
+                setVal('hud-alt', '—');
+                setVal('hud-speed', '—');
+                setVal('hud-pos', '—');
+                return;
+            }
+            const radius = st.position.length();
+            const altKm = (radius - EARTH_RADIUS) / 1000;
+            const speedKmps = st.velocity.length() / 1000;
+            setVal('hud-alt', altKm.toFixed(1));
+            setVal('hud-speed', speedKmps.toFixed(3));
+            setVal('hud-pos',
+                `[${(st.position.x / 1000).toFixed(0)}, ${(st.position.y / 1000).toFixed(0)}, ${(st.position.z / 1000).toFixed(0)}]`);
         }
+
+        return { update };
     }
 
-    function updateLock() {
-        const el = document.getElementById('roci-lock');
-        if (!el) return;
-        const locked = lockState.isLockedAt(playbackEngine.getTime());
-        if (locked) {
-            el.textContent = 'LOCK: ON';
-            el.classList.add('on');
-            el.classList.remove('off');
-        } else {
-            el.textContent = 'LOCK: OFF';
-            el.classList.add('off');
-            el.classList.remove('on');
-        }
-    }
-
-    let lastMissionState = null;
-    function updateMissionState() {
-        const el = document.getElementById('missionState');
-        if (!el || !missionState) return;
-        const s = missionState.getState();
-        if (s === lastMissionState) return; // no change — skip DOM work
-        lastMissionState = s;
-        if (el.textContent !== s) el.textContent = s;
-        el.classList.remove('standby', 'engagement', 'resolution');
-        el.classList.add(s.toLowerCase());
-    }
-
-    function update() {
-        const t = playbackEngine.getTime();
-        const derived = telemetry.getDerived(t);
-        const stateMap = playbackEngine.getStateAtTime(t);
-        SHIP_IDS.forEach((id) => updateShip(id, stateMap[id], derived));
-        updateLock();
-        updateMissionState();
-    }
-
-    return { update };
-}
+    global.Tacview = global.Tacview || {};
+    global.Tacview.createHUD = createHUD;
+})(window);
