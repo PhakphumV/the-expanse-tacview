@@ -16,9 +16,8 @@
     const WIDTH_MAX = 4e6;          // m — ceiling so it never blows up
     const WIDTH_DIST_SCALE = 0.02;  // ribbon width ≈ 2% of camera distance
 
-    const HEAD_COLOR = new THREE.Color(0xaef2ff);
-    const MID_COLOR = new THREE.Color(0x3a7bd5);
-    const TAIL_COLOR = new THREE.Color(0x0a2a5a);
+    const BRIGHT_COLOR = new THREE.Color(0xd6f4ff);   // head, at the object
+    const BLUE_COLOR = new THREE.Color(0x3a8fe0);     // middle
 
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
@@ -26,6 +25,7 @@
         const verts = TRAIL_SAMPLES * 2;
         const positions = new Float32Array(verts * 3);
         const colors = new Float32Array(verts * 3);
+        const alphas = new Float32Array(verts);
         const indices = [];
         for (let i = 0; i < TRAIL_SAMPLES - 1; i++) {
             const a0 = i * 2, a1 = i * 2 + 1;
@@ -35,21 +35,46 @@
         const geom = new THREE.BufferGeometry();
         geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geom.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
         geom.setIndex(indices);
-        const mat = new THREE.MeshBasicMaterial({
-            vertexColors: true, transparent: true, opacity: 0.9,
-            side: THREE.DoubleSide, depthWrite: false,
+        // Per-vertex alpha needs a small shader (MeshBasicMaterial only blends
+        // the whole mesh's opacity), so bake RGB + alpha and fade the tail to 0.
+        const mat = new THREE.ShaderMaterial({
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+            vertexShader: [
+                'attribute vec3 color;',
+                'attribute float alpha;',
+                'varying vec3 vColor;',
+                'varying float vAlpha;',
+                'void main(){ vColor = color; vAlpha = alpha;',
+                '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+            ].join('\n'),
+            fragmentShader: [
+                'varying vec3 vColor;',
+                'varying float vAlpha;',
+                'void main(){ gl_FragColor = vec4(vColor, vAlpha); }',
+            ].join('\n'),
         });
         const ribbon = new THREE.Mesh(geom, mat);
         ribbon.frustumCulled = false;
         return ribbon;
     }
 
-    function writeColor(arr, i, u) {
+    // p runs 0 (old tail) -> 1 (head, at the object). Color goes blue (middle)
+    // to bright (head); tail color is irrelevant since alpha fades it to 0.
+    function writeColor(arr, i, p) {
         const col = new THREE.Color();
-        if (u < 0.5) col.copy(HEAD_COLOR).lerp(MID_COLOR, u * 2);
-        else col.copy(MID_COLOR).lerp(TAIL_COLOR, (u - 0.5) * 2);
+        if (p < 0.5) col.copy(BLUE_COLOR);
+        else col.copy(BLUE_COLOR).lerp(BRIGHT_COLOR, (p - 0.5) * 2);
         arr[i * 3] = col.r; arr[i * 3 + 1] = col.g; arr[i * 3 + 2] = col.b;
+    }
+
+    // Fade the tail (p=0) in to full opacity by p=0.4, so the far end is
+    // transparent, the middle is solid blue, the head is solid bright.
+    function writeAlpha(arr, i, p) {
+        arr[i] = p < 0.4 ? p / 0.4 : 1;
     }
 
     // Interpolated position at time tt (lightweight, O(1) via cursor).
@@ -117,6 +142,7 @@
 
             const positions = ribbon.geometry.attributes.position.array;
             const colors = ribbon.geometry.attributes.color.array;
+            const alphas = ribbon.geometry.attributes.alpha.array;
             const fwd = new THREE.Vector3();
             const upBody = new THREE.Vector3();
             const lat = new THREE.Vector3();
@@ -145,11 +171,14 @@
 
                 writeColor(colors, a, u);
                 writeColor(colors, b, u);
+                writeAlpha(alphas, a, u);
+                writeAlpha(alphas, b, u);
             }
 
             ribbon.visible = true;
             ribbon.geometry.attributes.position.needsUpdate = true;
             ribbon.geometry.attributes.color.needsUpdate = true;
+            ribbon.geometry.attributes.alpha.needsUpdate = true;
         }
 
         function setTrailsVisible(v) { trailVisible = !!v; }
