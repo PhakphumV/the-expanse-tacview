@@ -49,13 +49,17 @@
             <option value="2">2x</option>
             <option value="4">4x</option>
             <option value="8">8x</option>
+            <option value="16">16x</option>
+            <option value="32">32x</option>
         </select>
         <button id="modeOrbitBtn" class="mode-btn active">Orbit</button>
         <button id="modeFollowBtn" class="mode-btn">Follow</button>
         <button id="modeInertialBtn" class="mode-btn">Inertial</button>
         <button id="trailsBtn">Trail: ON</button>
-        <button id="zoomInBtn" title="Zoom in (PageUp / +)">+</button>
-        <button id="zoomOutBtn" title="Zoom out (PageDown / -)">-</button>
+        <div id="zoomSliderWrap" title="Zoom (wheel / + and -)">
+            <input type="range" id="zoomSlider" min="0" max="100" value="40">
+            <label id="zoomSliderLabel">ZOOM</label>
+        </div>
         <button id="helpBtn" title="Keyboard shortcuts (?)">?</button>
     </div>
 

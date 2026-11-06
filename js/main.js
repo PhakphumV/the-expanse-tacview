@@ -60,11 +60,9 @@
     }
     trailsBtn.addEventListener('click', () => setTrailsVisible(!entity.getTrailsVisible()));
 
-    // Zoom buttons (+ = in, - = out) and zoom keyboard (PageUp/+, PageDown/-).
-    const zoomInBtn = document.getElementById('zoomInBtn');
-    const zoomOutBtn = document.getElementById('zoomOutBtn');
-    if (zoomInBtn) zoomInBtn.addEventListener('click', () => cameraCtl.zoom(1 / cameraCtl.ZOOM_BUTTON_STEP));
-    if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => cameraCtl.zoom(cameraCtl.ZOOM_BUTTON_STEP));
+    // Zoom slider (0 = zoomed out, 100 = zoomed in). Keyboard zoom stays mapped to +/-, PageUp/PageDown in the handler below.
+    const zoomSlider = document.getElementById('zoomSlider');
+    if (zoomSlider) zoomSlider.addEventListener('input', () => cameraCtl.setZoomNorm(+zoomSlider.value / 100));
 
     // Camera + trail keyboard shortcuts (1/2/3, T).
     window.addEventListener('keydown', function (e) {

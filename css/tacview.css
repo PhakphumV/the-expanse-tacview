@@ -153,6 +153,21 @@ html, body {
     font-family: inherit;
     font-size: 11px;
 }
+#zoomSliderWrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#zoomSlider {
+    width: 120px;
+    accent-color: #3a7bd5;
+    cursor: pointer;
+}
+#zoomSliderLabel {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #7f97b8;
+}
 
 /* ---- Entity label ---- */
 #labelsContainer { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
