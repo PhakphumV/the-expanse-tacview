@@ -16,15 +16,18 @@ The contract is grounded in the CCSDS 502 family recommendations:
 
 ## Dataset file
 
-- **Path:** `data/iss.json` (canonical source)
-- **Embedded static copy:** `js/iss-data.js` (generated from `data/iss.json`)
+- **Path:** `data/orbits.json` (canonical source)
+- **Embedded static copy:** `js/orbits-data.js` (generated from `data/orbits.json`)
 - **Format:** UTF-8 JSON
 - **Consumed by:** the viewer loads the embedded copy directly — no `fetch`,
   so the page works from a `file://` origin with no server.
 
-The app reads the embedded copy in `js/iss-data.js`; the canonical source is
-`data/iss.json`, which is what `npm test` validates. Keep the two in sync by
+The app reads the embedded copy in `js/orbits-data.js`; the canonical source is
+`data/orbits.json`, which is what `npm test` validates. Keep the two in sync by
 regenerating the embedded copy after editing the data (see `README.md`).
+
+The first scenario ships two tracks (International Space Station and Tiangong /
+CSS) plus a Moon celestial body rendered by the scene.
 
 ## Top-level structure
 
