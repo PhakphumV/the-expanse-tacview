@@ -1,0 +1,10 @@
+{
+  "name": "the-expanse-tacview",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Space-object telemetry viewer grounded in CCSDS OMM/OEM. No build step.",
+  "scripts": {
+    "test": "node scripts/validate-telemetry.js",
+    "serve": "python3 -m http.server 8000"
+  }
+}
