@@ -1,15 +1,11 @@
 // js/camera.js
-// Camera mode controller focused on space-object viewing:
-//   orbit    – free OrbitControls (mouse rotate/pan around target)
-//   follow   – camera orbits the tracked object (drag to orbit, zoom to pull in)
-//   inertial – ECI framing of the whole orbit + Earth (no rotation)
+// Camera controller pivoting on a selectable target (Earth, Moon, or a space
+// track). Two modes:
+//   orbit  – free OrbitControls around the target (target follows moving tracks)
+//   follow – spherical chase offset behind a moving track (drag to orbit, zoom)
 //
-// Zoom works in ALL modes (wheel, +/-, slider). Follow mode keeps the camera
-// at a spherical offset around the tracked object; dragging rotates it around
-// the object, and zoom scales the offset.
-//
-// The controller owns controls.update() so Follow/Inertial never fight the
-// OrbitControls lookAt.
+// Zoom works in both modes (wheel, +/-, slider). The controller owns
+// controls.update() and only enables it in Orbit mode.
 //
 // Classic-script module: attaches Tacview.createCameraController.
 
@@ -17,41 +13,55 @@
     'use strict';
     const THREE = global.THREE;
 
-    const MIN_DIST = 50;        // m — close enough to see the spacecraft
+    const MIN_DIST = 50;        // m — close enough to see a spacecraft
     const MAX_DIST = 9e8;       // m — far enough to frame the Moon orbit
     const WHEEL_STEP = 1.12;    // zoom factor per wheel notch
     const ZOOM_BUTTON_STEP = 1.3;
-
     const FOLLOW_R_MIN = 60;
     const FOLLOW_R_MAX = 2e5;
-    const CHASE_BACK = 3500;    // m — seed offset behind the object
-    const CHASE_UP   = 1400;    // m — seed offset above the object
+    const CHASE_BACK = 3500;    // m — seed offset behind a moving object
+    const CHASE_UP   = 1400;    // m — seed offset above a moving object
 
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    function createCameraController(camera, controls, engine) {
+    function createCameraController(camera, controls, engine, bodies, getBodyWorldPosition) {
         let mode = 'orbit';
-        let followSph = null;   // { theta, phi, radius } around the followed object
+        let targetId = 'earth';
+        let followSph = null;   // { theta, phi, radius } around the target
+        const targetPos = new THREE.Vector3();
 
-        function setActiveButtons(m) {
-            const ids = { orbit: 'modeOrbitBtn', follow: 'modeFollowBtn', inertial: 'modeInertialBtn' };
+        function isStaticTarget() { return targetId === 'earth' || targetId === 'moon'; }
+
+        // Resolve the target's world point at time t into targetPos.
+        function resolveTarget(t, out) {
+            if (targetId === 'earth' || targetId === 'moon') {
+                return getBodyWorldPosition(targetId, out);   // static
+            }
+            const st = engine.getStateAtTimeFor(targetId, t);
+            if (st) { out.copy(st.position); return out; }
+            return null;
+        }
+
+        function setActiveButtons() {
+            const ids = { orbit: 'modeOrbitBtn', follow: 'modeFollowBtn' };
             for (const key in ids) {
                 const btn = document.getElementById(ids[key]);
-                if (btn) btn.classList.toggle('active', key === m);
+                if (btn) btn.classList.toggle('active', key === mode);
             }
         }
 
-        function frameScene() {
-            controls.target.set(0, 0, 0);
-            camera.position.set(1.2e7, 1.1e7, 2.2e7);
-            camera.lookAt(0, 0, 0);
-        }
-
-        // Seed the follow orbit offset behind/above the object's heading.
+        // Seed the follow offset behind/above a moving target's heading (or a
+        // generic side offset for static bodies).
         function seedFollow() {
-            const st = engine.getStateAtTime(engine.getTime());
-            if (!st) { followSph = { theta: 0, phi: 1.2, radius: CHASE_BACK }; return; }
-            const fwd = new THREE.Vector3().copy(st.velocity).normalize();
+            const t = engine.getTime();
+            const tp = resolveTarget(t, new THREE.Vector3());
+            if (!tp) { followSph = { theta: 0, phi: 1.2, radius: CHASE_BACK }; return; }
+            if (isStaticTarget()) {
+                followSph = { theta: 0.6, phi: Math.PI / 3, radius: CHASE_BACK * 8 };
+                return;
+            }
+            const st = engine.getStateAtTimeFor(targetId, t);
+            const fwd = st && st.velocity.lengthSq() > 1e-12 ? st.velocity.clone().normalize() : new THREE.Vector3(0, 0, -1);
             const up0 = new THREE.Vector3(0, 1, 0);
             const off = new THREE.Vector3().copy(fwd).multiplyScalar(-CHASE_BACK).addScaledVector(up0, CHASE_UP);
             off.y = Math.max(off.y, 1);
@@ -63,7 +73,7 @@
             };
         }
 
-        function applyFollow(st) {
+        function applyFollow(tp) {
             const s = followSph;
             if (!s) return;
             const sp = Math.sin(s.phi);
@@ -72,55 +82,51 @@
                 s.radius * Math.cos(s.phi),
                 s.radius * sp * Math.cos(s.theta)
             );
-            camera.position.copy(st.position).add(off);
-            camera.lookAt(st.position);
+            camera.position.copy(tp).add(off);
+            camera.lookAt(tp);
         }
 
         function dolly(factor) {
-            if (mode === 'follow') {
-                if (followSph) followSph.radius = clamp(followSph.radius * factor, FOLLOW_R_MIN, FOLLOW_R_MAX);
+            if (mode === 'follow' && followSph) {
+                followSph.radius = clamp(followSph.radius * factor, FOLLOW_R_MIN, FOLLOW_R_MAX);
                 return;
             }
-            const target = controls.target;
-            const dir = new THREE.Vector3().copy(camera.position).sub(target);
+            const dir = new THREE.Vector3().copy(camera.position).sub(controls.target);
             const d = clamp(dir.length() * factor, MIN_DIST, MAX_DIST);
             if (d <= 0) return;
             dir.normalize().multiplyScalar(d);
-            camera.position.copy(target).add(dir);
-            camera.lookAt(target);
+            camera.position.copy(controls.target).add(dir);
+            camera.lookAt(controls.target);
             if (mode === 'orbit') controls.update();
         }
 
         function zoom(factor) { dolly(factor); }
 
-        // Normalized zoom level for the slider: 0 = zoomed out (far), 1 = in.
         function normToDist(n) { return MIN_DIST * Math.pow(MAX_DIST / MIN_DIST, 1 - n); }
         function setZoomNorm(n) {
             n = clamp(n, 0, 1);
-            if (mode === 'follow') {
-                if (followSph) followSph.radius = FOLLOW_R_MIN * Math.pow(FOLLOW_R_MAX / FOLLOW_R_MIN, 1 - n);
+            if (mode === 'follow' && followSph) {
+                followSph.radius = FOLLOW_R_MIN * Math.pow(FOLLOW_R_MAX / FOLLOW_R_MIN, 1 - n);
                 return;
             }
-            const target = controls.target;
-            const dir = new THREE.Vector3().copy(camera.position).sub(target);
+            const dir = new THREE.Vector3().copy(camera.position).sub(controls.target);
             if (dir.lengthSq() < 1e-9) return;
             const nd = normToDist(n);
             dir.normalize().multiplyScalar(nd);
-            camera.position.copy(target).add(dir);
-            camera.lookAt(target);
+            camera.position.copy(controls.target).add(dir);
+            camera.lookAt(controls.target);
             if (mode === 'orbit') controls.update();
         }
 
-        // Wheel zoom on the renderer canvas (all modes). Scroll up = zoom in.
+        // Wheel zoom (both modes). Scroll up = zoom in.
         const dom = controls.domElement;
-        function onWheel(e) {
+        dom.addEventListener('wheel', function (e) {
             e.preventDefault();
             dolly(e.deltaY > 0 ? WHEEL_STEP : 1 / WHEEL_STEP);
-        }
-        dom.addEventListener('wheel', onWheel, { passive: false });
-
-        // Drag to orbit around the followed object (Follow mode only).
+        }, { passive: false });
         controls.enableZoom = false;
+
+        // Drag to orbit around the target in Follow mode.
         let dragging = false, lastX = 0, lastY = 0;
         dom.addEventListener('mousedown', function (e) {
             if (mode !== 'follow') return;
@@ -137,25 +143,50 @@
         });
         window.addEventListener('mouseup', function () { dragging = false; });
 
+        const VIEW_DIST = { earth: 3.5e7, moon: 1e7 };
+        function viewDist(id) { return VIEW_DIST[id] || 2e6; }   // tracks default
+
         function setMode(m) {
+            if (m !== 'orbit' && m !== 'follow') return;
             mode = m;
             controls.enabled = (m === 'orbit');
-            setActiveButtons(m);
-            if (m === 'inertial') frameScene();
+            setActiveButtons();
             if (m === 'follow') seedFollow();
-            if (m === 'orbit') controls.update();
+            else controls.update();
         }
 
         function getMode() { return mode; }
 
+        function setTarget(id) {
+            targetId = id;
+            const tp = resolveTarget(engine.getTime(), targetPos);
+            if (!tp) return;
+            if (mode === 'follow') {
+                seedFollow();
+                applyFollow(tp);
+            } else {
+                // Frame the target at a sensible distance.
+                const d = viewDist(id);
+                controls.target.copy(tp);
+                camera.position.set(tp.x + d * 0.8, tp.y + d * 0.6, tp.z + d);
+                camera.lookAt(tp);
+                controls.update();
+            }
+        }
+        function getTarget() { return targetId; }
+
         function update(t) {
-            if (mode === 'orbit') { controls.update(); return; }
-            const st = engine.getStateAtTime(t);
-            if (mode === 'follow' && st) applyFollow(st);
-            // inertial: static framing set in setMode(); dolly/zoom moves directly.
+            const tp = resolveTarget(t, targetPos);
+            if (!tp) return;
+            if (mode === 'orbit') {
+                controls.target.copy(tp);   // follow moving tracks while orbiting
+                controls.update();
+            } else {
+                applyFollow(tp);
+            }
         }
 
-        return { setMode, getMode, update, zoom, setZoomNorm, ZOOM_BUTTON_STEP };
+        return { setMode, getMode, setTarget, getTarget, update, zoom, setZoomNorm, ZOOM_BUTTON_STEP };
     }
 
     global.Tacview = global.Tacview || {};
