@@ -39,7 +39,12 @@
             }
         }
 
-        return { update };
+        function reset() {
+            if (container) container.innerHTML = '';
+            for (const k in labels) delete labels[k];
+        }
+
+        return { update, reset };
     }
 
     global.Tacview = global.Tacview || {};

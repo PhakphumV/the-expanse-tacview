@@ -20,6 +20,7 @@
         const scrubBar = document.getElementById('scrubBar');
         const scrubProgress = document.getElementById('scrubProgress');
         const scrubHandle = document.getElementById('scrubHandle');
+        const eventMarkersEl = document.getElementById('eventMarkers');
         const speedSelect = document.getElementById('speedSelect');
         const restartBtn = document.getElementById('restartBtn');
         const jumpStartBtn = document.getElementById('jumpStartBtn');
@@ -74,6 +75,25 @@
         window.addEventListener('mousemove', function (e) { if (scrubbing) scrubFromEvent(e); });
         window.addEventListener('mouseup', function () { scrubbing = false; });
 
+        // Render labeled event markers from the active scenario onto the scrub
+        // bar at t/duration. Rebuilt whenever the scenario changes.
+        function populateEvents() {
+            if (!eventMarkersEl) return;
+            eventMarkersEl.innerHTML = '';
+            const events = engine.getEvents();
+            const dur = engine.getDuration() || 1;
+            for (const ev of events) {
+                const m = document.createElement('div');
+                m.className = 'event-marker' + (ev.type ? ' ' + ev.type : '');
+                m.style.left = (ev.t / dur * 100) + '%';
+                m.title = ev.label + ' (T+' + formatTime(ev.t) + ')' + (ev.description ? ' — ' + ev.description : '');
+                const lab = document.createElement('span');
+                lab.textContent = ev.label;
+                m.appendChild(lab);
+                eventMarkersEl.appendChild(m);
+            }
+        }
+
         function updateUI() {
             const t = engine.getTime();
             const dur = engine.getDuration();
@@ -88,7 +108,7 @@
 
         function isScrubbing() { return scrubbing; }
 
-        return { updateUI, isScrubbing };
+        return { updateUI, isScrubbing, populateEvents };
     }
 
     global.Tacview = global.Tacview || {};

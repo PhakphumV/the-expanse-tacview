@@ -1,22 +1,61 @@
 // js/main.js
-// Entry point (classic script, loaded last). Boots the viewer from the
-// embedded dataset (window.TacviewData), wires camera/HUD/timeline/labels,
-// and runs the per-frame loop. No fetch, no server: open index.html directly.
+// Entry point (classic script, loaded last). Boots from the embedded dataset
+// (window.TacviewData), wires the scenario selector, camera/HUD/timeline/
+// labels, and runs the per-frame loop. No fetch, no server.
 
 (function (global) {
     'use strict';
     const T = global.Tacview;
+    const THREE = global.THREE;
 
     const container = document.getElementById('container');
-    const { scene, camera, renderer, controls, bodies, getBodyWorldPosition, render } = T.createScene(container);
+    const { scene, camera, controls, bodies, getBodyWorldPosition, render } = T.createScene(container);
 
     const engine = T.createEphemerisEngine();
     const timeline = T.createTimeline(engine);
     const cameraCtl = T.createCameraController(camera, controls, engine, bodies, getBodyWorldPosition);
 
+    // All rendered track objects live under one group so a scenario switch can
+    // clear and rebuild them in place.
+    const trackGroup = new THREE.Group();
+    scene.add(trackGroup);
+
     let entities = [];
     let hud = null;
     let labels = null;
+
+    function setTrails(v) {
+        entities.forEach((e) => e.setTrailsVisible(v));
+        const btn = document.getElementById('trailsBtn');
+        if (btn) btn.textContent = v ? 'Trail: ON' : 'Trail: OFF';
+    }
+
+    function buildTargets() {
+        return [
+            { id: 'earth', label: 'Earth' },
+            { id: 'moon', label: 'Moon' },
+        ].concat(engine.getTracks().map((tr) => ({ id: tr.id, label: tr.meta.OBJECT_NAME || tr.id })));
+    }
+
+    // Populate the active scenario's render layer + UI.
+    function buildScenario() {
+        trackGroup.clear();
+        if (labels) labels.reset();
+        entities = engine.getTracks().map((tr) => T.createTrackEntity(trackGroup, engine, camera, tr.id));
+
+        if (!labels) labels = T.createLabels(engine, camera);
+        if (!hud) hud = T.createHUD(engine, buildTargets(), (id) => cameraCtl.setTarget(id));
+        else hud.setTargets(buildTargets());
+
+        timeline.populateEvents();
+        cameraCtl.setTarget('earth');
+        hud.setTarget('earth');
+        const t = engine.getTime();
+        entities.forEach((e) => e.update(t));
+        if (labels) labels.update();
+        updateHeader();
+        timeline.updateUI();
+    }
 
     // Header readouts (replay status, elapsed, remaining).
     const liveDotEl = document.getElementById('liveDot');
@@ -42,57 +81,52 @@
         if (liveDotEl) liveDotEl.classList.toggle('paused', !engine.isPlaying());
     }
 
+    // Scenario selector.
+    const scenarioSelect = document.getElementById('scenarioSelect');
+    function populateScenarios() {
+        if (!scenarioSelect) return;
+        scenarioSelect.innerHTML = '';
+        for (const sc of engine.getScenarios()) {
+            const o = document.createElement('option');
+            o.value = sc.id;
+            o.textContent = sc.name;
+            scenarioSelect.appendChild(o);
+        }
+        const active = engine.getActiveScenario();
+        if (active) scenarioSelect.value = active.id;
+    }
+    if (scenarioSelect) {
+        scenarioSelect.addEventListener('change', function () {
+            if (engine.selectScenario(scenarioSelect.value)) buildScenario();
+        });
+    }
+
     // Camera mode buttons (Orbit / Follow).
     for (const [id, m] of [['modeOrbitBtn', 'orbit'], ['modeFollowBtn', 'follow']]) {
         const btn = document.getElementById(id);
         if (btn) btn.addEventListener('click', () => cameraCtl.setMode(m));
     }
 
-    // Zoom slider (0 = zoomed out, 100 = zoomed in); keyboard zoom stays +/-, PageUp/PageDown.
+    // Zoom slider + keyboard (1=Orbit, 2=Follow, T=trails, zoom keys).
     const zoomSlider = document.getElementById('zoomSlider');
     if (zoomSlider) zoomSlider.addEventListener('input', () => cameraCtl.setZoomNorm(+zoomSlider.value / 100));
-
-    // Camera + trail keyboard shortcuts (1=Orbit, 2=Follow, T=trails).
     const trailsBtn = document.getElementById('trailsBtn');
-    function setTrailsVisible(v) {
-        if (entities.length) entities.forEach((e) => e.setTrailsVisible(v));
-        if (trailsBtn) trailsBtn.textContent = v ? 'Trail: ON' : 'Trail: OFF';
-    }
     window.addEventListener('keydown', function (e) {
         const tag = (e.target && e.target.tagName) || '';
         if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
         if (e.key === '1') cameraCtl.setMode('orbit');
         else if (e.key === '2') cameraCtl.setMode('follow');
-        else if (e.key === 't' || e.key === 'T') setTrailsVisible(!(entities[0] && entities[0].getTrailsVisible()));
+        else if (e.key === 't' || e.key === 'T') setTrails(!(entities[0] && entities[0].getTrailsVisible()));
         else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.ZOOM_BUTTON_STEP);
         else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.ZOOM_BUTTON_STEP);
     });
+    if (trailsBtn) trailsBtn.addEventListener('click', () => setTrails(!(entities[0] && entities[0].getTrailsVisible())));
 
     // Boot from the embedded dataset.
     engine.load(global.TacviewData);
-    entities = engine.getTracks().map((tr) => T.createTrackEntity(scene, engine, camera, tr.id));
-    labels = T.createLabels(engine, camera);
-
-    // Selectable HUD: celestial bodies first, then tracks. Selecting retargets
-    // the camera.
-    const targets = [
-        { id: 'earth', label: 'Earth' },
-        { id: 'moon', label: 'Moon' },
-    ].concat(engine.getTracks().map((tr) => ({ id: tr.id, label: tr.meta.OBJECT_NAME || tr.id })));
-    hud = T.createHUD(engine, targets, (id) => cameraCtl.setTarget(id));
-
-    const t0 = engine.getTime();
-    entities.forEach((e) => e.update(t0));
-    trailBtnWiring();
-    timeline.updateUI();
-    hud.setTarget('earth');
-    cameraCtl.setTarget('earth');
+    populateScenarios();
+    buildScenario();
     cameraCtl.setMode('orbit');
-    labels.update();
-
-    function trailBtnWiring() {
-        trailsBtn.addEventListener('click', () => setTrailsVisible(!(entities[0] && entities[0].getTrailsVisible())));
-    }
 
     // Main loop.
     let lastT = performance.now();
@@ -112,9 +146,9 @@
         entities.forEach((e) => e.update(t));
         cameraCtl.update(t);
         timeline.updateUI();
-        hud.update();
+        if (hud) hud.update();
         updateHeader();
-        labels.update();
+        if (labels) labels.update();
         render();
     }
     animate();

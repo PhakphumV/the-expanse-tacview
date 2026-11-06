@@ -93,18 +93,18 @@
         };
     }
 
-    function createTrackEntity(scene, engine, camera, trackId) {
+    function createTrackEntity(container, engine, camera, trackId) {
         const mesh = createSpacecraftModel();
         mesh.visible = false;
-        scene.add(mesh);
+        container.add(mesh);
         mesh.userData.trackId = trackId;
 
         const pathLine = buildPathLine(engine, trackId);
-        scene.add(pathLine);
+        container.add(pathLine);
 
         const ribbon = createTrailRibbon();
         ribbon.visible = false;
-        scene.add(ribbon);
+        container.add(ribbon);
 
         let trailVisible = true;
 

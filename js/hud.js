@@ -23,17 +23,30 @@
         let activeId = null;
 
         // Build one clickable row per target.
-        for (const t of targets) {
-            const btn = document.createElement('button');
-            btn.className = 'target-item';
-            btn.textContent = t.label;
-            btn.addEventListener('click', () => setTarget(t.id));
-            if (listEl) listEl.appendChild(btn);
-            items[t.id] = btn;
+        function buildList(targets) {
+            if (listEl) listEl.innerHTML = '';
+            for (const k in items) delete items[k];
+            for (const t of targets) {
+                const btn = document.createElement('button');
+                btn.className = 'target-item';
+                btn.textContent = t.label;
+                btn.addEventListener('click', () => setTarget(t.id));
+                if (listEl) listEl.appendChild(btn);
+                items[t.id] = btn;
+            }
+            refreshHighlight();
         }
+        buildList(targets);
 
         function refreshHighlight() {
             for (const id in items) items[id].classList.toggle('active', id === activeId);
+        }
+
+        // Rebuild the list when the active scenario changes (new track targets).
+        function setTargets(newTargets) {
+            if (!items[activeId]) activeId = 'earth';
+            buildList(newTargets);
+            setTarget(activeId);
         }
 
         function setTarget(id) {
@@ -85,7 +98,7 @@
                 rows.map(([k, v]) => '<div class="row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>').join('');
         }
 
-        return { setTarget, getTarget, update };
+        return { setTarget, setTargets, getTarget, update };
     }
 
     global.Tacview = global.Tacview || {};

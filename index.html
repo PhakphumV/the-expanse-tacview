@@ -20,6 +20,10 @@
             <span id="replayStatus">REPLAYING</span>
             <span class="timeGroup">ELAPSED <span id="elapsedReadout">00:00.0</span></span>
             <span class="timeGroup">REMAINING <span id="remainingReadout">-00:00.0</span></span>
+            <span class="scenario-group">
+                <label for="scenarioSelect">SCENARIO</label>
+                <select id="scenarioSelect" aria-label="Scenario"></select>
+            </span>
         </div>
     </div>
 
@@ -40,6 +44,7 @@
         <div id="scrubBar">
             <div id="scrubProgress"></div>
             <div id="scrubHandle"></div>
+            <div id="eventMarkers"></div>
         </div>
         <select id="speedSelect" title="Playback speed">
             <option value="0.25">0.25x</option>
@@ -94,7 +99,7 @@
     </div>
 
     <script>window.Tacview = {};</script>
-    <script src="js/orbits-data.js"></script>
+    <script src="js/scenarios-data.js"></script>
     <script src="js/scene.js"></script>
     <script src="js/spacecraft-model.js"></script>
     <script src="js/entities.js"></script>

@@ -55,6 +55,19 @@ html, body {
 }
 #liveDot.paused { background: #d58a2a; box-shadow: 0 0 8px #d58a2a; }
 #replayStatus { letter-spacing: 2px; font-weight: bold; }
+.scenario-group { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.scenario-group label { color: #888; font-size: 11px; letter-spacing: 2px; font-weight: bold; }
+#scenarioSelect {
+    background: rgba(0, 0, 0, 0.6);
+    color: #ffffff;
+    border: 1px solid #555;
+    padding: 3px 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+#scenarioSelect:focus { outline: 1px solid #3a7bd5; border-color: #3a7bd5; }
 
 /* ---- HUD panel ---- */
 .hud-panel {
@@ -182,6 +195,45 @@ html, body {
     background: #9fd0ff;
     border-radius: 2px;
     transform: translateX(-50%);
+}
+#eventMarkers {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: visible;
+}
+.event-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    pointer-events: auto;
+    cursor: pointer;
+}
+.event-marker::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 12px;
+    transform: translateX(-50%);
+    background: #ffd27f;
+}
+.event-marker span {
+    position: absolute;
+    left: 50%;
+    bottom: 13px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    color: #ffd27f;
+    background: rgba(4, 10, 24, 0.75);
+    border-radius: 2px;
+    padding: 1px 4px;
 }
 #speedSelect {
     background: rgba(10, 22, 46, 0.85);
