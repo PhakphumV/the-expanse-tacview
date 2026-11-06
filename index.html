@@ -23,12 +23,11 @@
         </div>
     </div>
 
-    <!-- Orbital telemetry HUD -->
+    <!-- Selectable target HUD (celestial bodies + space objects) -->
     <div id="hudPanel" class="hud-panel">
-        <div class="hud-title" id="trackName">—</div>
-        <div>ALT: <span id="hud-alt">—</span> km</div>
-        <div>SPD: <span id="hud-speed">—</span> km/s</div>
-        <div>POS: <span id="hud-pos">—</span> km</div>
+        <div class="hud-title">TARGETS</div>
+        <div id="targetList" class="target-list"></div>
+        <div id="targetInfo" class="target-info"></div>
     </div>
 
     <!-- Playback timeline -->
@@ -54,7 +53,6 @@
         </select>
         <button id="modeOrbitBtn" class="mode-btn active">Orbit</button>
         <button id="modeFollowBtn" class="mode-btn">Follow</button>
-        <button id="modeInertialBtn" class="mode-btn">Inertial</button>
         <button id="trailsBtn">Trail: ON</button>
         <div id="zoomSliderWrap" title="Zoom (wheel / + and -)">
             <input type="range" id="zoomSlider" min="0" max="100" value="40">
@@ -75,8 +73,8 @@
                 <tr><td>R</td><td>Restart (jump to start &amp; resume)</td></tr>
                 <tr><td>Home / 0</td><td>Jump to start</td></tr>
                 <tr><td>End</td><td>Jump to end</td></tr>
-                <tr><td>1 / 2 / 3</td><td>Orbit / Follow / Inertial camera</td></tr>
-                <tr><td>Mouse drag</td><td>Rotate (Orbit view)</td></tr>
+                <tr><td>1 / 2</td><td>Orbit / Follow camera</td></tr>
+                <tr><td>Mouse drag</td><td>Rotate (Orbit view / orbit in Follow)</td></tr>
                 <tr><td>Wheel</td><td>Zoom in / out</td></tr>
                 <tr><td>+ / &minus;</td><td>Zoom in / out</td></tr>
                 <tr><td>PageUp / PageDown</td><td>Zoom in / out</td></tr>
@@ -85,8 +83,8 @@
                 <tr><td>Esc</td><td>Close this help</td></tr>
             </table>
             <p class="helpNote">
-                Telemetry contract: <b>SCHEMA.md</b>. Data: ISS (NORAD 25544),
-                pre-baked two-orbit LVLH ephemeris &mdash; no runtime propagation.
+                Select a body or object in the <b>TARGETS</b> panel to orbit or
+                follow it. Telemetry contract: <b>SCHEMA.md</b>.
             </p>
         </div>
     </div>

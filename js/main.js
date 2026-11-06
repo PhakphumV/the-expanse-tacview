@@ -1,5 +1,5 @@
 // js/main.js
-// Entry point (classic script, loaded last). Boots the viewers from the
+// Entry point (classic script, loaded last). Boots the viewer from the
 // embedded dataset (window.TacviewData), wires camera/HUD/timeline/labels,
 // and runs the per-frame loop. No fetch, no server: open index.html directly.
 
@@ -8,14 +8,15 @@
     const T = global.Tacview;
 
     const container = document.getElementById('container');
-    const { scene, camera, controls, tickStars, render } = T.createScene(container);
+    const { scene, camera, renderer, controls, bodies, getBodyWorldPosition, render } = T.createScene(container);
 
     const engine = T.createEphemerisEngine();
     const timeline = T.createTimeline(engine);
-    let entities = [];            // one track entity per dataset track
-    const labels = T.createLabels(engine, camera);
-    const hud = T.createHUD(engine);
-    const cameraCtl = T.createCameraController(camera, controls, engine);
+    const cameraCtl = T.createCameraController(camera, controls, engine, bodies, getBodyWorldPosition);
+
+    let entities = [];
+    let hud = null;
+    let labels = null;
 
     // Header readouts (replay status, elapsed, remaining).
     const liveDotEl = document.getElementById('liveDot');
@@ -41,37 +42,28 @@
         if (liveDotEl) liveDotEl.classList.toggle('paused', !engine.isPlaying());
     }
 
-    // Camera mode buttons.
-    const modeBtns = {
-        'modeOrbitBtn': 'orbit',
-        'modeFollowBtn': 'follow',
-        'modeInertialBtn': 'inertial',
-    };
-    for (const id in modeBtns) {
+    // Camera mode buttons (Orbit / Follow).
+    for (const [id, m] of [['modeOrbitBtn', 'orbit'], ['modeFollowBtn', 'follow']]) {
         const btn = document.getElementById(id);
-        if (btn) btn.addEventListener('click', () => cameraCtl.setMode(modeBtns[id]));
+        if (btn) btn.addEventListener('click', () => cameraCtl.setMode(m));
     }
 
-    // Trails toggle (applies to every track).
-    const trailsBtn = document.getElementById('trailsBtn');
-    function setTrailsVisible(v) {
-        entities.forEach((e) => e.setTrailsVisible(v));
-        if (trailsBtn) trailsBtn.textContent = v ? 'Trail: ON' : 'Trail: OFF';
-    }
-    trailsBtn.addEventListener('click', () => setTrailsVisible(!entities[0].getTrailsVisible()));
-
-    // Zoom slider (0 = zoomed out, 100 = zoomed in). Keyboard zoom stays mapped to +/-, PageUp/PageDown in the handler below.
+    // Zoom slider (0 = zoomed out, 100 = zoomed in); keyboard zoom stays +/-, PageUp/PageDown.
     const zoomSlider = document.getElementById('zoomSlider');
     if (zoomSlider) zoomSlider.addEventListener('input', () => cameraCtl.setZoomNorm(+zoomSlider.value / 100));
 
-    // Camera + trail keyboard shortcuts (1/2/3, T).
+    // Camera + trail keyboard shortcuts (1=Orbit, 2=Follow, T=trails).
+    const trailsBtn = document.getElementById('trailsBtn');
+    function setTrailsVisible(v) {
+        if (entities.length) entities.forEach((e) => e.setTrailsVisible(v));
+        if (trailsBtn) trailsBtn.textContent = v ? 'Trail: ON' : 'Trail: OFF';
+    }
     window.addEventListener('keydown', function (e) {
         const tag = (e.target && e.target.tagName) || '';
         if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
         if (e.key === '1') cameraCtl.setMode('orbit');
         else if (e.key === '2') cameraCtl.setMode('follow');
-        else if (e.key === '3') cameraCtl.setMode('inertial');
-        else if (e.key === 't' || e.key === 'T') setTrailsVisible(!entities[0].getTrailsVisible());
+        else if (e.key === 't' || e.key === 'T') setTrailsVisible(!(entities[0] && entities[0].getTrailsVisible()));
         else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.ZOOM_BUTTON_STEP);
         else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.ZOOM_BUTTON_STEP);
     });
@@ -79,13 +71,28 @@
     // Boot from the embedded dataset.
     engine.load(global.TacviewData);
     entities = engine.getTracks().map((tr) => T.createTrackEntity(scene, engine, camera, tr.id));
+    labels = T.createLabels(engine, camera);
+
+    // Selectable HUD: celestial bodies first, then tracks. Selecting retargets
+    // the camera.
+    const targets = [
+        { id: 'earth', label: 'Earth' },
+        { id: 'moon', label: 'Moon' },
+    ].concat(engine.getTracks().map((tr) => ({ id: tr.id, label: tr.meta.OBJECT_NAME || tr.id })));
+    hud = T.createHUD(engine, targets, (id) => cameraCtl.setTarget(id));
+
     const t0 = engine.getTime();
     entities.forEach((e) => e.update(t0));
+    trailBtnWiring();
     timeline.updateUI();
-    hud.update();
-    updateHeader();
+    hud.setTarget('earth');
+    cameraCtl.setTarget('earth');
+    cameraCtl.setMode('orbit');
     labels.update();
-    cameraCtl.setMode('inertial'); // start framed to the whole orbit
+
+    function trailBtnWiring() {
+        trailsBtn.addEventListener('click', () => setTrailsVisible(!(entities[0] && entities[0].getTrailsVisible())));
+    }
 
     // Main loop.
     let lastT = performance.now();
@@ -108,7 +115,6 @@
         hud.update();
         updateHeader();
         labels.update();
-        tickStars();
         render();
     }
     animate();

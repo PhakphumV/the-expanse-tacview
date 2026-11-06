@@ -83,6 +83,44 @@ html, body {
 }
 .hud-panel span { color: #eaf4ff; }
 
+/* Selectable target list */
+.target-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 6px 0;
+}
+.target-item {
+    background: rgba(10, 22, 46, 0.5);
+    color: #bcd4f2;
+    border: 1px solid #24406a;
+    border-radius: 3px;
+    padding: 4px 8px;
+    text-align: left;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+.target-item:hover { border-color: #3a7bd5; color: #fff; }
+.target-item.active {
+    background: #2b6cb0;
+    border-color: #5aa0e8;
+    color: #fff;
+    box-shadow: 0 0 6px rgba(90, 160, 232, 0.6);
+}
+.target-info {
+    border-top: 1px solid #24406a;
+    padding-top: 6px;
+    font-size: 11px;
+    color: #bcd4f2;
+}
+.target-info .hud-title { border-bottom: none; margin-bottom: 2px; }
+.target-info .tag { color: #7f97b8; letter-spacing: 1px; font-size: 9px; }
+.target-info .row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.7; }
+.target-info .row .k { color: #7f97b8; }
+.target-info .row .v { color: #eaf4ff; }
+
 /* ---- Timeline ---- */
 #timeline {
     position: fixed;
