@@ -60,6 +60,12 @@
     }
     trailsBtn.addEventListener('click', () => setTrailsVisible(!entity.getTrailsVisible()));
 
+    // Zoom buttons (+ = in, - = out) and zoom keyboard (PageUp/+, PageDown/-).
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    if (zoomInBtn) zoomInBtn.addEventListener('click', () => cameraCtl.zoom(1 / cameraCtl.ZOOM_BUTTON_STEP));
+    if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => cameraCtl.zoom(cameraCtl.ZOOM_BUTTON_STEP));
+
     // Camera + trail keyboard shortcuts (1/2/3, T).
     window.addEventListener('keydown', function (e) {
         const tag = (e.target && e.target.tagName) || '';
@@ -68,6 +74,8 @@
         else if (e.key === '2') cameraCtl.setMode('follow');
         else if (e.key === '3') cameraCtl.setMode('inertial');
         else if (e.key === 't' || e.key === 'T') setTrailsVisible(!entity.getTrailsVisible());
+        else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.ZOOM_BUTTON_STEP);
+        else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.ZOOM_BUTTON_STEP);
     });
 
     // Boot from the embedded dataset.
