@@ -1,156 +1,108 @@
-# Telemetry Dataset Contract
+# Space Telemetry Dataset Contract
 
 This document defines the telemetry contract consumed by `index.html`. The
-implementation loads `data/engagement.json` via `fetch` and expects it to
-match this schema.
+implementation loads `data/iss.json` via `fetch` and expects it to match this
+schema.
+
+The contract is grounded in the CCSDS 502 family recommendations:
+
+- **OMM** (Orbital Mean-elements Message, 502.0-B-3) supplies the orbital
+  semantics and field names used in the optional `mean_elements` block.
+- **OEM / OPM** (ephemeris / single state vector, same 502 family) supplies
+  the render-friendly *state-vector ephemeris*: contiguous samples of
+  position + velocity, interpolated over time.
+- **XTCE** (660.x) informs how the schema is *defined and documented*; it is
+  not used as the data serialization.
 
 ## Dataset file
 
-- **Path:** `data/engagement.json`
+- **Path:** `data/iss.json`
 - **Format:** UTF-8 JSON
-- **Loaded by:** `index.html` → `PlaybackEngine.load(json)`
-
-A minimal reference example lives at `data/example.json` and is covered by
-the validation harness in `scripts/validate-playback.js`.
-
-## Units and coordinate system
-
-| Quantity      | Unit | Notes                                          |
-| ------------- | ---- | ---------------------------------------------- |
-| time (`t`)    | s    | seconds from engagement start                  |
-| position      | m    | meters, world-space                            |
-| velocity      | m/s  | meters per second                              |
-| orientation   | -    | unit quaternion `[x, y, z, w]`                 |
-| range         | m    | derived; displayed in km in the HUD            |
-| closure rate  | m/s  | derived; displayed in km/s in the HUD          |
-| G-force       | G   | multiples of 9.8 m/s²                          |
-
-**Coordinate system:** right-handed, **Y-up**, **forward = -Z** (THREE.js
-convention). The ship's local forward axis (used by aspect-angle
-calculation) is `(0, 0, -1)` rotated by the entity's orientation.
+- **Loaded by:** `index.html` -> `loadTracks(json)` (see `js/ephemeris.js`)
 
 ## Top-level structure
 
-```json
-{
-  "duration": 90.0,
-  "entities": [ { ...entity... } ],
-  "events":   [ { ...event...   } ]
-}
-```
-
-- `duration` (number, seconds): total engagement length.
-- `entities` (array): per-entity keyframe tracks.
-- `events` (array): discrete time-stamped events used by the timeline
-  markers, event log, lock indicator, and burst effects.
-
-## Entity object
+The dataset is a collection of one or more **tracks**. A *track* is a single
+space object's ephemeris: it carries provenance (identification, reference
+frame, time system) and a time-ordered series of state samples.
 
 ```json
 {
-  "id": "roci",
-  "type": "ship",
-  "iff": "blue",
-  "keyframes": [
-    { "t": 0.0, "position": [x, y, z], "velocity": [vx, vy, vz], "orientation": [x, y, z, w] }
+  "tracks": [
+    { "...track..." }
   ]
 }
 ```
 
-- `id` (string, required, unique): entity identifier referenced by events.
-- `type` (string, required): one of `"ship"`, `"torpedo"`, `"pdc_round"`.
-- `iff` (string, required): side tag, typically `"blue"` or `"red"`.
-- `keyframes` (array, required, length ≥ 1): ordered by `t` ascending.
+A coherent scene may assemble multiple tracks later; the first scenario ships
+with a single track (the International Space Station).
 
-### Keyframe
-
-- `t` (number, seconds): timestamp relative to engagement start.
-- `position` ([x, y, z], meters): world-space position.
-- `velocity` ([vx, vy, vz], m/s): velocity vector at this keyframe.
-  Authored as an independent sample, not strictly the derivative of
-  `position`. See `VALIDATION.md` for the resulting tolerance.
-- `orientation` ([x, y, z, w]): unit quaternion.
-
-### Entity lifecycle
-
-An entity is **active** in the closed interval
-`[keyframes[0].t, keyframes[last].t]`. Outside that window:
-
-- it is **not rendered**,
-- it is **excluded** from derived telemetry (range, closure, G-force),
-- any events referencing it are still displayed but may not have a
-  position to project to.
-
-This convention naturally supports torpedoes launched at t=12 and
-destroyed at t=18: their keyframes simply span `[12, 18]`.
-
-## Event object (structured model)
+## Track fields
 
 ```json
 {
-  "t":          12.5,
-  "type":       "launch",
-  "actor":      "roci",
-  "target":     "zmeya",
-  "result":     null,
-  "description": "Roci launches torpedo at Zmeya"
+  "id": "ISS",
+  "OBJECT_NAME": "ISS (ZARYA)",
+  "OBJECT_ID": "1998-067A",
+  "NORAD_CAT_ID": 25544,
+  "CENTER_NAME": "EARTH",
+  "REF_FRAME": "TEME",
+  "TIME_SYSTEM": "UTC",
+  "mean_elements": { "...optional OMM block..." },
+  "attitude": { "frame": "ECItoBody", "forward": [0, 0, -1], "up": [0, 1, 0] },
+  "samples": [ { "...ephemeris sample..." } ]
 }
 ```
 
-### Required fields
+- `id` (string, required, unique): identifier used by the UI and camera look-at.
+- `OBJECT_NAME` / `OBJECT_ID` / `NORAD_CAT_ID`: OMM identification (best-effort
+  strings/numbers taken verbatim from the source message).
+- `CENTER_NAME` (string, default `"EARTH"`): central body the `REF_FRAME` is
+  fixed to.
+- `REF_FRAME` (string, required): inertial reference frame, `"TEME"` or `"ECI"`.
+- `TIME_SYSTEM` (string, required): `"UTC"`.
+- `mean_elements` (object, optional): the **nominal-orbit descriptor** (OMM
+  mean elements). This is provenance for coast segments and is **not** used as
+  render data. It may be omitted; the ephemeris is the ground truth.
+- `attitude` (object, required): body-frame convention. `frame` names the
+  reference (e.g. `ECItoBody`); `forward` and `up` name the body axes so a
+  reader can derive heading and orientation.
+- `samples` (array, required, non-empty): time-ordered state samples (below).
 
-- `t` (number, seconds): event timestamp relative to engagement start.
-  Must be a finite number.
-- `type` (string, required, must be in `EventModel.VALID_TYPES`): one of
-  the types listed below.
+### Ephemeris sample
 
-### Optional fields
+```json
+{
+  "t":       0.0,
+  "position": [x, y, z],
+  "velocity": [vx, vy, vz],
+  "orientation": [qx, qy, qz, qw]
+}
+```
 
-- `actor` (string): entity id that performed the action. Used by the
-  event log, mission state, burst positioning, and lock indicator.
-- `target` (string): entity id that was acted upon. May be `null` for
-  self-referential events like `maneuver_start`/`maneuver_end` or
-  `unlock`.
-- `result` (string): combat outcome for terminal events. One of
-  `"hit"`, `"intercept"`, `"miss"`, or `null`.
-- `description` (string): human-readable summary used by the event
-  log and timeline marker tooltips. When omitted, a fallback is
-  composed from the other fields.
+- `t` (number, seconds): time relative to the track epoch (t=0 at epoch).
+  Strictly ascending.
+- `position` ([x, y, z], meters): ECI position of the object center.
+- `velocity` ([vx, vy, vz], m/s): ECI velocity (best-fit derivative).
+- `orientation` ([qx, qy, qz, qw], required): **unit quaternion** rotating the
+  ECI frame into the body frame (`attitude.frame`). Supplies heading and
+  attitude, which the OMM/OEM standards do not carry.
 
-### Event-type catalogue
+Neither OMM nor the CCSDS ephemeris messages define attitude; this contract
+adds `orientation` as a per-sample unit quaternion so spacecraft heading and
+orientation can be rendered in 3D.
 
-| Type             | actor          | target          | result     | Meaning                                |
-| ---------------- | -------------- | --------------- | ---------- | -------------------------------------- |
-| `launch`         | launching ship | target ship     | `null`     | Munition spawned                       |
-| `pdc_engage`     | firing ship    | inbound torpedo | `null`     | Point-defense opens fire               |
-| `maneuver_start` | maneuvering    | `null`          | `null`     | Ship begins a named maneuver           |
-| `maneuver_end`   | maneuvering    | `null`          | `null`     | Ship completes a named maneuver        |
-| `lock`           | locking ship   | target ship     | `null`     | Targeting lock acquired                |
-| `unlock`         | releasing ship | `null`          | `null`     | Targeting lock lost                    |
-| `intercept`      | torpedo        | intercepting    | `"intercept"` | PDC successfully defeats munition   |
-| `hit`            | torpedo        | struck ship     | `"hit"`    | Munition impacts a ship                |
-| `miss`           | torpedo        | intended target | `"miss"`   | Munition passes without effect         |
+## Units and coordinate system
 
-### Shared module
+| Quantity      | Unit  | Notes                                   |
+| ------------- | ----- | --------------------------------------- |
+| time (`t`)    | s     | seconds from track epoch                |
+| position      | m     | ECI world-space                         |
+| velocity      | m/s   | ECI velocity                            |
+| orientation   | -     | unit quaternion `[x, y, z, w]`          |
+| altitude      | m     | derived; displayed in km in the HUD     |
+| ground speed  | m/s   | derived; displayed in km/s in the HUD   |
 
-All event consumption goes through `js/event-model.js`, which provides:
-
-- `EventModel.normalize(raw)` / `EventModel.normalizeAll(rawList)` —
-  validate and coerce an event (or list) into the canonical shape.
-- `EventModel.byType / byActor / byTarget / byResult(events, key)` —
-  filtered views over an event list.
-- `EventModel.prevAt(events, t)` / `EventModel.nextAt(events, t)` —
-  deterministic navigation to the event strictly before / after a
-  given time.
-- `EventModel.describe(ev)` — display string for the event log.
-- `EventModel.typeClass(ev)` — CSS hook for timeline markers.
-
-Consumers (timeline markers, event log, lock indicator, burst
-effects, mission state) all read from `playbackEngine.getEvents()`
-and rely on the schema above; they do not maintain their own copies
-of event definitions.
-
-`lock`/`unlock` pairs define closed intervals consumed by the radar
-lock indicator. `intercept`/`hit` events spawn procedural burst
-effects at the affected entity's position (target for `hit`, actor
-for `intercept`).
+**Coordinate system:** right-handed, **Y-up**, **forward = -Z** (THREE.js
+convention). The data is authored in an Earth-centered inertial frame; the
+renderer treats it as world-space.
