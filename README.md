@@ -43,7 +43,7 @@ python3 -m http.server 8000
   slider. No distracting background starfield.
 - Celestial bodies: wireframe Earth and Moon (with its mean orbital path ring)
   in the ECI scene (`js/scene.js`).
-- Clean timeline: play/pause, restart, jump, scrubbing, speed (0.25x–32x).
+- Clean timeline: play/pause, restart, jump, scrubbing, speed (0.25x–512x).
 
 ## Project structure
 
