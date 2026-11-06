@@ -34,7 +34,6 @@
         trail.visible = false;
         scene.add(trail);
 
-        const trailHistory = [];
         let trailVisible = true;
 
         function buildPathLine(eng) {
@@ -54,34 +53,45 @@
             return line;
         }
 
-        function pushHistory(t, pos) {
-            trailHistory.push({ t, pos: pos.clone() });
-            while (trailHistory.length > 0 && t - trailHistory[0].t > TRAIL_SECONDS) {
-                trailHistory.shift();
-            }
+        // Interpolated position at time tt, writing into out(x,y,z). Keeps a
+        // forward cursor so the monotonic resample scan is O(n) total.
+        function positionAt(kfs, tt, cursor) {
+            let i = cursor.i;
+            if (i < 0 || i >= kfs.length - 1 || kfs[i + 1].t <= tt) i = 0;
+            while (i < kfs.length - 2 && kfs[i + 1].t <= tt) i++;
+            const a = kfs[i], b = kfs[i + 1];
+            const span = b.t - a.t;
+            const alpha = span > 0 ? (tt - a.t) / span : 0;
+            cursor.i = i;
+            return {
+                x: a.position.x + (b.position.x - a.position.x) * alpha,
+                y: a.position.y + (b.position.y - a.position.y) * alpha,
+                z: a.position.z + (b.position.z - a.position.z) * alpha,
+            };
         }
 
+        // The trail is the object's actual recent path: the last TRAIL_SECONDS
+        // of the ephemeris, resampled to TRAIL_SAMPLES points. Derived straight
+        // from the dataset so it is correct at any time (start, scrub, pause),
+        // not from a runtime-accumulated history buffer.
         function updateTrails(t) {
-            if (!trailVisible || trailHistory.length < 2) { trail.visible = false; return; }
-            trail.visible = true;
+            const kfs = engine.getSamples();
+            if (!trailVisible || !kfs || kfs.length < 2) { trail.visible = false; return; }
+            const firstT = kfs[0].t, lastT = kfs[kfs.length - 1].t;
+            const t1 = Math.max(firstT, t - TRAIL_SECONDS);
+            const tEnd = Math.min(lastT, t);
+            const span = Math.max(tEnd - t1, 1e-9);
             const positions = trail.geometry.attributes.position.array;
+            const cursor = { i: 0 };
             for (let i = 0; i < TRAIL_SAMPLES; i++) {
                 const u = i / (TRAIL_SAMPLES - 1);
-                const targetT = t - TRAIL_SECONDS * (1 - u);
-                let p = trailHistory[trailHistory.length - 1].pos;
-                for (let j = 1; j < trailHistory.length; j++) {
-                    if (trailHistory[j].t >= targetT) {
-                        const a = trailHistory[j - 1], b = trailHistory[j];
-                        const dt = b.t - a.t;
-                        const alpha = dt > 0 ? (targetT - a.t) / dt : 0;
-                        p = new THREE.Vector3().copy(a.pos).lerp(b.pos, alpha);
-                        break;
-                    }
-                }
+                const tt = t1 + span * u;
+                const p = positionAt(kfs, tt, cursor);
                 positions[i * 3]     = p.x;
                 positions[i * 3 + 1] = p.y;
                 positions[i * 3 + 2] = p.z;
             }
+            trail.visible = true;
             trail.geometry.attributes.position.needsUpdate = true;
         }
 
@@ -94,7 +104,6 @@
                 mesh.visible = true;
                 mesh.position.copy(st.position);
                 mesh.quaternion.copy(st.orientation);
-                pushHistory(t, st.position);
                 updateTrails(t);
             } else {
                 mesh.visible = false;
