@@ -16,9 +16,15 @@ The contract is grounded in the CCSDS 502 family recommendations:
 
 ## Dataset file
 
-- **Path:** `data/iss.json`
+- **Path:** `data/iss.json` (canonical source)
+- **Embedded static copy:** `js/iss-data.js` (generated from `data/iss.json`)
 - **Format:** UTF-8 JSON
-- **Loaded by:** `index.html` -> `loadTracks(json)` (see `js/ephemeris.js`)
+- **Consumed by:** the viewer loads the embedded copy directly — no `fetch`,
+  so the page works from a `file://` origin with no server.
+
+The app reads the embedded copy in `js/iss-data.js`; the canonical source is
+`data/iss.json`, which is what `npm test` validates. Keep the two in sync by
+regenerating the embedded copy after editing the data (see `README.md`).
 
 ## Top-level structure
 
