@@ -16,14 +16,14 @@ The contract is grounded in the CCSDS 502 family recommendations:
 
 ## Dataset file
 
-- **Path:** `data/orbits.json` (canonical source)
-- **Embedded static copy:** `js/orbits-data.js` (generated from `data/orbits.json`)
+- **Path:** `data/scenarios.json` (canonical source)
+- **Embedded static copy:** `js/scenarios-data.js` (generated from `data/scenarios.json`)
 - **Format:** UTF-8 JSON
 - **Consumed by:** the viewer loads the embedded copy directly — no `fetch`,
   so the page works from a `file://` origin with no server.
 
-The app reads the embedded copy in `js/orbits-data.js`; the canonical source is
-`data/orbits.json`, which is what `npm test` validates. Keep the two in sync by
+The app reads the embedded copy in `js/scenarios-data.js`; the canonical source is
+`data/scenarios.json`, which is what `npm test` validates. Keep the two in sync by
 regenerating the embedded copy after editing the data (see `README.md`).
 
 The first scenario ships two tracks (International Space Station and Tiangong /
@@ -31,20 +31,36 @@ CSS) plus a Moon celestial body rendered by the scene.
 
 ## Top-level structure
 
-The dataset is a collection of one or more **tracks**. A *track* is a single
-space object's ephemeris: it carries provenance (identification, reference
-frame, time system) and a time-ordered series of state samples.
+The dataset is a collection of one or more **scenarios**. A *scenario* is a
+replayable mission: it holds one or more **tracks** (space objects'
+state-vector ephemerides) plus an optional list of named **events** rendered as
+labeled markers on the timeline UI.
 
 ```json
 {
-  "tracks": [
-    { "...track..." }
+  "scenarios": [
+    {
+      "id": "leo",
+      "name": "Low Earth Orbit",
+      "description": "ISS and Tiangong (CSS) in low Earth orbit.",
+      "tracks": [ { "...track..." } ],
+      "events": [ { "...event..." } ]
+    }
   ]
 }
 ```
 
-A coherent scene may assemble multiple tracks later; the first scenario ships
-with a single track (the International Space Station).
+The first scenario ships with the ISS and Tiangong tracks. Each Apollo mission
+(Apollo 11, Apollo 13 — real NASA/SPICE trajectory data is planned for a future
+session) will be its own scenario carrying its tracks and mission events.
+
+### Scenario fields
+
+- `id` (string, required, unique): identifier used by the scenario selector.
+- `name` (string, required): human-readable name shown in the UI.
+- `description` (string, optional).
+- `tracks` (array, required, non-empty): space-object ephemerides (below).
+- `events` (array, optional): named timeline events (below).
 
 ## Track fields
 
@@ -100,6 +116,30 @@ with a single track (the International Space Station).
 Neither OMM nor the CCSDS ephemeris messages define attitude; this contract
 adds `orientation` as a per-sample unit quaternion so spacecraft heading and
 orientation can be rendered in 3D.
+
+## Event object
+
+A scenario may carry a list of named events, rendered as labeled markers on the
+timeline UI at `t / duration` along the scrub bar.
+
+```json
+{
+  "t": 1200.0,
+  "type": "launch",
+  "label": "LAUNCH",
+  "description": "Liftoff from Kennedy Space Center"
+}
+```
+
+- `t` (number, seconds, required): timeline position, relative to scenario
+  start. Must be finite; events should be time-ordered.
+- `type` (string, optional): category used for marker styling.
+- `label` (string, required): short text shown as the marker label and tooltip.
+- `description` (string, optional): fuller detail shown in the marker tooltip.
+
+Apollo scenario events will include e.g. launch, trans-lunar injection (TLI),
+lunar-orbit insertion (LOI), landing/docking, trans-Earth injection (TEI), and
+splashdown.
 
 ## Units and coordinate system
 
