@@ -12,7 +12,7 @@
 
     const engine = T.createEphemerisEngine();
     const timeline = T.createTimeline(engine);
-    const entity = T.createTrackEntity(scene, engine);
+    let entities = [];            // one track entity per dataset track
     const labels = T.createLabels(engine, camera);
     const hud = T.createHUD(engine);
     const cameraCtl = T.createCameraController(camera, controls, engine);
@@ -52,13 +52,13 @@
         if (btn) btn.addEventListener('click', () => cameraCtl.setMode(modeBtns[id]));
     }
 
-    // Trails toggle.
+    // Trails toggle (applies to every track).
     const trailsBtn = document.getElementById('trailsBtn');
     function setTrailsVisible(v) {
-        entity.setTrailsVisible(v);
+        entities.forEach((e) => e.setTrailsVisible(v));
         if (trailsBtn) trailsBtn.textContent = v ? 'Trail: ON' : 'Trail: OFF';
     }
-    trailsBtn.addEventListener('click', () => setTrailsVisible(!entity.getTrailsVisible()));
+    trailsBtn.addEventListener('click', () => setTrailsVisible(!entities[0].getTrailsVisible()));
 
     // Zoom slider (0 = zoomed out, 100 = zoomed in). Keyboard zoom stays mapped to +/-, PageUp/PageDown in the handler below.
     const zoomSlider = document.getElementById('zoomSlider');
@@ -71,15 +71,16 @@
         if (e.key === '1') cameraCtl.setMode('orbit');
         else if (e.key === '2') cameraCtl.setMode('follow');
         else if (e.key === '3') cameraCtl.setMode('inertial');
-        else if (e.key === 't' || e.key === 'T') setTrailsVisible(!entity.getTrailsVisible());
+        else if (e.key === 't' || e.key === 'T') setTrailsVisible(!entities[0].getTrailsVisible());
         else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.ZOOM_BUTTON_STEP);
         else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.ZOOM_BUTTON_STEP);
     });
 
     // Boot from the embedded dataset.
     engine.load(global.TacviewData);
+    entities = engine.getTracks().map((tr) => T.createTrackEntity(scene, engine, camera, tr.id));
     const t0 = engine.getTime();
-    entity.update(t0);
+    entities.forEach((e) => e.update(t0));
     timeline.updateUI();
     hud.update();
     updateHeader();
@@ -101,7 +102,7 @@
         }
 
         const t = engine.getTime();
-        entity.update(t);
+        entities.forEach((e) => e.update(t));
         cameraCtl.update(t);
         timeline.updateUI();
         hud.update();

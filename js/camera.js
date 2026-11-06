@@ -18,7 +18,7 @@
     const THREE = global.THREE;
 
     const MIN_DIST = 50;        // m — close enough to see the spacecraft
-    const MAX_DIST = 5e8;       // m — past the whole orbit + starfield shell
+    const MAX_DIST = 9e8;       // m — far enough to frame the Moon orbit
     const WHEEL_STEP = 1.12;    // zoom factor per wheel notch
     const ZOOM_BUTTON_STEP = 1.3;
 

@@ -16,6 +16,9 @@
     const THREE = global.THREE;
 
     const EARTH_RADIUS = 6371000;   // m
+    const MOON_RADIUS = 1737400;    // m
+    const MOON_DIST = 384400000;    // m — mean Moon orbital radius
+    const MOON_INCL = 0.40;         // rad — representative inclination (~23 deg)
     const STARFIELD_RADIUS = 5e8;   // m
     const STAR_COUNT = 6000;
 
@@ -62,6 +65,41 @@
             new THREE.MeshBasicMaterial({ color: 0x1c2f54, wireframe: true, transparent: true, opacity: 0.4 })
         );
         scene.add(earth);
+
+        // Moon: a wireframe sphere on its (tilted) mean orbital path ring.
+        // Schematic placement — the Moon moves ~0.06 deg over a 2-3 h scenario.
+        scene.add(createMoonBody());
+
+        function createMoonBody() {
+            const group = new THREE.Group();
+            const moon = new THREE.Mesh(
+                new THREE.SphereGeometry(MOON_RADIUS, 32, 16),
+                new THREE.MeshBasicMaterial({ color: 0x9aa0a8, wireframe: true, transparent: true, opacity: 0.5 })
+            );
+            const phase = 0.35;
+            moon.position.set(Math.cos(phase) * MOON_DIST, 0, Math.sin(phase) * MOON_DIST);
+            group.add(moon);
+
+            // Mean orbital path ring in the XZ plane of the Moon's orbital plane.
+            const ringSeg = 256;
+            const ringPos = new Float32Array((ringSeg + 1) * 3);
+            for (let i = 0; i <= ringSeg; i++) {
+                const a = (i / ringSeg) * Math.PI * 2;
+                ringPos[i * 3]     = Math.cos(a) * MOON_DIST;
+                ringPos[i * 3 + 1] = 0;
+                ringPos[i * 3 + 2] = Math.sin(a) * MOON_DIST;
+            }
+            const ringGeo = new THREE.BufferGeometry();
+            ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPos, 3));
+            const ring = new THREE.LineLoop(ringGeo, new THREE.LineBasicMaterial({
+                color: 0x556, transparent: true, opacity: 0.18,
+            }));
+            ring.frustumCulled = false;
+            group.add(ring);
+
+            group.rotation.x = MOON_INCL;
+            return group;
+        }
 
         function onResize() {
             camera.aspect = window.innerWidth / window.innerHeight;

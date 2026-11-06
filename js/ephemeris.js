@@ -73,8 +73,8 @@
             applyActive();
         }
 
-        function getStateAtTime(t) {
-            const kfs = state.samples;
+        // Interpolate a track's samples at time t (null outside its window).
+        function interp(kfs, t) {
             if (!kfs || kfs.length === 0) return null;
             if (t < kfs[0].t || t > kfs[kfs.length - 1].t) return null;
             let i = 0;
@@ -97,6 +97,12 @@
             };
         }
 
+        function getStateAtTime(t) { return interp(state.samples, t); }
+
+        function getTrack(id) { return state.tracks.find((t) => t.id === id) || null; }
+        function getSamplesFor(id) { const t = getTrack(id); return t ? t.samples : []; }
+        function getStateAtTimeFor(id, t) { return interp(getSamplesFor(id), t); }
+
         function setTime(t) { state.currentTime = Math.max(0, Math.min(t, state.duration)); }
         function getTime() { return state.currentTime; }
         function setSpeed(s) { state.speed = s; }
@@ -116,6 +122,9 @@
         return {
             load,
             getStateAtTime,
+            getStateAtTimeFor,
+            getSamplesFor,
+            getTrack,
             setTime, getTime, setSpeed, getSpeed,
             play, pause, isPlaying, getDuration,
             getSamples, getTracks, getActiveTrack, getActiveTrackId,
