@@ -1,93 +1,80 @@
 // js/entities.js
-// Ship hull meshes, fading trails, and billboarded 2D entity labels.
-// Weapons (torpedoes, PDC tracers) live in js/weapons.js.
-// Hull geometry comes from js/ship-models.js (procedural silhouettes).
+// The tracked-object renderer: a spacecraft body + the full orbital path
+// polyline + a short fading trail showing recent motion.
+//
+// Classic-script module: attaches Tacview.createTrackEntity.
 
-import { createRociModel, createZmeyaModel } from './ship-models.js';
+(function (global) {
+    'use strict';
+    const THREE = global.THREE;
+    const createSpacecraftModel = global.Tacview.createSpacecraftModel;
 
-const THREE = window.THREE;
+    const TRAIL_SECONDS = 300;
+    const TRAIL_SAMPLES = 60;
 
-const TRAIL_SECONDS = 2.0;
-const TRAIL_SAMPLES = 30;
-
-function createTrail(color) {
-    const geom = new THREE.BufferGeometry();
-    const positions = new Float32Array(TRAIL_SAMPLES * 3);
-    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.7 });
-    const line = new THREE.Line(geom, mat);
-    line.frustumCulled = false;
-    return line;
-}
-
-export function createEntitiesManager(scene, playbackEngine) {
-    const hullMeshes = {};
-    const trails = {};
-    const trailHistory = {};
-    let trailsVisible = true;
-
-    // Ship meshes created up-front; trails are created per entity in load().
-    function createShips() {
-        const rociMesh = createRociModel();
-        scene.add(rociMesh);
-        hullMeshes['roci'] = rociMesh;
-
-        const zmeyaMesh = createZmeyaModel();
-        scene.add(zmeyaMesh);
-        hullMeshes['zmeya'] = zmeyaMesh;
+    function createTrail(color) {
+        const geom = new THREE.BufferGeometry();
+        const positions = new Float32Array(TRAIL_SAMPLES * 3);
+        geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85 });
+        const line = new THREE.Line(geom, mat);
+        line.frustumCulled = false;
+        return line;
     }
 
-    function loadEntities() {
-        const ents = playbackEngine.getEntities();
-        for (const id in ents) {
-            const e = ents[id];
-            if (e.type === 'ship') {
-                trails[id] = createTrail(id === 'roci' ? 0x3a7bd5 : 0xd53a3a);
-                scene.add(trails[id]);
+    function createTrackEntity(scene, engine) {
+        const mesh = createSpacecraftModel();
+        mesh.visible = false;
+        scene.add(mesh);
+
+        const pathLine = buildPathLine(engine);
+        scene.add(pathLine);
+
+        const trail = createTrail(0x8fd0ff);
+        trail.visible = false;
+        scene.add(trail);
+
+        const trailHistory = [];
+        let trailVisible = true;
+
+        function buildPathLine(eng) {
+            const kfs = eng.getSamples();
+            const pos = new Float32Array(kfs.length * 3);
+            kfs.forEach((s, i) => {
+                pos[i * 3] = s.position.x;
+                pos[i * 3 + 1] = s.position.y;
+                pos[i * 3 + 2] = s.position.z;
+            });
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const line = new THREE.Line(geom, new THREE.LineBasicMaterial({
+                color: 0x3a7bd5, transparent: true, opacity: 0.5,
+            }));
+            line.frustumCulled = false;
+            return line;
+        }
+
+        function pushHistory(t, pos) {
+            trailHistory.push({ t, pos: pos.clone() });
+            while (trailHistory.length > 0 && t - trailHistory[0].t > TRAIL_SECONDS) {
+                trailHistory.shift();
             }
         }
-    }
 
-    function pushHistory(id, t, pos) {
-        if (!trailHistory[id]) trailHistory[id] = [];
-        const arr = trailHistory[id];
-        arr.push({ t, pos: pos.clone() });
-        while (arr.length > 0 && t - arr[0].t > TRAIL_SECONDS) arr.shift();
-    }
-
-    function updateShips(t, stateMap) {
-        for (const id in hullMeshes) {
-            const mesh = hullMeshes[id];
-            const s = stateMap[id];
-            if (s && s.active) {
-                mesh.visible = true;
-                mesh.position.copy(s.position);
-                mesh.quaternion.copy(s.orientation);
-                pushHistory(id, t, s.position);
-            } else {
-                mesh.visible = false;
-            }
-        }
-    }
-
-    function updateTrails(t) {
-        for (const id in trails) {
-            const line = trails[id];
-            if (!trailsVisible) { line.visible = false; continue; }
-            const arr = trailHistory[id];
-            if (!arr || arr.length < 2) { line.visible = false; continue; }
-            line.visible = true;
-            const positions = line.geometry.attributes.position.array;
+        function updateTrails(t) {
+            if (!trailVisible || trailHistory.length < 2) { trail.visible = false; return; }
+            trail.visible = true;
+            const positions = trail.geometry.attributes.position.array;
             for (let i = 0; i < TRAIL_SAMPLES; i++) {
                 const u = i / (TRAIL_SAMPLES - 1);
                 const targetT = t - TRAIL_SECONDS * (1 - u);
-                let p = arr[arr.length - 1].pos;
-                for (let j = 1; j < arr.length; j++) {
-                    if (arr[j].t >= targetT) {
-                        const a2 = arr[j - 1], b2 = arr[j];
-                        const dt = b2.t - a2.t;
-                        const alpha = dt > 0 ? (targetT - a2.t) / dt : 0;
-                        p = new THREE.Vector3().copy(a2.pos).lerp(b2.pos, alpha);
+                let p = trailHistory[trailHistory.length - 1].pos;
+                for (let j = 1; j < trailHistory.length; j++) {
+                    if (trailHistory[j].t >= targetT) {
+                        const a = trailHistory[j - 1], b = trailHistory[j];
+                        const dt = b.t - a.t;
+                        const alpha = dt > 0 ? (targetT - a.t) / dt : 0;
+                        p = new THREE.Vector3().copy(a.pos).lerp(b.pos, alpha);
                         break;
                     }
                 }
@@ -95,72 +82,29 @@ export function createEntitiesManager(scene, playbackEngine) {
                 positions[i * 3 + 1] = p.y;
                 positions[i * 3 + 2] = p.z;
             }
-            line.geometry.attributes.position.needsUpdate = true;
+            trail.geometry.attributes.position.needsUpdate = true;
         }
-    }
 
-    function setTrailsVisible(v) { trailsVisible = !!v; }
-    function getTrailsVisible() { return trailsVisible; }
+        function setTrailsVisible(v) { trailVisible = !!v; }
+        function getTrailsVisible() { return trailVisible; }
 
-    function update(t) {
-        const stateMap = playbackEngine.getStateAtTime(t);
-        updateShips(t, stateMap);
-        updateTrails(t);
-        return stateMap;
-    }
-
-    function getHullMeshes() { return hullMeshes; }
-
-    return {
-        createShips,
-        loadEntities,
-        update,
-        setTrailsVisible,
-        getTrailsVisible,
-        getHullMeshes,
-        pushHistory,
-    };
-}
-
-// ---- Labels (billboarded 2D HTML overlays) ----
-export function createLabels(playbackEngine, camera) {
-    const labels = {};
-    const container = document.getElementById('labelsContainer');
-    if (container) container.innerHTML = '';
-
-    function createShipLabels() {
-        ['roci', 'zmeya'].forEach(function (id) {
-            const el = document.createElement('div');
-            el.className = 'entity-label';
-            el.textContent = id === 'roci' ? 'ROCI' : 'ZMEYA';
-            el.style.color = id === 'roci' ? '#7fd0ff' : '#ff8080';
-            if (container) container.appendChild(el);
-            labels[id] = el;
-        });
-    }
-
-    function update() {
-        const t = playbackEngine.getTime();
-        const stateMap = playbackEngine.getStateAtTime(t);
-        const widthHalf = window.innerWidth / 2;
-        const heightHalf = window.innerHeight / 2;
-        camera.updateMatrixWorld();
-        for (const id in labels) {
-            const s = stateMap[id];
-            const el = labels[id];
-            if (s && s.active) {
-                const pos = s.position.clone().project(camera);
-                if (pos.z > 1) { el.style.display = 'none'; continue; }
-                const x = (pos.x * widthHalf) + widthHalf;
-                const y = -(pos.y * heightHalf) + heightHalf;
-                el.style.left = x + 'px';
-                el.style.top = y + 'px';
-                el.style.display = 'block';
+        function update(t) {
+            const st = engine.getStateAtTime(t);
+            if (st) {
+                mesh.visible = true;
+                mesh.position.copy(st.position);
+                mesh.quaternion.copy(st.orientation);
+                pushHistory(t, st.position);
+                updateTrails(t);
             } else {
-                el.style.display = 'none';
+                mesh.visible = false;
             }
+            return st;
         }
+
+        return { update, setTrailsVisible, getTrailsVisible, getMesh: () => mesh };
     }
 
-    return { createShipLabels, update };
-}
+    global.Tacview = global.Tacview || {};
+    global.Tacview.createTrackEntity = createTrackEntity;
+})(window);
