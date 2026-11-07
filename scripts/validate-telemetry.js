@@ -282,13 +282,19 @@ function checkManeuvers() {
                 }
                 if (m.dv_mps !== undefined && !(typeof m.dv_mps === 'number' && m.dv_mps > 0))
                     return `${where} dv_mps must be a positive number`;
+                if (m.dv_direction !== undefined && BURN_DIRECTIONS.indexOf(m.dv_direction) === -1)
+                    return `${where} dv_direction "${m.dv_direction}" is not one of ${BURN_DIRECTIONS.join('|')}`;
+                if (m.dv_rtn !== undefined && !(Array.isArray(m.dv_rtn) && m.dv_rtn.length === 3 && m.dv_rtn.every(Number.isFinite)))
+                    return `${where} dv_rtn must be a finite [radial, transverse, normal] triplet`;
+                if (m.dv_vector !== undefined && !(Array.isArray(m.dv_vector) && m.dv_vector.length === 3 && m.dv_vector.every(Number.isFinite)))
+                    return `${where} dv_vector must be a finite [x, y, z] triplet`;
 
                 // The samples are the ground truth: the declared burn has to show
                 // up as a matching velocity change. An impulsive burn is a step in
                 // the vector; a finite prograde/retrograde burn shows up as a speed
                 // change (the vector turns under gravity during the burn, so its
                 // magnitude difference is not the dv).
-                if (typeof m.dv_mps === 'number') {
+                {
                     const before = sampleAtOrBefore(t.samples, m.t_start);
                     // An impulsive burn is a step between two consecutive samples, so
                     // the "after" sample must be strictly later; a finite burn ends
@@ -297,23 +303,53 @@ function checkManeuvers() {
                         ? sampleStrictlyAfter(t.samples, m.t_start)
                         : sampleAtOrAfter(t.samples, m.t_end);
                     if (!before || !after) return `${where} needs samples bracketing the burn`;
-                    const onAxis = (m.attitude || 'prograde') === 'prograde' || m.attitude === 'antivelocity';
-                    let observed;
-                    if (m.kind === 'impulsive' || !onAxis) {
-                        observed = dist3(before.velocity, after.velocity);
-                    } else {
-                        observed = Math.abs(norm3(after.velocity) - norm3(before.velocity));
+
+                    if (typeof m.dv_mps === 'number') {
+                        const onAxis = (m.attitude || 'prograde') === 'prograde' || m.attitude === 'antivelocity';
+                        let observed;
+                        if (m.kind === 'impulsive' || !onAxis) {
+                            observed = dist3(before.velocity, after.velocity);
+                        } else {
+                            observed = Math.abs(norm3(after.velocity) - norm3(before.velocity));
+                        }
+                        if (Math.abs(observed - m.dv_mps) > DV_VS_SAMPLES_TOL * m.dv_mps)
+                            return `${where} (${m.id}): samples show ${observed.toFixed(0)} m/s, dv_mps says ${m.dv_mps}`;
+                        if (m.kind !== 'impulsive') {
+                            const rate = m.dv_mps / (m.t_end - m.t_start);
+                            let declaredAccel = null;
+                            if (typeof m.accel_mps2 === 'number') declaredAccel = m.accel_mps2;
+                            else if (typeof m.thrust_n === 'number' && m.mass_kg && m.mass_kg.start)
+                                declaredAccel = m.thrust_n / m.mass_kg.start;
+                            if (declaredAccel && Math.abs(rate - declaredAccel) / declaredAccel > ACCEL_TOL)
+                                return `${where} (${m.id}): ${rate.toFixed(2)} m/s2 implied, declared ${declaredAccel.toFixed(2)}`;
+                        }
                     }
-                    if (Math.abs(observed - m.dv_mps) > DV_VS_SAMPLES_TOL * m.dv_mps)
-                        return `${where} (${m.id}): samples show ${observed.toFixed(0)} m/s, dv_mps says ${m.dv_mps}`;
-                    if (m.kind !== 'impulsive') {
-                        const rate = m.dv_mps / (m.t_end - m.t_start);
-                        let declared = null;
-                        if (typeof m.accel_mps2 === 'number') declared = m.accel_mps2;
-                        else if (typeof m.thrust_n === 'number' && m.mass_kg && m.mass_kg.start)
-                            declared = m.thrust_n / m.mass_kg.start;
-                        if (declared && Math.abs(rate - declared) / declared > ACCEL_TOL)
-                            return `${where} (${m.id}): ${rate.toFixed(2)} m/s2 implied, declared ${declared.toFixed(2)}`;
+
+                    // Direction. An impulsive burn's step *is* the burn, so the
+                    // vector is compared directly. A finite burn is dominated by
+                    // the rotation of the velocity vector under gravity (Apollo's
+                    // TLI shows a 4 421 m/s step for a 3 037 m/s prograde burn),
+                    // so only its sense — does speed rise or fall — is checked;
+                    // normal/radial burns are left to the magnitude checks.
+                    const dir = declaredDirection(m, rtnBasis(before.position, before.velocity));
+                    if (dir) {
+                        const step = [0, 1, 2].map((i) => after.velocity[i] - before.velocity[i]);
+                        const stepLen = norm3(step);
+                        if (!(stepLen > 1e-6))
+                            return `${where} (${m.id}) declares a direction but the samples show no velocity step`;
+                        if (m.kind === 'impulsive') {
+                            const dot = (step[0] * dir[0] + step[1] * dir[1] + step[2] * dir[2]) / stepLen;
+                            if (dot < DIR_DOT_IMPULSIVE)
+                                return `${where} (${m.id}): declared ${m.dv_direction || 'rtn/vector'} burn, `
+                                    + `but the velocity step disagrees (dot ${dot.toFixed(3)})`;
+                        } else {
+                            const sense = burnSense(m);
+                            const dSpeed = norm3(after.velocity) - norm3(before.velocity);
+                            if (sense === 'prograde' && dSpeed < 0)
+                                return `${where} (${m.id}): declared prograde, but the speed fell ${dSpeed.toFixed(0)} m/s`;
+                            if (sense === 'retrograde' && dSpeed > 0)
+                                return `${where} (${m.id}): declared retrograde, but the speed rose ${dSpeed.toFixed(0)} m/s`;
+                        }
                     }
                 }
                 if (typeof m.isp_s === 'number' && m.mass_kg && m.mass_kg.start && m.mass_kg.end) {
@@ -330,6 +366,58 @@ function checkManeuvers() {
 
 function dist3(a, b) {
     return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+}
+const BURN_DIRECTIONS = ['prograde', 'retrograde', 'normal', 'anti-normal', 'radial-out', 'radial-in', 'vector'];
+const DIR_DOT_IMPULSIVE = 0.98;
+
+// Which way a burn is meant to push, from the declaration (used for the
+// speed-sense check on finite burns).
+function burnSense(m) {
+    if (m.dv_direction) return m.dv_direction;
+    if (Array.isArray(m.dv_rtn)) {
+        const [, transverse] = m.dv_rtn;
+        return transverse > 0 ? 'prograde' : transverse < 0 ? 'retrograde' : null;
+    }
+    return m.attitude === 'retrograde' ? 'retrograde' : m.attitude === 'prograde' ? 'prograde' : null;
+}
+
+function cross3(a, b) {
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+function unit3(v) {
+    const n = norm3(v);
+    return n > 0 ? v.map((c) => c / n) : null;
+}
+// Local RTN basis at a state: R radial-out, T along-track (prograde), N normal.
+function rtnBasis(r, v) {
+    const R = unit3(r);
+    const h = cross3(r, v);
+    const N = unit3(h);
+    if (!R || !N) return null;
+    const T = unit3(cross3(N, R));
+    return T ? { R, T, N } : null;
+}
+// Declared burn direction as a unit vector, or null when the record says only a
+// magnitude (legacy records fall back to attitude prograde/retrograde).
+function declaredDirection(m, basis) {
+    if (Array.isArray(m.dv_vector)) return unit3(m.dv_vector);
+    if (Array.isArray(m.dv_rtn) && basis) {
+        const [radial, transverse, normal] = m.dv_rtn;
+        return unit3([0, 1, 2].map((i) =>
+            basis.R[i] * radial + basis.T[i] * transverse + basis.N[i] * normal));
+    }
+    const dir = m.dv_direction || (m.attitude === 'retrograde' ? 'retrograde'
+        : m.attitude === 'prograde' ? 'prograde' : null);
+    if (!dir || !basis) return null;
+    const axis = {
+        prograde: basis.T,
+        retrograde: basis.T.map((c) => -c),
+        normal: basis.N,
+        'anti-normal': basis.N.map((c) => -c),
+        'radial-out': basis.R,
+        'radial-in': basis.R.map((c) => -c),
+    }[dir];
+    return axis ? axis.slice() : null;
 }
 function norm3(v) {
     return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);

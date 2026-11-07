@@ -192,6 +192,49 @@ maneuver records are validated *against* them.
   equation must also agree with `dv_mps` (10 %).
 - `attitude`: `prograde` | `retrograde` | `fixed`, used to interpret the burn.
 
+### Burn direction
+
+Magnitude alone cannot describe a plane change, so a burn may also say *which
+way it pushed*. Three forms, in order of precedence:
+
+```json
+"dv_direction": "prograde",        // one of the six core directions
+"dv_rtn": [-53.9, 42.7, 5.0],      // [radial, transverse, normal] m/s
+"dv_vector": [42.2, -49.3, -23.3]  // explicit inertial vector, in dv_frame
+```
+
+The six core directions are taken in the vehicle's local **RTN** frame at
+ignition, built from the state itself:
+
+| Direction | Axis | Meaning |
+|---|---|---|
+| `prograde` | `+T` | along the velocity (raises the opposite apsis) |
+| `retrograde` | `−T` | against the velocity |
+| `normal` | `+N` | along the orbit normal `(r × v)/|r × v|` |
+| `anti-normal` | `−N` | against the orbit normal |
+| `radial-out` | `+R` | away from the central body (`r̂`) |
+| `radial-in` | `−R` | toward the central body |
+
+with `T = N × R`. Use `dv_rtn` when the burn is a mix (any real midcourse
+correction is), and `dv_vector` when you already have inertial components.
+
+`attitude` and `dv_direction` answer different questions: `attitude` is where the
+*vehicle* points, `dv_direction` is where the *thrust* goes. They coincide for a
+well-flown burn and differ for a gimballed or off-axis one.
+
+What the validator checks:
+
+- **Impulsive** burns: the observed velocity step must match the declared
+  direction within ~11° (dot ≥ 0.98). This catches a burn labelled prograde that
+  was actually retrograde.
+- **Finite / constant** burns: only the *sense* is checked (speed must rise for
+  prograde, fall for retrograde). A long burn's velocity vector rotates under
+  gravity, so its net step is not its thrust direction — Apollo 11's TLI is a
+  3 037 m/s prograde burn whose net velocity change is 4 421 m/s, at ~57° to the
+  initial prograde.
+- `dv_vector` / `dv_rtn` are checked by direction and, through `dv_mps` or their
+  own magnitude, by size.
+
 ### Events with duration
 
 A burn is an interval, so an event may carry `t_end`. The timeline draws a bar

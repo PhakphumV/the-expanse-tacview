@@ -86,6 +86,22 @@ that is validated against it — not a second trajectory model.
    acceleration vs `thrust_n / mass_kg` (±10%); Tsiolkovsky consistency when
    `isp_s` and masses are present; attitude-convention sign.
 
+## Amendment — burn direction (2026-11)
+
+A `dv_mps` magnitude cannot describe a plane change, so maneuvers gained three
+mutually exclusive ways to state *where the thrust pointed*: `dv_direction` (one
+of the six core RTN axes: prograde, retrograde, normal, anti-normal, radial-out,
+radial-in), `dv_rtn` (`[radial, transverse, normal]` components — the mission
+design convention, and the only sane form for a mixed midcourse correction), and
+`dv_vector` (explicit inertial components). RTN is built from the state at
+ignition, so "prograde" means along the velocity at that instant.
+
+Validation follows the physics: an impulsive burn's velocity step *is* its burn,
+so the declared direction must match it within ~11°; a finite burn's step is
+dominated by the rotation of the velocity vector under gravity (TLI: 4 421 m/s of
+step for 3 037 m/s of prograde burn), so only its sense — speed rises or falls —
+is verified.
+
 ## Consequences
 
 - Phase 2 needs items 1, 3, 4, 5 and 7 only; TLI from Phase 1 can be retrofitted

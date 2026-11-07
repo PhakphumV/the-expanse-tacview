@@ -246607,7 +246607,8 @@
               "dv_frame": "ECI",
               "accel_mps2": 8.9,
               "attitude": "prograde",
-              "note": "S-IVB restart, 5 m 57 s; dv is the achieved speed change (thrust integral 3.18 km/s)"
+              "note": "S-IVB restart, 5 m 57 s; dv is the achieved speed change (thrust integral 3.18 km/s)",
+              "dv_direction": "prograde"
             },
             {
               "id": "MCC-2",
@@ -246616,7 +246617,12 @@
               "dv_mps": 68.9,
               "dv_frame": "ECI",
               "attitude": "prograde",
-              "note": "Midcourse correction (real MCC-2 was 1.04 m/s). This value retargets the reconstructed TLI state onto the real 111 km perilune at LOI-1."
+              "note": "Midcourse correction (real MCC-2 was 1.04 m/s). This value retargets the reconstructed TLI state onto the real 111 km perilune at LOI-1. RTN components are the solved burn decomposed in the frame at ignition.",
+              "dv_rtn": [
+                -53.91,
+                42.68,
+                5.01
+              ]
             }
           ]
         }

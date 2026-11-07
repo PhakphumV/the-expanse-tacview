@@ -214,6 +214,7 @@ velocities*; velocity lerps and orientation slerps. Practical consequences:
   "t_start": 9856,
   "t_end": 10213,             // required unless impulsive
   "dv_mps": 3040,
+  "dv_direction": "prograde", // one of the six core directions
   "dv_frame": "ECI",
   "accel_mps2": 8.9,          // or thrust_n + mass_kg.start
   "attitude": "prograde",     // prograde | retrograde | fixed
@@ -221,6 +222,16 @@ velocities*; velocity lerps and orientation slerps. Practical consequences:
 }
 ```
 
+- **Direction.** Say which way the burn pushed, in one of three forms: one of the
+  six core directions (`prograde`, `retrograde`, `normal`, `anti-normal`,
+  `radial-out`, `radial-in`) plus `dv_mps`; an RTN triplet
+  `"dv_rtn": [radial, transverse, normal]`; or an inertial
+  `"dv_vector": [x, y, z]`. RTN is built from the state at ignition —
+  `R = r̂`, `N = (r × v)/|r × v|`, `T = N × R` — so a "prograde" burn is along
+  the velocity at that instant. Real midcourse corrections are mixes; Apollo 11's
+  MCC-2 here is `[-53.9, 42.7, 5.0]` m/s (mostly radial, with a transverse kick).
+- `attitude` is the vehicle's pointing, not the thrust direction; they usually
+  coincide and need not.
 - **Impulsive**: put two samples either side of `t_start` and let the velocity
   step. Make the bracket **tight** — 0.05 s, not 1 s. At orbital speed the
   velocity direction turns about 8 m/s per second, so a 1 s bracket reports a
@@ -232,6 +243,11 @@ velocities*; velocity lerps and orientation slerps. Practical consequences:
   gravity during a long burn (Apollo's TLI: 4 421 m/s of vector change for
   3 037 m/s of speed change).
 - Optional `isp_s` + `mass_kg: {start, end}` enables a rocket-equation check.
+- The validator checks an **impulsive** burn's step against the declared
+  direction (dot ≥ 0.98, ~11°) but only the **sense** of a finite burn (speed
+  must rise for prograde, fall for retrograde): during a long burn the velocity
+  vector rotates under gravity, so Apollo 11's 3 037 m/s prograde TLI shows a
+  4 421 m/s net step at ~57° to the initial prograde.
 - Maneuvers appear as bars on the timeline, and the HUD shows cumulative ΔV.
 
 ---

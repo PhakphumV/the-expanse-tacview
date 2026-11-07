@@ -105,8 +105,10 @@
                 bar.style.left = (m.t_start / dur * 100) + '%';
                 bar.style.width = Math.max(0.4, (m.t_end - m.t_start) / dur * 100) + '%';
                 const dv = m.dv_mps ? ' · Δv ' + (m.dv_mps >= 1000 ? (m.dv_mps / 1000).toFixed(2) + ' km/s' : m.dv_mps.toFixed(1) + ' m/s') : '';
+                const dir = m.dv_direction || (Array.isArray(m.dv_rtn) ? 'RTN ' + m.dv_rtn.map((c) => c.toFixed(0)).join('/') + ' m/s'
+                    : (Array.isArray(m.dv_vector) ? 'vector' : m.attitude || ''));
                 bar.title = (m.id || 'burn') + ' — ' + m.kind + ' burn, T+' + formatMissionTime(m.t_start, isLong()) +
-                    '–' + formatMissionTime(m.t_end, isLong()) + dv + (m.note ? ' — ' + m.note : '');
+                    '–' + formatMissionTime(m.t_end, isLong()) + dv + (dir ? ' · ' + dir : '') + (m.note ? ' — ' + m.note : '');
                 bar.addEventListener('click', function (e) {
                     e.stopPropagation();
                     engine.setTime(m.t_start);

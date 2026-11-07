@@ -23,7 +23,7 @@ window.TacviewManifest = {
       "tracks": 2,
       "events": 17,
       "samples": 10520,
-      "bytes": 1626599
+      "bytes": 1626726
     }
   ]
 };

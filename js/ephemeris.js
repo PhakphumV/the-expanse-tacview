@@ -65,6 +65,13 @@
         // stay the ground truth; maneuvers describe what produced them.
         const MANEUVER_KINDS = ['impulsive', 'finite', 'constant'];
 
+        // The six core burn directions, in the local RTN (radial / transverse /
+        // normal) frame of the vehicle at ignition. RTN is built from the state
+        // itself, so "prograde" means along the velocity at that instant.
+        const BURN_DIRECTIONS = [
+            'prograde', 'retrograde', 'normal', 'anti-normal', 'radial-out', 'radial-in', 'vector',
+        ];
+
         function normalizeManeuvers(list) {
             return (list || []).map((m, i) => {
                 if (!m || typeof m !== 'object') throw new Error('ephemeris: maneuver ' + i + ' must be an object');
@@ -73,6 +80,9 @@
                     throw new Error('ephemeris: maneuver ' + i + ' has unknown kind "' + kind + '"');
                 }
                 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : null);
+                const vec = (a) => (Array.isArray(a) && a.length === 3 && a.every((c) => typeof c === 'number' && isFinite(c))
+                    ? a.slice()
+                    : null);
                 return {
                     id: typeof m.id === 'string' && m.id ? m.id : 'maneuver-' + (i + 1),
                     kind,
@@ -80,6 +90,11 @@
                     t_end: num(m.t_end),
                     dv_mps: num(m.dv_mps),
                     dv_frame: m.dv_frame != null ? String(m.dv_frame) : 'ECI',
+                    // Burn direction: one of the six core RTN directions, or an
+                    // explicit vector / RTN component triplet.
+                    dv_direction: m.dv_direction != null ? String(m.dv_direction) : null,
+                    dv_rtn: vec(m.dv_rtn),
+                    dv_vector: vec(m.dv_vector),
                     accel_mps2: num(m.accel_mps2),
                     thrust_n: num(m.thrust_n),
                     isp_s: num(m.isp_s),
@@ -88,6 +103,74 @@
                     note: m.note != null ? String(m.note) : '',
                 };
             });
+        }
+
+        // Local RTN basis at a state: R radial-out, T along-track (prograde),
+        // N orbit normal.
+        function rtnBasis(state) {
+            const r = state.position;
+            const v = state.velocity;
+            const rn = r.length();
+            if (!(rn > 0)) return null;
+            const R = r.clone().multiplyScalar(1 / rn);
+            const h = new THREE.Vector3().crossVectors(r, v);
+            if (!(h.lengthSq() > 1e-18)) {
+                // Degenerate (no motion): fall back to an arbitrary but stable basis.
+                const up = new THREE.Vector3(0, 0, 1);
+                const T = new THREE.Vector3().crossVectors(up, R).normalize();
+                const N = new THREE.Vector3().crossVectors(R, T).normalize();
+                return { R, T, N };
+            }
+            const N = h.clone().normalize();
+            const T = new THREE.Vector3().crossVectors(N, R).normalize();
+            return { R, T, N };
+        }
+
+        // Resolve a maneuver's burn direction to a unit vector in the inertial
+        // frame, given the state at ignition. Returns null when the record does
+        // not say (magnitude only, legacy records).
+        function maneuverDirection(m, state) {
+            const basis = state ? rtnBasis(state) : null;
+            if (m.dv_vector) {
+                const v = new THREE.Vector3(m.dv_vector[0], m.dv_vector[1], m.dv_vector[2]);
+                return v.lengthSq() > 0 ? v.normalize() : null;
+            }
+            if (m.dv_rtn && basis) {
+                const [radial, transverse, normal] = m.dv_rtn;
+                const v = new THREE.Vector3()
+                    .addScaledVector(basis.R, radial)
+                    .addScaledVector(basis.T, transverse)
+                    .addScaledVector(basis.N, normal);
+                return v.lengthSq() > 0 ? v.normalize() : null;
+            }
+            if (!basis) return null;
+            const dir = m.dv_direction || (m.attitude === 'retrograde' ? 'retrograde'
+                : m.attitude === 'prograde' ? 'prograde' : null);
+            switch (dir) {
+                case 'prograde': return basis.T.clone();
+                case 'retrograde': return basis.T.clone().negate();
+                case 'normal': return basis.N.clone();
+                case 'anti-normal': return basis.N.clone().negate();
+                case 'radial-out': return basis.R.clone();
+                case 'radial-in': return basis.R.clone().negate();
+                default: return null;
+            }
+        }
+
+        // Burn vector in m/s (direction × magnitude, or the decoded triplet).
+        function maneuverDv(m, state) {
+            const dir = maneuverDirection(m, state);
+            if (m.dv_vector) return new THREE.Vector3(m.dv_vector[0], m.dv_vector[1], m.dv_vector[2]);
+            if (m.dv_rtn && state) {
+                const basis = rtnBasis(state);
+                if (!basis) return null;
+                return new THREE.Vector3()
+                    .addScaledVector(basis.R, m.dv_rtn[0])
+                    .addScaledVector(basis.T, m.dv_rtn[1])
+                    .addScaledVector(basis.N, m.dv_rtn[2]);
+            }
+            if (!dir || typeof m.dv_mps !== 'number') return null;
+            return dir.multiplyScalar(m.dv_mps);
         }
 
         function normalizeScenario(raw, idx) {
@@ -240,6 +323,16 @@
             return dv;
         }
 
+        // Burn vector of one maneuver in the inertial frame (the RTN basis comes
+        // from the state at ignition), or null when the record is magnitude-only.
+        function getManeuverDv(trackId, maneuverId) {
+            const tr = getTrack(trackId);
+            if (!tr) return null;
+            const m = tr.maneuvers.find((x) => x.id === maneuverId);
+            if (!m || m.t_start == null) return null;
+            return maneuverDv(m, interp(tr.samples, m.t_start));
+        }
+
         function getScenarios() { return state.scenarios; }
         function getScenario(id) { return state.scenarios.find((s) => s.id === id) || null; }
         function getActiveScenario() { return state.scenarios[state.scenarioIndex] || null; }
@@ -269,7 +362,7 @@
             getStateAtTime,
             getStateAtTimeFor,
             getSamplesFor,
-            getManeuvers, getAllManeuvers, getDeltaVUsed,
+            getManeuvers, getAllManeuvers, getDeltaVUsed, getManeuverDv,
             getTrack,
             getScenarios, getScenario, getActiveScenario,
             getEvents, getEventsUpTo,
