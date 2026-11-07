@@ -158,8 +158,6 @@
                     const dm = document.createElement('div');
                     dm.className = 'detail-marker';
                     dm.dataset.t = String(ev.t);
-                    dm.innerHTML = PIN_SVG;
-                    dm.style.setProperty('--mk', ev.type === 'milestone' ? '#9fd0ff' : '#ffe8b8');
                     detailTicks.appendChild(dm);
                 }
             }
@@ -222,6 +220,20 @@
                 prev = color;
                 lastX = x;
             }
+            syncDetailColors();
+        }
+
+        // The detail track draws its events as lines, in exactly the colour the
+        // overview pin took — including the cluster palette, which is why this runs
+        // after the pins are painted rather than from the event type.
+        function syncDetailColors() {
+            if (!detailTicks || !eventMarkersEl) return;
+            const pins = eventMarkersEl.querySelectorAll('.event-marker');
+            const lines = detailTicks.children;
+            for (let i = 0; i < lines.length && i < pins.length; i++) {
+                const c = pins[i].style.getPropertyValue('--mk');
+                if (c) lines[i].style.setProperty('--mk', c);
+            }
         }
         window.addEventListener('resize', paintMarkers);
 
@@ -244,8 +256,11 @@
                     dm.style.left = (frac * 100) + '%';
                 }
             }
-            if (detailFrom) detailFrom.textContent = '\u2212' + formatMissionTime(DETAIL_WINDOW_S / 2, isLong());
-            if (detailTo) detailTo.textContent = '+' + formatMissionTime(DETAIL_WINDOW_S / 2, isLong());
+            // "10 min" rather than 00:10:00: at 8-9 px Orbitron's zero is a rounded
+            // box and the timestamp reads as debris.
+            const half = DETAIL_WINDOW_S / 120;
+            if (detailFrom) detailFrom.textContent = '\u2212' + half + ' min';
+            if (detailTo) detailTo.textContent = '+' + half + ' min';
         }
 
         if (detailBar) {

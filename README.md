@@ -39,7 +39,7 @@ python3 -m http.server 8000
   as a sequence of phases rather than a bare clock. A second, **detail** track sits
   above the overview: a fixed 20-minute window (±10) centred on the playhead, which
   you drag left or right to scrub precisely, with the events inside that window
-  drawn as small pins. Dragging it pauses playback and resumes on release, so the
+  drawn as lines in the same colour as their pin above. Dragging it pauses playback and resumes on release, so the
   engine cannot fight the pointer. A scenario may also declare its own `default_speed`,
   `default_target` and framing distance.
 - **Maneuvers** (`SCHEMA.md`, ADR-0004): each track can carry ordered burn

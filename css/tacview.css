@@ -213,7 +213,7 @@ html, body {
     font-size: 11px;
 }
 /* Detail timeline: a 10-minute window around the playhead, for precise scrubbing. */
-#detailRow { padding: 17px 0 3px; }
+#detailRow { padding: 3px 0 3px; }
 #detailBar {
     position: relative;
     width: 100%;
@@ -228,9 +228,9 @@ html, body {
     position: absolute;
     top: 1px;
     left: 4px;
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0.5px;
-    color: #4d6a94;
+    color: #55739d;
 }
 .detail-edge.right { left: auto; right: 4px; }
 #detailCenter {
@@ -254,16 +254,18 @@ html, body {
     border-radius: 50%;
     background: #9fd0ff;
 }
+/* Events on the detail track are lines through the bar, not pins: at 10 minutes
+   across the width they are dense, and the colour alone identifies them. */
 .detail-marker {
     position: absolute;
-    top: -14px;
-    width: 11px;
-    height: 15px;
-    margin-left: -5.5px;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    margin-left: -1px;
     pointer-events: none;
-    color: var(--mk, #ffd27f);
+    background: var(--mk, #ffd27f);
+    border-radius: 1px;
 }
-.detail-marker svg { display: block; width: 11px; height: 15px; fill: currentColor; }
 /* Room above the track for the event pins (20 px tall). */
 #scrubRow { padding: 21px 0 0; }
 #scrubBar {
