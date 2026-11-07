@@ -59,9 +59,10 @@ python3 -m http.server 8000
 - **Viewport** (`js/camera.js`): two modes — **Orbit** (free rotation around the
   selected target) and **Follow** (chase the selected moving object; drag to
   orbit it, zoom to pull in). Wheel and `+`/`-`/PageUp/PageDown zoom by a fixed
-  step; the slider is a bipolar, continuous control — centre means **no zoom**,
-  dragging left zooms out and right zooms in, faster the further you drag, so
-  the same gesture works from a 50 m spacecraft close-up to the lunar orbit.
+  step; the slider is a momentary, bipolar control — hold it right to zoom in or
+  left to zoom out, faster the further you drag, and it springs back to centre
+  (no zoom) when you let go, so the same gesture works from a 50 m close-up to
+  the lunar orbit.
   Orbit guide rings and object path lines are dashed, with the dash pattern
   rescaled to the camera distance so it reads at every scale.
 - Celestial bodies: wireframe Earth (static) and the Moon, which is a celestial

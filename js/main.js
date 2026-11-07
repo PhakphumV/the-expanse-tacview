@@ -205,7 +205,23 @@
             zoomLabel.textContent = pct === 0 ? 'ZOOM' : (n < 0 ? 'OUT ' : 'IN ') + pct + '%';
         }
     }
-    if (zoomSlider) zoomSlider.addEventListener('input', applyZoomSlider);
+    // Momentary control: releasing the drag (or leaving the control) snaps the
+    // slider back to centre, so zoom stops the moment the drag ends.
+    function snapZoomToCentre() {
+        if (!zoomSlider || +zoomSlider.value === 50) return;
+        zoomSlider.value = 50;
+        applyZoomSlider();
+    }
+    if (zoomSlider) {
+        zoomSlider.addEventListener('input', applyZoomSlider);
+        zoomSlider.addEventListener('change', snapZoomToCentre);
+        // Pointer capture during a thumb drag can deliver pointerup to the
+        // element, elsewhere, or not at all depending on the browser, so watch
+        // the document as well.
+        window.addEventListener('pointerup', snapZoomToCentre);
+        window.addEventListener('pointercancel', snapZoomToCentre);
+        zoomSlider.addEventListener('blur', snapZoomToCentre);
+    }
     applyZoomSlider();
     const trailsBtn = document.getElementById('trailsBtn');
     window.addEventListener('keydown', function (e) {
