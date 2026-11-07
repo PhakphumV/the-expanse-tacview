@@ -13,16 +13,16 @@
     'use strict';
     const THREE = global.THREE;
 
-    const MIN_DIST = 50;        // m — close enough to see a spacecraft
-    const MAX_DIST = 9e8;       // m — far enough to frame the Moon orbit
+    // One range for both modes: 20 m is outside the 26 m spacecraft hull, and 9e8
+    // m frames the whole cislunar volume (the Moon orbits at 3.84e8 m).
+    const MIN_DIST = 20;        // m — close enough to see the hull
+    const MAX_DIST = 9e8;       // m — far enough to frame the Moon's orbit
     const WHEEL_STEP = 1.12;    // view-distance factor per wheel notch
     const ZOOM_STEP = 1.3;      // view-distance factor per +/- key press
     // The zoom slider is a bipolar, continuous control: centre = no zoom, either
     // side = continuous zoom whose speed grows with deflection. Expressed as a
     // factor per second, so the feel is scale-independent from 50 m to 9e8 m.
     const ZOOM_VEL_MAX = 2.2;
-    const FOLLOW_R_MIN = 60;
-    const FOLLOW_R_MAX = 2e5;
     const CHASE_BACK = 3500;    // m — seed offset behind a moving object
     const CHASE_UP   = 1400;    // m — seed offset above a moving object
 
@@ -40,6 +40,8 @@
         // keeps a world-space offset applied to both the eye and the aim.
         const orbitPan = new THREE.Vector3();
         const followPan = new THREE.Vector3();
+        const lastTp = new THREE.Vector3();     // previous target, for rig translation
+        let hasLastTp = false;
         const PAN_KEY_STEP = 0.06;   // fraction of the view distance per key press
 
         // Slider -1..1 -> continuous zoom velocity. Centre is exactly zero, so
@@ -99,7 +101,7 @@
             const up0 = new THREE.Vector3(0, 1, 0);
             const off = new THREE.Vector3().copy(fwd).multiplyScalar(-CHASE_BACK).addScaledVector(up0, CHASE_UP);
             off.y = Math.max(off.y, 1);
-            const r = clamp(off.length(), FOLLOW_R_MIN, FOLLOW_R_MAX);
+            const r = clamp(off.length(), minDistForTarget(), MAX_DIST);
             followSph = {
                 radius: r,
                 theta: Math.atan2(off.x, off.z),
@@ -130,7 +132,7 @@
                 return;
             }
             const dir = new THREE.Vector3().copy(camera.position).sub(controls.target);
-            const d = clamp(dir.length() * factor, MIN_DIST, MAX_DIST);
+            const d = clamp(dir.length() * factor, minDistForTarget(), MAX_DIST);
             if (d <= 0) return;
             dir.normalize().multiplyScalar(d);
             camera.position.copy(controls.target).add(dir);
@@ -208,12 +210,20 @@
         const VIEW_DIST = { earth: 3.5e7, moon: 6e7 };
         function viewDist(id) { return VIEW_DIST[id] || 2e6; }   // tracks default
 
-        // Follow-radius clamp: body scale for planets/moons, spacecraft scale
-        // otherwise.
+        // Radius of the body being watched, so the camera cannot be dollied inside
+        // a planet: 0 for a spacecraft.
+        function targetRadius() {
+            if (isStaticTarget()) return (global.Tacview && global.Tacview.EARTH_RADIUS) || 6371000;
+            const tr = engine.getTrack(targetId);
+            if (tr && tr.meta && tr.meta.kind === 'celestial' && tr.meta.radius_m) return tr.meta.radius_m;
+            return 0;
+        }
+        function minDistForTarget() {
+            return Math.max(MIN_DIST, targetRadius() * 1.02);
+        }
+        // Both modes share one zoom range; only the body radius can lift the near end.
         function followRange() {
-            return isBodyLike()
-                ? { min: 20, max: 1e9 }
-                : { min: FOLLOW_R_MIN, max: FOLLOW_R_MAX };
+            return { min: minDistForTarget(), max: MAX_DIST };
         }
 
         function setMode(m) {
@@ -244,6 +254,7 @@
         function setTarget(id, distOverride) {
             targetId = id;
             resetPan();
+            hasLastTp = false;
             const tp = resolveTarget(engine.getTime(), targetPos);
             if (!tp) return;
             if (mode === 'follow') {
@@ -273,6 +284,15 @@
             const tp = resolveTarget(t, targetPos);
             if (!tp) return;
             if (mode === 'orbit') {
+                // Carry the rig with the track. Without this the target slides away
+                // from a stationary camera at high playback speeds, and the distance
+                // the user just zoomed to is undone a frame later.
+                if (hasLastTp) {
+                    const dx = tp.x - lastTp.x, dy = tp.y - lastTp.y, dz = tp.z - lastTp.z;
+                    if (dx || dy || dz) camera.position.set(camera.position.x + dx, camera.position.y + dy, camera.position.z + dz);
+                }
+                lastTp.copy(tp);
+                hasLastTp = true;
                 // Follow the moving track, but keep whatever pan the user has applied:
                 // the aim is target + offset, and OrbitControls' own pan edits the aim.
                 controls.target.copy(tp).add(orbitPan);
@@ -289,6 +309,7 @@
             setZoomVelocity, getZoomVelocity, applyZoomVelocity,
             setFlipped, isFlipped, toggleFlip,
             panBy, panKey, resetPan, getPan,
+            minDistForTarget, MAX_DIST,
         };
     }
 

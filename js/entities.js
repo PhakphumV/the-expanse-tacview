@@ -140,9 +140,9 @@
     // transparent, the middle is solid mid, the head is solid head. p is the
     // arc-length fraction, so a 12-day lunar arc fades exactly like an
     // 11-minute LEO arc.
-    function writeAlpha(arr, i, p, style) {
+    function writeAlpha(arr, i, p, style, proximity) {
         const fade = p < 0.4 ? p / 0.4 : 1;
-        arr[i] = fade * style.alpha;
+        arr[i] = fade * style.alpha * (proximity === undefined ? 1 : proximity);
     }
 
     // Interpolated state at time tt (O(1) via cursor). Cubic Hermite through the
@@ -227,6 +227,8 @@
     // 300 000 km streak in the Earth frame). Landed spans are found once, from the
     // samples, so the ribbon can simply be hidden inside them — and clamped to the
     // liftoff time afterwards, so it does not reach back across the parked hours.
+    const TRAIL_FADE_NEAR = 80;    // m — ribbon gone this close to the object
+    const TRAIL_FADE_FAR = 700;    // m — ribbon at full alpha from here out
     const GROUND_ALT_M = 150;
     const GROUND_SPEED_MPS = 5;
 
@@ -443,6 +445,9 @@
 
             const camDist = camera.position.distanceTo(st.position);
             const halfW = (clamp(camDist * WIDTH_DIST_SCALE, WIDTH_MIN, WIDTH_MAX) / 2) * style.widthScale;
+            // Close in, the ribbon's minimum width subtends most of the frame and the
+            // hull ends up inside a pale sheet: fade it out over 80-700 m.
+            const proximity = clamp((camDist - TRAIL_FADE_NEAR) / (TRAIL_FADE_FAR - TRAIL_FADE_NEAR), 0, 1);
 
             const positions = ribbon.geometry.attributes.position.array;
             const colors = ribbon.geometry.attributes.color.array;
@@ -493,8 +498,8 @@
 
                 writeColor(colors, a, u, style);
                 writeColor(colors, b, u, style);
-                writeAlpha(alphas, a, u, style);
-                writeAlpha(alphas, b, u, style);
+                writeAlpha(alphas, a, u, style, proximity);
+                writeAlpha(alphas, b, u, style, proximity);
             }
 
             ribbon.visible = true;
