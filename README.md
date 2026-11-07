@@ -148,6 +148,7 @@ scripts/
 docs/
   adr/                    — architecture decision records
   apollo11-phases.md      — Apollo 11 phase plan, data anchors and provenance
+  apollo13-phases.md      — Apollo 13 (abort mission) phase plan, not yet built
 ```
 
 ## Development
