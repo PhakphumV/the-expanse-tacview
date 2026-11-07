@@ -177,6 +177,20 @@
 
         function getMode() { return mode; }
 
+        // Flip: roll the view 180 degrees about the view axis by inverting the
+        // camera's up vector. OrbitControls re-derives its frame from camera.up on
+        // every update, so orbiting still works — it just feels inverted, which is
+        // what an upside-down map implies.
+        let flipped = false;
+        function setFlipped(on) {
+            flipped = !!on;
+            camera.up.set(0, flipped ? -1 : 1, 0);
+            camera.lookAt(controls.target);
+            controls.update();
+        }
+        function isFlipped() { return flipped; }
+        function toggleFlip() { setFlipped(!flipped); return flipped; }
+
         function setTarget(id, distOverride) {
             targetId = id;
             const tp = resolveTarget(engine.getTime(), targetPos);
@@ -219,6 +233,7 @@
             setMode, getMode, setTarget, getTarget, update,
             zoom, ZOOM_STEP,
             setZoomVelocity, getZoomVelocity, applyZoomVelocity,
+            setFlipped, isFlipped, toggleFlip,
         };
     }
 

@@ -18,6 +18,10 @@
 
 :root {
     --font-ui: 'Orbitron', 'Courier New', monospace;
+    /* Numerals need a tabular face: Orbitron's digits are proportional (a "1" is
+       5.6 px at 12 px, a "9" is 6.0), so live readouts jitter as digits change.
+       Labels stay Orbitron; values use this. */
+    --font-num: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
 }
 
 html, body {
@@ -76,6 +80,28 @@ html, body {
 #liveDot.paused { background: #d58a2a; box-shadow: 0 0 8px #d58a2a; }
 #replayStatus { letter-spacing: 2px; font-weight: bold; }
 #phaseReadout { color: #ffe8b8; letter-spacing: 1px; }
+/* Phase gets its own row: a phase label that changes length ("TLI / COAST" ->
+   "LUNAR ORBIT") would otherwise push the clock and the scenario selector around
+   every time it changed. */
+#phaseRow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #9fb8d8;
+    min-height: 14px;
+}
+/* Values that tick every frame: tabular figures in a fixed, right-aligned box, so
+   neither the digits nor their neighbours move as the numbers change. */
+#elapsedReadout, #remainingReadout {
+    font-family: var(--font-num);
+    font-size: 12px;
+    display: inline-block;
+    min-width: 10ch;
+    text-align: right;
+    color: #cfe3ff;
+}
 .scenario-group { display: flex; align-items: center; gap: 6px; margin-left: auto; pointer-events: auto; }
 .scenario-group label { color: #888; font-size: 11px; letter-spacing: 2px; font-weight: bold; }
 #scenarioSelect {
@@ -153,7 +179,15 @@ html, body {
 .target-info .tag { color: #7f97b8; letter-spacing: 1px; font-size: 9px; }
 .target-info .row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.7; }
 .target-info .row .k { color: #7f97b8; }
-.target-info .row .v { color: #eaf4ff; }
+.target-info .row .v {
+    color: #eaf4ff;
+    /* Values tick every frame: tabular figures, fixed width, right-aligned, so a
+       changing digit cannot resize the panel or shove its neighbours. */
+    font-family: var(--font-num);
+    display: inline-block;
+    min-width: 14ch;
+    text-align: right;
+}
 
 /* ---- Timeline ---- */
 #timeline {
@@ -163,8 +197,7 @@ html, body {
     bottom: 0;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    row-gap: 6px;
+    flex-wrap: nowrap;          /* the scrub bar shrinks instead of wrapping the bar */
     gap: 8px;
     padding: 8px 10px;
     background: linear-gradient(to top, rgba(4, 10, 24, 0.95), rgba(4, 10, 24, 0));
@@ -175,27 +208,38 @@ html, body {
     background: rgba(10, 22, 46, 0.85);
     color: #cfe3ff;
     border: 1px solid #2b406a;
-    padding: 4px 9px;
+    padding: 4px 7px;
     border-radius: 3px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 11px;
-    letter-spacing: 1px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
 }
 #timeline button:hover { border-color: #3a7bd5; color: #ffffff; }
+#flipBtn.active {
+    background: #2b6cb0;
+    border-color: #5aa0e8;
+    color: #ffffff;
+    box-shadow: 0 0 6px rgba(90, 160, 232, 0.6);
+}
 #timeline button.mode-btn.active {
     background: #2b6cb0;
     border-color: #5aa0e8;
     color: #fff;
     box-shadow: 0 0 6px rgba(90, 160, 232, 0.6);
 }
-#timeReadout { min-width: 92px; text-align: center; color: #9fd0ff; }
+#timeReadout {
+    min-width: 12ch;
+    text-align: right;
+    color: #9fd0ff;
+    font-family: var(--font-num);
+}
 
 #scrubBar {
     position: relative;
-    flex: 1 1 220px;
+    flex: 1 1 120px;
     height: 12px;
-    min-width: 200px;
+    min-width: 90px;
     background: rgba(10, 22, 46, 0.85);
     border: 1px solid #2b406a;
     border-radius: 3px;
@@ -288,20 +332,82 @@ html, body {
     font-family: inherit;
     font-size: 11px;
 }
+/* ---- Zoom: vertical, monochrome, momentary -----------------------------
+   Floats above the timeline: a 104 px tall control inside the bar would stretch
+   it. Centre of the track is the neutral point (no zoom). */
 #zoomSliderWrap {
+    position: fixed;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 6;
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 6px;
+    padding: 7px 5px 5px;
+    background: rgba(10, 22, 46, 0.85);
+    border: 1px solid #2b406a;
+    border-radius: 3px;
+}
+#zoomSliderWrap::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    top: 59px;                    /* mid-track: the neutral (no zoom) point */
+    height: 1px;
+    background: rgba(159, 184, 216, 0.4);
+    pointer-events: none;
 }
 #zoomSlider {
-    width: 120px;
-    accent-color: #3a7bd5;
+    -webkit-appearance: none;
+    appearance: none;
+    writing-mode: vertical-lr;
+    direction: rtl;               /* minimum at the bottom, so up = zoom in */
+    width: 12px;
+    height: 104px;
+    background: transparent;
+    position: relative;
+    z-index: 1;
     cursor: pointer;
 }
+#zoomSlider:focus { outline: none; }
+#zoomSlider::-webkit-slider-runnable-track {
+    width: 4px;
+    height: 100%;
+    background: #24324a;
+    border-radius: 2px;
+}
+#zoomSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 11px;
+    height: 11px;
+    margin-left: -3.5px;          /* centre the 11 px thumb on the 4 px track */
+    border-radius: 50%;
+    background: #9fb8d8;
+    border: 1px solid #dbe8fa;
+}
+#zoomSlider::-moz-range-track {
+    width: 4px;
+    height: 100%;
+    background: #24324a;
+    border-radius: 2px;
+}
+#zoomSlider::-moz-range-thumb {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #9fb8d8;
+    border: 1px solid #dbe8fa;
+}
 #zoomSliderLabel {
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 1px;
     color: #7f97b8;
+    text-align: center;
+    line-height: 1.3;
+    min-width: 48px;
 }
 
 /* ---- Entity label ---- */
@@ -331,13 +437,24 @@ html, body {
 }
 #helpContent {
     min-width: 320px;
-    max-width: 90vw;
+    max-width: min(760px, 92vw);
+    max-height: 86vh;
+    overflow: auto;
     background: #071024;
     border: 1px solid #2b406a;
     border-radius: 6px;
     padding: 16px 20px;
     color: #cfe3ff;
 }
+#helpContent h4 {
+    margin: 14px 0 6px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #9fd0ff;
+    text-transform: uppercase;
+}
+#helpContent h4:first-child { margin-top: 0; }
+.helpBody { max-height: 70vh; overflow: auto; }
 #helpHeader {
     display: flex;
     justify-content: space-between;

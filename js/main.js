@@ -227,12 +227,50 @@
     }
     applyZoomSlider();
     const trailsBtn = document.getElementById('trailsBtn');
+
+    // Flip the view upside down (button + F).
+    const flipBtn = document.getElementById('flipBtn');
+    function setFlip(on) {
+        const f = typeof on === 'boolean' ? on : !cameraCtl.isFlipped();
+        cameraCtl.setFlipped(f);
+        if (flipBtn) {
+            flipBtn.classList.toggle('active', f);
+            flipBtn.textContent = f ? 'Flip: ON' : 'Flip';
+        }
+    }
+    if (flipBtn) flipBtn.addEventListener('click', () => setFlip());
+
+    // Help overlay: the ? button, the ? key, Esc, or a click on the backdrop.
+    const helpOverlay = document.getElementById('helpOverlay');
+    function setHelp(open) {
+        if (!helpOverlay) return;
+        helpOverlay.style.display = open ? 'flex' : 'none';
+    }
+    function helpOpen() { return !!helpOverlay && helpOverlay.style.display === 'flex'; }
+    function toggleHelp() { setHelp(!helpOpen()); }
+    const helpBtn = document.getElementById('helpBtn');
+    if (helpBtn) helpBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleHelp(); });
+    const helpClose = document.getElementById('helpClose');
+    if (helpClose) helpClose.addEventListener('click', () => setHelp(false));
+    if (helpOverlay) {
+        helpOverlay.addEventListener('click', (e) => { if (e.target === helpOverlay) setHelp(false); });
+    }
+
     window.addEventListener('keydown', function (e) {
         const tag = (e.target && e.target.tagName) || '';
         if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+        // While the guide is open only Esc and ? act, so Space does not restart
+        // playback behind the overlay.
+        if (helpOpen()) {
+            if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); setHelp(false); }
+            return;
+        }
         if (e.key === '1') cameraCtl.setMode('orbit');
         else if (e.key === '2') cameraCtl.setMode('follow');
         else if (e.key === 't' || e.key === 'T') setTrails(!(entities[0] && entities[0].getTrailsVisible()));
+        else if (e.key === 'f' || e.key === 'F') setFlip();
+        else if (e.key === '?' || (e.key === '/' && e.shiftKey)) { e.preventDefault(); setHelp(true); }
+        else if (e.key === 'Escape') setHelp(false);
         else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.ZOOM_STEP);
         else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.ZOOM_STEP);
     });

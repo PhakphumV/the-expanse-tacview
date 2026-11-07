@@ -20,11 +20,13 @@
             <span id="replayStatus">REPLAYING</span>
             <span class="timeGroup">ELAPSED <span id="elapsedReadout">00:00.0</span></span>
             <span class="timeGroup">REMAINING <span id="remainingReadout">-00:00.0</span></span>
-            <span class="timeGroup">PHASE <span id="phaseReadout">&mdash;</span></span>
             <span class="scenario-group">
                 <label for="scenarioSelect">SCENARIO</label>
                 <select id="scenarioSelect" aria-label="Scenario"></select>
             </span>
+        </div>
+        <div id="phaseRow">
+            <span class="timeGroup">PHASE <span id="phaseReadout">&mdash;</span></span>
         </div>
     </div>
 
@@ -68,39 +70,57 @@
         <button id="modeOrbitBtn" class="mode-btn active">Orbit</button>
         <button id="modeFollowBtn" class="mode-btn">Follow</button>
         <button id="trailsBtn">Trail: ON</button>
-        <div id="zoomSliderWrap" title="Zoom: centre = off, left = out, right = in">
-            <input type="range" id="zoomSlider" min="0" max="100" value="50">
-            <label id="zoomSliderLabel">ZOOM</label>
-        </div>
-        <button id="helpBtn" title="Keyboard shortcuts (?)">?</button>
+        <button id="flipBtn" title="Flip the view upside down (F)">Flip</button>
+        <button id="helpBtn" title="Shortcuts and UI guide (?)">?</button>
+    </div>
+
+    <!-- Zoom: vertical, momentary, bipolar (centre = off, up = in, down = out) -->
+    <div id="zoomSliderWrap" title="Zoom: centre = off, up = zoom in, down = zoom out (springs back)">
+        <input type="range" id="zoomSlider" min="0" max="100" value="50" step="1"
+               aria-label="Zoom velocity" orient="vertical">
+        <label id="zoomSliderLabel">ZOOM</label>
     </div>
 
     <!-- Help overlay -->
     <div id="helpOverlay" style="display:none;">
         <div id="helpContent">
             <div id="helpHeader">
-                <span>KEYBOARD SHORTCUTS</span>
-                <button id="helpClose">&times;</button>
+                <span>GUIDE &amp; SHORTCUTS</span>
+                <button id="helpClose" aria-label="Close">&times;</button>
             </div>
-            <table>
-                <tr><td>Space</td><td>Play / Pause</td></tr>
-                <tr><td>R</td><td>Restart (jump to start &amp; resume)</td></tr>
-                <tr><td>Home / 0</td><td>Jump to start</td></tr>
-                <tr><td>End</td><td>Jump to end</td></tr>
-                <tr><td>1 / 2</td><td>Orbit / Follow camera</td></tr>
-                <tr><td>Mouse drag</td><td>Rotate (Orbit view / orbit in Follow)</td></tr>
-                <tr><td>Wheel</td><td>Zoom in / out</td></tr>
-                <tr><td>Zoom slider</td><td>Hold right to zoom in, left to zoom out; springs back to centre (off) when released</td></tr>
-                <tr><td>+ / &minus;</td><td>Zoom in / out</td></tr>
-                <tr><td>PageUp / PageDown</td><td>Zoom in / out</td></tr>
-                <tr><td>T</td><td>Toggle trail</td></tr>
-                <tr><td>?</td><td>Toggle this help</td></tr>
-                <tr><td>Esc</td><td>Close this help</td></tr>
-            </table>
-            <p class="helpNote">
-                Select a body or object in the <b>TARGETS</b> panel to orbit or
-                follow it. Telemetry contract: <b>SCHEMA.md</b>.
-            </p>
+            <div class="helpBody">
+                <h4>Reading the screen</h4>
+                <table>
+                    <tr><td>Header</td><td>Playback state, elapsed and remaining mission time, and the current phase (its own line, so it never pushes the clock around).</td></tr>
+                    <tr><td>TARGETS</td><td>Every body and vehicle in the scenario. Click one to orbit or follow it; its live telemetry appears underneath.</td></tr>
+                    <tr><td>ALT / SPD</td><td>Altitude and speed. Inside the Moon's sphere of influence, <b>SPD</b> is lunar-relative and marked <b>lunar</b>; a landed vehicle reads 0.000.</td></tr>
+                    <tr><td>POS / &Delta;V</td><td>Earth-centred position in km, and the delta-v spent since launch.</td></tr>
+                    <tr><td>MOON</td><td>Altitude above the Moon (<b>ON SURFACE</b> when landed), added for cislunar targets.</td></tr>
+                    <tr><td>Trails</td><td>Vehicles leave a bright ribbon; bodies leave a dimmer one. Length is a fraction of the object's own orbit — a craft an eighth, a body almost half — and a transfer coast shows its last 60 minutes.</td></tr>
+                    <tr><td>Timeline</td><td>Scrub bar with phase markers and burn bars; every marker jumps to its event. Speed goes from 0.25x to 8192x.</td></tr>
+                </table>
+
+                <h4>Keyboard</h4>
+                <table>
+                    <tr><td>Space</td><td>Play / pause</td></tr>
+                    <tr><td>R</td><td>Restart (jump to start &amp; resume)</td></tr>
+                    <tr><td>Home / 0</td><td>Jump to start</td></tr>
+                    <tr><td>End</td><td>Jump to end</td></tr>
+                    <tr><td>1 / 2</td><td>Orbit / Follow camera</td></tr>
+                    <tr><td>F</td><td>Flip the view upside down</td></tr>
+                    <tr><td>T</td><td>Toggle trails</td></tr>
+                    <tr><td>Wheel</td><td>Zoom in / out</td></tr>
+                    <tr><td>+ / &minus;, PageUp / PageDown</td><td>Zoom in / out, one step</td></tr>
+                    <tr><td>Zoom slider</td><td>Vertical, momentary: hold up to zoom in, down to zoom out, faster the further it is pushed; it springs back to centre (off) when released</td></tr>
+                    <tr><td>Drag</td><td>Rotate (Orbit view, or orbit around the target in Follow)</td></tr>
+                    <tr><td>?</td><td>Toggle this guide</td></tr>
+                    <tr><td>Esc</td><td>Close this guide</td></tr>
+                </table>
+                <p class="helpNote">
+                    Telemetry contract: <b>SCHEMA.md</b> &middot; authoring guide:
+                    <b>docs/telemetry-guide.md</b>.
+                </p>
+            </div>
         </div>
     </div>
 

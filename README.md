@@ -80,12 +80,21 @@ python3 -m http.server 8000
 - **Viewport** (`js/camera.js`): two modes — **Orbit** (free rotation around the
   selected target) and **Follow** (chase the selected moving object; drag to
   orbit it, zoom to pull in). Wheel and `+`/`-`/PageUp/PageDown zoom by a fixed
-  step; the slider is a momentary, bipolar control — hold it right to zoom in or
-  left to zoom out, faster the further you drag, and it springs back to centre
-  (no zoom) when you let go, so the same gesture works from a 50 m close-up to
-  the lunar orbit.
+  step. The zoom rail on the left edge is **vertical** and momentary: hold the
+  thumb up to zoom in or down to zoom out, faster the further it is pushed, and it
+  springs back to the centre tick (no zoom) when released — one gesture works from
+  a 50 m close-up to the lunar orbit. **Flip** (button or `F`) rolls the view 180°
+  so the scene reads upside down, for matching a printed chart or an inverted
+  reference frame; labels stay upright because they are DOM, not scene geometry.
   Orbit guide rings and object path lines are dashed, with the dash pattern
   rescaled to the camera distance so it reads at every scale.
+- **Steady readouts**: elapsed/remaining time, the timeline clock and every HUD
+  value use tabular figures in a fixed-width, right-aligned box, and the phase
+  label sits on its own header row. Without that, a proportional display face
+  plus a changing digit count made the numbers (and their neighbours) twitch at
+  512x playback.
+- **Guide overlay** (`?` or the `?` button): what each panel shows, what the HUD
+  rows mean, and the full shortcut list. Esc or a backdrop click closes it.
 - Celestial bodies: wireframe Earth (static) and the Moon, which is a celestial
   telemetry track moving along its tilted mean orbital path ring
   (`js/scene.js` + `data/scenarios.json`).
