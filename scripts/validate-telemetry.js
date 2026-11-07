@@ -13,12 +13,15 @@
 //   5. Attitude forward axis maps onto velocity direction (heading sanity).
 //   6. Scenario events have finite t and a non-empty label.
 //   7. Celestial tracks carry a radius and stay on their declared orbit.
+//   8. Scenario presentation fields (epoch, duration_s, speeds, framing) are sane.
+//   9. The generated per-scenario payloads match data/scenarios.json.
 //
 // Run:    npm test   (or)   node scripts/validate-telemetry.js
 // Exits 0 on success, 1 on any failed check.
 
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const { execSync } = require('child_process');
 
 const repoRoot = path.resolve(__dirname, '..');
@@ -77,7 +80,8 @@ function checkShape() {
 
 function checkSyntax() {
     const modules = [
-        'js/ephemeris.js', 'js/scene.js', 'js/orbit-ring.js', 'js/entities.js', 'js/spacecraft-model.js',
+        'js/ephemeris.js', 'js/scene.js', 'js/orbit-ring.js', 'js/scenario-loader.js',
+        'js/entities.js', 'js/spacecraft-model.js',
         'js/camera.js', 'js/hud.js', 'js/timeline.js', 'js/labels.js', 'js/main.js',
         'js/scenarios-data.js',
     ];
@@ -198,6 +202,44 @@ function checkScenarioFields() {
     return null;
 }
 
+function checkEmbeddedData() {
+    const manPath = path.join(repoRoot, 'js', 'scenarios-data.js');
+    if (!fs.existsSync(manPath)) return 'js/scenarios-data.js missing (run npm run embed)';
+    const manCtx = { window: {} };
+    try { vm.runInNewContext(fs.readFileSync(manPath, 'utf8'), manCtx, { filename: manPath }); }
+    catch (e) { return `js/scenarios-data.js: ${e.message}`; }
+    const manifest = manCtx.window.TacviewManifest;
+    if (!manifest || !Array.isArray(manifest.scenarios)) return 'js/scenarios-data.js: missing TacviewManifest.scenarios';
+
+    const list = scenarios();
+    const ids = list.map((s) => s.id);
+    const manIds = manifest.scenarios.map((s) => s.id);
+    if (ids.join(',') !== manIds.join(','))
+        return `manifest ids [${manIds.join(', ')}] do not match dataset ids [${ids.join(', ')}] (run npm run embed)`;
+
+    for (const sc of list) {
+        const file = path.join(repoRoot, 'js', `scenario-${sc.id}.js`);
+        if (!fs.existsSync(file)) return `js/scenario-${sc.id}.js missing (run npm run embed)`;
+        const ctx = { window: {} };
+        try { vm.runInNewContext(fs.readFileSync(file, 'utf8'), ctx, { filename: file }); }
+        catch (e) { return `js/scenario-${sc.id}.js: ${e.message}`; }
+        const emb = ctx.window.TacviewScenarios && ctx.window.TacviewScenarios[sc.id];
+        if (!emb) return `js/scenario-${sc.id}.js did not register "${sc.id}"`;
+        if (emb.tracks.length !== sc.tracks.length)
+            return `${sc.id}: embedded track count ${emb.tracks.length} != ${sc.tracks.length} (run npm run embed)`;
+        if ((emb.events || []).length !== (sc.events || []).length)
+            return `${sc.id}: embedded event count differs (run npm run embed)`;
+        for (let i = 0; i < sc.tracks.length; i++) {
+            const a = sc.tracks[i].samples, b = emb.tracks[i].samples;
+            if (a.length !== b.length)
+                return `${sc.id}/${sc.tracks[i].id}: embedded sample count ${b.length} != ${a.length} (run npm run embed)`;
+            if (a[a.length - 1].t !== b[b.length - 1].t)
+                return `${sc.id}/${sc.tracks[i].id}: embedded window differs (run npm run embed)`;
+        }
+    }
+    return null;
+}
+
 console.log(`Validating ${path.relative(repoRoot, datasetPath)}\n`);
 check('1. Dataset shape conforms to schema', checkShape);
 check('2. JS module syntax', checkSyntax);
@@ -207,6 +249,7 @@ check('5. Attitude forward maps onto velocity (heading)', checkHeading);
 check('6. Scenario events well-formed and time-ordered', checkEvents);
 check('7. Celestial tracks carry radius and match their orbit', checkCelestial);
 check('8. Scenario presentation fields are well-formed', checkScenarioFields);
+check('9. Embedded scenario files match the canonical dataset', checkEmbeddedData);
 
 console.log(`\n${passCount} passed, ${failCount} failed`);
 process.exit(failCount === 0 ? 0 : 1);

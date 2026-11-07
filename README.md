@@ -58,7 +58,11 @@ python3 -m http.server 8000
 - Celestial bodies: wireframe Earth (static) and the Moon, which is a celestial
   telemetry track moving along its tilted mean orbital path ring
   (`js/scene.js` + `data/scenarios.json`).
-- Clean timeline: play/pause, restart, jump, scrubbing, speed (0.25x–512x).
+- Clean timeline: play/pause, restart, jump, scrubbing, speed (0.25x–8192x).
+- **One scenario in memory at a time** (`js/scenario-loader.js`): the page boots
+  from a ~1 KB manifest, then injects the `<script>` for the scenario you pick
+  and releases the previous payload (and disposes the previous scene's
+  geometries). Only the payload being watched is decoded into vectors.
 
 ## Project structure
 
@@ -71,6 +75,7 @@ data/
   scenarios.json         — canonical source dataset (validated by npm test)
 js/
   main.js                 — entry point, wiring, per-frame loop
+  scenario-loader.js      — loads/releases one scenario payload at a time
   scene.js                — ECI scene, Earth body (no starfield)
   orbit-ring.js           — faint orbit guide ring derived from a celestial track
   ephemeris.js            — track/ephemeris engine (state queries, playback)
@@ -80,9 +85,11 @@ js/
   camera.js               — Orbit / Follow viewport modes around a target
   hud.js                  — selectable target list + per-target readouts
   timeline.js             — scrubber, play/pause, jump, speed, event markers
-  scenarios-data.js       — generated from data/scenarios.json (do not edit)
+  scenarios-data.js       — generated manifest (ids, names, counts, hints)
+  scenario-<id>.js        — generated per-scenario payload (tracks + events)
 scripts/
   validate-telemetry.js   — validates the contract (shape, quaternions, heading)
+  embed-scenarios.js      — splits data/scenarios.json into the files above
 docs/
   adr/                    — architecture decision records
   apollo11-phases.md      — Apollo 11 phase plan, data anchors and provenance
@@ -92,17 +99,14 @@ docs/
 
 ```bash
 npm test        # validate data/scenarios.json against SCHEMA.md + JS syntax
+npm run embed   # regenerate js/scenarios-data.js + js/scenario-<id>.js
 ```
 
-To regenerate `js/scenarios-data.js` from `data/scenarios.json` after editing the
-data:
-
-```bash
-node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync("data/scenarios.json","utf8"));fs.writeFileSync("js/scenarios-data.js","// Generated from data/scenarios.json (canonical source). Do not edit by hand.\nwindow.TacviewData = "+JSON.stringify(d)+";\n")'
-```
-
-New datasets are authored as JSON against `SCHEMA.md`; `data/scenarios.json` is the
-canonical source and `js/scenarios-data.js` is the embedded static copy.
+New datasets are authored as JSON against `SCHEMA.md`. `data/scenarios.json` is
+the canonical source; `npm run embed` splits it into one payload per scenario
+(`js/scenario-<id>.js`) plus a manifest (`js/scenarios-data.js`), so the viewer
+only ever loads the scenario being watched. `npm test` fails if the generated
+files drift from the canonical dataset.
 
 ## License
 

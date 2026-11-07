@@ -5,6 +5,7 @@
   "description": "Space-object telemetry viewer grounded in CCSDS OMM/OEM. No build step.",
   "scripts": {
     "test": "node scripts/validate-telemetry.js",
+    "embed": "node scripts/embed-scenarios.js",
     "serve": "python3 -m http.server 8000"
   }
 }

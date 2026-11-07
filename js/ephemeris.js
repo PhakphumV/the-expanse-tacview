@@ -129,6 +129,18 @@
             return true;
         }
 
+        // Load a single scenario payload (js/scenario-<id>.js via the scenario
+        // loader). Replaces whatever was loaded, so the previous scenario's
+        // samples and their decoded vectors become garbage.
+        function loadScenario(raw) {
+            state.scenarios = [normalizeScenario(raw, 0)];
+            state.scenarioIndex = 0;
+            state.activeIndex = 0;
+            state.currentTime = 0;
+            state.playing = true;
+            applyActive();
+        }
+
         // Interpolate a track's samples at time t (null outside its window).
         function interp(kfs, t) {
             if (!kfs || kfs.length === 0) return null;
@@ -183,6 +195,7 @@
 
         return {
             load,
+            loadScenario,
             selectScenario,
             getStateAtTime,
             getStateAtTimeFor,

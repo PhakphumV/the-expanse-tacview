@@ -56,7 +56,7 @@ html, body {
 #liveDot.paused { background: #d58a2a; box-shadow: 0 0 8px #d58a2a; }
 #replayStatus { letter-spacing: 2px; font-weight: bold; }
 #phaseReadout { color: #ffe8b8; letter-spacing: 1px; }
-.scenario-group { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.scenario-group { display: flex; align-items: center; gap: 6px; margin-left: auto; pointer-events: auto; }
 .scenario-group label { color: #888; font-size: 11px; letter-spacing: 2px; font-weight: bold; }
 #scenarioSelect {
     background: rgba(0, 0, 0, 0.6);

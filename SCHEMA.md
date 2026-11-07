@@ -17,14 +17,19 @@ The contract is grounded in the CCSDS 502 family recommendations:
 ## Dataset file
 
 - **Path:** `data/scenarios.json` (canonical source)
-- **Embedded static copy:** `js/scenarios-data.js` (generated from `data/scenarios.json`)
+- **Embedded payloads:** `js/scenario-<id>.js`, one per scenario — generated
+- **Embedded manifest:** `js/scenarios-data.js` — generated
 - **Format:** UTF-8 JSON
-- **Consumed by:** the viewer loads the embedded copy directly — no `fetch`,
-  so the page works from a `file://` origin with no server.
+- **Consumed by:** the viewer boots from the manifest (ids, names, presentation
+  hints, counts — no samples), then injects the `<script>` for the selected
+  scenario and releases the previous payload. No `fetch`, so the page still
+  works from a `file://` origin with no server.
+- **Regenerate:** `npm run embed` (`scripts/embed-scenarios.js`)
 
-The app reads the embedded copy in `js/scenarios-data.js`; the canonical source is
-`data/scenarios.json`, which is what `npm test` validates. Keep the two in sync by
-regenerating the embedded copy after editing the data (see `README.md`).
+The app reads the generated files; the canonical source is `data/scenarios.json`,
+which is what `npm test` validates. `npm test` also fails when a generated
+payload no longer matches the canonical dataset (sample counts, windows, events),
+so a forgotten `npm run embed` is caught rather than shipped.
 
 The first scenario ships three tracks: the Moon (a *celestial* track, see
 below), the International Space Station, and Tiangong / CSS.

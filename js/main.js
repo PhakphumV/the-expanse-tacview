@@ -49,10 +49,23 @@
             .concat(tracks.filter((tr) => !isCelestialTrack(tr)).map(row));
     }
 
+    // Rebuild the render layer. Geometries and materials of the previous
+    // scenario are disposed rather than orphaned, so switching scenarios does
+    // not accumulate GPU memory alongside the released payload.
+    function disposeGroup(group) {
+        group.traverse(function (obj) {
+            if (obj.geometry && obj.geometry.dispose) obj.geometry.dispose();
+            const mat = obj.material;
+            if (Array.isArray(mat)) mat.forEach((m) => m && m.dispose && m.dispose());
+            else if (mat && mat.dispose) mat.dispose();
+        });
+        group.clear();
+    }
+
     // Populate the active scenario's render layer + UI.
     function buildScenario() {
-        trackGroup.clear();
-        ringGroup.clear();
+        disposeGroup(trackGroup);
+        disposeGroup(ringGroup);
         if (labels) labels.reset();
         entities = engine.getTracks().map((tr) => T.createTrackEntity(trackGroup, engine, camera, tr.id));
         engine.getTracks().filter(isCelestialTrack).forEach((tr) => {
@@ -114,7 +127,7 @@
         const remaining = Math.max(0, dur - t);
         if (elapsedEl) elapsedEl.textContent = fmt(t);
         if (remainEl) remainEl.textContent = '-' + fmt(remaining);
-        if (statusEl) {
+        if (statusEl && !loading) {
             const label = engine.isPlaying() ? 'REPLAYING' : 'PAUSED';
             if (statusEl.textContent !== label) statusEl.textContent = label;
         }
@@ -125,23 +138,50 @@
         }
     }
 
-    // Scenario selector.
+    // Scenario selector. Payloads live one-per-file; the loader pulls the
+    // scenario being watched and releases the previous one so memory stays flat
+    // as scenarios are added.
     const scenarioSelect = document.getElementById('scenarioSelect');
+    const loader = T.createScenarioLoader();
+    let activeScenarioId = null;
+    let loading = false;
+
     function populateScenarios() {
         if (!scenarioSelect) return;
         scenarioSelect.innerHTML = '';
-        for (const sc of engine.getScenarios()) {
+        for (const sc of loader.list()) {
             const o = document.createElement('option');
             o.value = sc.id;
             o.textContent = sc.name;
             scenarioSelect.appendChild(o);
         }
-        const active = engine.getActiveScenario();
-        if (active) scenarioSelect.value = active.id;
+        if (activeScenarioId) scenarioSelect.value = activeScenarioId;
     }
+
+    function activateScenario(id) {
+        if (!id || (id === activeScenarioId && !loading)) return;
+        const previous = activeScenarioId;
+        loading = true;
+        if (statusEl) statusEl.textContent = 'LOADING';
+        loader.load(id, function (err, raw) {
+            loading = false;
+            if (err || !raw) {
+                console.error(err || new Error('scenario "' + id + '" unavailable'));
+                if (statusEl) statusEl.textContent = 'LOAD FAILED';
+                return;
+            }
+            engine.loadScenario(raw);
+            activeScenarioId = id;
+            if (scenarioSelect) scenarioSelect.value = id;
+            buildScenario();
+            // Release the previous payload: only the active scenario stays hot.
+            if (previous && previous !== id) loader.unload(previous);
+        });
+    }
+
     if (scenarioSelect) {
         scenarioSelect.addEventListener('change', function () {
-            if (engine.selectScenario(scenarioSelect.value)) buildScenario();
+            activateScenario(scenarioSelect.value);
         });
     }
 
@@ -166,10 +206,10 @@
     });
     if (trailsBtn) trailsBtn.addEventListener('click', () => setTrails(!(entities[0] && entities[0].getTrailsVisible())));
 
-    // Boot from the embedded dataset.
-    engine.load(global.TacviewData);
+    // Boot: the manifest names the scenarios; the loader fetches the first one.
     populateScenarios();
-    buildScenario();
+    const firstScenario = loader.list()[0];
+    if (firstScenario) activateScenario(firstScenario.id);
     cameraCtl.setMode('orbit');
 
     // Main loop.

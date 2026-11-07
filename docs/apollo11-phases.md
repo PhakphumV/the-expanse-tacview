@@ -55,6 +55,8 @@ and validated.
   Moon are single-pixel dots. Phase 1 adds a minimum-apparent-size body marker.
 - The HUD has no vehicle rows for a cislunar track yet (altitude above the Earth
   is meaningless in lunar space). Phase 2 adds range-rate / lunar-altitude rows.
-- Data is one embedded file. At the current 1.5 MB this is fine; if the Apollo
-  tracks push it past ~4 MB, split the dataset per scenario and load it with a
-  classic `<script>` injection (still `file://` friendly).
+- Data is split per scenario (`js/scenario-<id>.js` + manifest) and only the
+  active payload is decoded, so adding phases does not inflate boot memory the
+  way a single embedded dataset would. Each Apollo payload is expected to reach
+  a few hundred KB; if one passes ~2 MB, densify less (coarser coast sampling)
+  rather than splitting further.
