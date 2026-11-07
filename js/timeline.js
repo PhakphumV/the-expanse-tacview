@@ -37,10 +37,19 @@
         const scrubProgress = document.getElementById('scrubProgress');
         const scrubHandle = document.getElementById('scrubHandle');
         const eventMarkersEl = document.getElementById('eventMarkers');
+        const detailBar = document.getElementById('detailBar');
+        const detailTicks = document.getElementById('detailTicks');
+        const detailFrom = document.getElementById('detailFrom');
+        const detailTo = document.getElementById('detailTo');
         const speedSelect = document.getElementById('speedSelect');
         const restartBtn = document.getElementById('restartBtn');
         const prevEventBtn = document.getElementById('prevEventBtn');
         const nextEventBtn = document.getElementById('nextEventBtn');
+
+        // Detail timeline: a fixed 20-minute window (±10) centred on the playhead.
+        // Dragging it pans the window, which is the same as scrubbing the time.
+        const DETAIL_WINDOW_S = 1200;
+        let detailDrag = null;          // { x0, t0 } while a drag is in progress
 
         // Multi-day missions (Apollo) read as HHH:MM:SS rather than MM:SS.s.
         function isLong() { return engine.getDuration() >= 86400; }
@@ -143,6 +152,17 @@
                 eventMarkersEl.appendChild(bar);
             }
 
+            if (detailTicks) {
+                detailTicks.innerHTML = '';
+                for (const ev of events) {
+                    const dm = document.createElement('div');
+                    dm.className = 'detail-marker';
+                    dm.dataset.t = String(ev.t);
+                    dm.innerHTML = PIN_SVG;
+                    dm.style.setProperty('--mk', ev.type === 'milestone' ? '#9fd0ff' : '#ffe8b8');
+                    detailTicks.appendChild(dm);
+                }
+            }
             for (let i = 0; i < events.length; i++) {
                 const ev = events[i];
                 const btn = document.createElement('button');
@@ -205,6 +225,55 @@
         }
         window.addEventListener('resize', paintMarkers);
 
+        // Window bounds for the detail bar: always 1200 s wide and centred on the
+        // playhead, so it runs past the mission ends rather than sliding the
+        // playhead off-centre.
+        function detailWindow(t) {
+            return { start: t - DETAIL_WINDOW_S / 2, end: t + DETAIL_WINDOW_S / 2 };
+        }
+
+        function paintDetail(t) {
+            if (!detailBar) return;
+            const w = detailWindow(t);
+            if (detailTicks) {
+                for (const dm of detailTicks.children) {
+                    const et = parseFloat(dm.dataset.t);
+                    const frac = (et - w.start) / DETAIL_WINDOW_S;
+                    if (frac < 0 || frac > 1) { dm.style.display = 'none'; continue; }
+                    dm.style.display = 'block';
+                    dm.style.left = (frac * 100) + '%';
+                }
+            }
+            if (detailFrom) detailFrom.textContent = '\u2212' + formatMissionTime(DETAIL_WINDOW_S / 2, isLong());
+            if (detailTo) detailTo.textContent = '+' + formatMissionTime(DETAIL_WINDOW_S / 2, isLong());
+        }
+
+        if (detailBar) {
+            detailBar.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                // Playback would fight the drag (the engine advances while the pointer
+                // also sets the time), so hold it and resume on release.
+                detailDrag = { x0: e.clientX, t0: engine.getTime(), playing: engine.isPlaying() };
+                if (detailDrag.playing) { engine.pause(); refreshPlayPauseLabel(); }
+            });
+            window.addEventListener('mousemove', function (e) {
+                if (!detailDrag) return;
+                const rect = detailBar.getBoundingClientRect();
+                // Drag right = earlier, the way dragging a strip of film behaves.
+                const dt = -((e.clientX - detailDrag.x0) / rect.width) * DETAIL_WINDOW_S;
+                const dur = engine.getDuration();
+                engine.setTime(Math.max(0, Math.min(dur, detailDrag.t0 + dt)));
+                updateUI();
+            });
+            window.addEventListener('mouseup', function () {
+                if (detailDrag && detailDrag.playing) { engine.play(); refreshPlayPauseLabel(); }
+                detailDrag = null;
+            });
+            detailBar.addEventListener('dblclick', function () {
+                engine.setTime(engine.getTime());   // no-op; keeps the bar from selecting text
+            });
+        }
+
         function updateUI() {
             const t = engine.getTime();
             const dur = engine.getDuration();
@@ -213,6 +282,7 @@
                 scrubProgress.style.width = (frac * 100) + '%';
                 scrubHandle.style.left = (frac * 100) + '%';
             }
+            paintDetail(t);
             timeReadout.textContent = 'T+' + formatMissionTime(t, isLong());
             refreshPlayPauseLabel();
         }

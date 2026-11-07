@@ -212,6 +212,58 @@ html, body {
     z-index: 5;
     font-size: 11px;
 }
+/* Detail timeline: a 10-minute window around the playhead, for precise scrubbing. */
+#detailRow { padding: 17px 0 3px; }
+#detailBar {
+    position: relative;
+    width: 100%;
+    height: 15px;
+    background: rgba(8, 16, 34, 0.8);
+    border: 1px solid #24406a;
+    border-radius: 3px;
+    cursor: ew-resize;
+}
+#detailTicks { position: absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; overflow: visible; }
+.detail-edge {
+    position: absolute;
+    top: 1px;
+    left: 4px;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    color: #4d6a94;
+}
+.detail-edge.right { left: auto; right: 4px; }
+#detailCenter {
+    position: absolute;
+    left: 50%;
+    top: -17px;
+    bottom: -2px;
+    width: 1px;
+    margin-left: -0.5px;
+    background: #9fd0ff;
+    box-shadow: 0 0 6px rgba(159, 208, 255, 0.7);
+    pointer-events: none;
+}
+#detailCenter::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #9fd0ff;
+}
+.detail-marker {
+    position: absolute;
+    top: -14px;
+    width: 11px;
+    height: 15px;
+    margin-left: -5.5px;
+    pointer-events: none;
+    color: var(--mk, #ffd27f);
+}
+.detail-marker svg { display: block; width: 11px; height: 15px; fill: currentColor; }
 /* Room above the track for the event pins (20 px tall). */
 #scrubRow { padding: 21px 0 0; }
 #scrubBar {
