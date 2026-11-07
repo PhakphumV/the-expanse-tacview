@@ -34,6 +34,13 @@
         let followSph = null;   // { theta, phi, radius } around the target
         let zoomVel = 0;        // -1 (zoom out) .. +1 (zoom in), 0 = off
         const targetPos = new THREE.Vector3();
+        // Pan: the aim point is the target plus an offset, so you can orbit *and*
+        // pan around the selected object instead of being locked to its centre.
+        // Orbit mode keeps it on controls.target (which the user drags), follow mode
+        // keeps a world-space offset applied to both the eye and the aim.
+        const orbitPan = new THREE.Vector3();
+        const followPan = new THREE.Vector3();
+        const PAN_KEY_STEP = 0.06;   // fraction of the view distance per key press
 
         // Slider -1..1 -> continuous zoom velocity. Centre is exactly zero, so
         // the slider can sit untouched without the view creeping.
@@ -109,8 +116,11 @@
                 s.radius * Math.cos(s.phi),
                 s.radius * sp * Math.cos(s.theta)
             );
-            camera.position.copy(tp).add(off);
-            camera.lookAt(tp);
+            // Pan moves the whole rig, so the object slides across the frame while the
+            // orbit keeps pivoting on the (offset) aim point.
+            const aim = tp.clone().add(followPan);
+            camera.position.copy(aim).add(off);
+            camera.lookAt(aim);
         }
 
         function dolly(factor) {
@@ -130,6 +140,41 @@
 
         function zoom(factor) { dolly(factor); }
 
+        // Screen-space pan. dx > 0 moves the view left (the object slides right),
+        // dy > 0 moves it up, in pixels, scaled by the current view distance so the
+        // feel is the same from a 50 m close-up to the lunar orbit.
+        function panBy(dxPx, dyPx) {
+            const aim = new THREE.Vector3().copy(controls.target);
+            const dist = camera.position.distanceTo(aim);
+            if (!(dist > 0)) return;
+            const k = dist * PAN_KEY_STEP / 100;
+            const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+            const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+            const d = right.multiplyScalar(-dxPx * k).add(up.multiplyScalar(dyPx * k));
+            if (mode === 'follow') {
+                followPan.add(d);
+                applyFollow(resolveTarget(engine.getTime(), new THREE.Vector3()) || aim);
+            } else {
+                orbitPan.add(d);
+                camera.position.add(d);
+                controls.target.add(d);
+                controls.update();
+            }
+        }
+        function panKey(which) {
+            if (which === 'left') panBy(1, 0);
+            else if (which === 'right') panBy(-1, 0);
+            else if (which === 'up') panBy(0, 1);
+            else if (which === 'down') panBy(0, -1);
+        }
+        function resetPan() {
+            orbitPan.set(0, 0, 0);
+            followPan.set(0, 0, 0);
+        }
+        function getPan() { return { orbit: orbitPan.clone(), follow: followPan.clone() }; }
+        // Screen-space panning keeps the drag aligned with the screen, not the world.
+        controls.screenSpacePanning = true;
+
         // Wheel zoom (both modes). Scroll up = zoom in.
         const dom = controls.domElement;
         dom.addEventListener('wheel', function (e) {
@@ -138,22 +183,27 @@
         }, { passive: false });
         controls.enableZoom = false;
 
-        // Drag to orbit around the target in Follow mode.
-        let dragging = false, lastX = 0, lastY = 0;
+        // Drag to orbit around the target in Follow mode; Shift-drag (or the right
+        // button) pans instead, so Follow can pan as well as Orbit.
+        let dragging = false, panning = false, lastX = 0, lastY = 0;
         dom.addEventListener('mousedown', function (e) {
             if (mode !== 'follow') return;
             dragging = true;
+            panning = e.shiftKey || e.button === 2;
             lastX = e.clientX; lastY = e.clientY;
             e.preventDefault();
         });
         window.addEventListener('mousemove', function (e) {
-            if (!dragging || mode !== 'follow' || !followSph) return;
+            if (!dragging || mode !== 'follow') return;
             const dx = e.clientX - lastX, dy = e.clientY - lastY;
             lastX = e.clientX; lastY = e.clientY;
+            if (panning) { panBy(dx / 25, dy / 25); return; }
+            if (!followSph) return;
             followSph.theta -= dx * 0.006;
             followSph.phi = clamp(followSph.phi - dy * 0.006, 0.02, Math.PI - 0.02);
         });
-        window.addEventListener('mouseup', function () { dragging = false; });
+        window.addEventListener('mouseup', function () { dragging = false; panning = false; });
+        dom.addEventListener('contextmenu', function (e) { if (mode === 'follow') e.preventDefault(); });
 
         const VIEW_DIST = { earth: 3.5e7, moon: 6e7 };
         function viewDist(id) { return VIEW_DIST[id] || 2e6; }   // tracks default
@@ -193,6 +243,7 @@
 
         function setTarget(id, distOverride) {
             targetId = id;
+            resetPan();
             const tp = resolveTarget(engine.getTime(), targetPos);
             if (!tp) return;
             if (mode === 'follow') {
@@ -222,8 +273,11 @@
             const tp = resolveTarget(t, targetPos);
             if (!tp) return;
             if (mode === 'orbit') {
-                controls.target.copy(tp);   // follow moving tracks while orbiting
+                // Follow the moving track, but keep whatever pan the user has applied:
+                // the aim is target + offset, and OrbitControls' own pan edits the aim.
+                controls.target.copy(tp).add(orbitPan);
                 controls.update();
+                orbitPan.copy(controls.target).sub(tp);
             } else {
                 applyFollow(tp);
             }
@@ -234,6 +288,7 @@
             zoom, ZOOM_STEP,
             setZoomVelocity, getZoomVelocity, applyZoomVelocity,
             setFlipped, isFlipped, toggleFlip,
+            panBy, panKey, resetPan, getPan,
         };
     }
 

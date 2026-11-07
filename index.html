@@ -39,16 +39,21 @@
 
     <!-- Playback timeline -->
     <div id="timeline">
+        <!-- The track gets its own full-width row so 25 event pins are not packed
+             into the leftovers of a control bar. -->
+        <div id="scrubRow">
+            <div id="scrubBar">
+                <div id="scrubProgress"></div>
+                <div id="scrubHandle"></div>
+                <div id="eventMarkers"></div>
+            </div>
+        </div>
+        <div id="timelineControls">
         <button id="restartBtn" title="Restart (R)">|&laquo;</button>
         <button id="jumpStartBtn" title="Jump to start (Home/0)">|<</button>
         <button id="playPauseBtn" title="Play/Pause (Space)">Pause</button>
         <button id="jumpEndBtn" title="Jump to end (End)">>|</button>
         <span id="timeReadout">T+00:00.0</span>
-        <div id="scrubBar">
-            <div id="scrubProgress"></div>
-            <div id="scrubHandle"></div>
-            <div id="eventMarkers"></div>
-        </div>
         <select id="speedSelect" title="Playback speed">
             <option value="0.25">0.25x</option>
             <option value="0.5">0.5x</option>
@@ -72,12 +77,15 @@
         <button id="trailsBtn">Trail: ON</button>
         <button id="flipBtn" title="Flip the view upside down (F)">Flip</button>
         <button id="helpBtn" title="Shortcuts and UI guide (?)">?</button>
+        </div>
     </div>
 
     <!-- Zoom: vertical, momentary, bipolar (centre = off, up = in, down = out) -->
     <div id="zoomSliderWrap" title="Zoom: centre = off, up = zoom in, down = zoom out (springs back)">
+        <span class="zoom-sign" aria-hidden="true">+</span>
         <input type="range" id="zoomSlider" min="0" max="100" value="50" step="1"
                aria-label="Zoom velocity" orient="vertical">
+        <span class="zoom-sign" aria-hidden="true">&minus;</span>
     </div>
 
     <!-- Help overlay -->
@@ -107,6 +115,9 @@
                     <tr><td>End</td><td>Jump to end</td></tr>
                     <tr><td>1 / 2</td><td>Orbit / Follow camera</td></tr>
                     <tr><td>F</td><td>Flip the view upside down</td></tr>
+                    <tr><td>Numpad 4 / 6</td><td>Pan left / right around the selected object</td></tr>
+                    <tr><td>Numpad 8 / 2</td><td>Pan up / down around the selected object</td></tr>
+                    <tr><td>Right-drag</td><td>Pan (Orbit view); Shift-drag pans in Follow view</td></tr>
                     <tr><td>T</td><td>Toggle trails</td></tr>
                     <tr><td>Wheel</td><td>Zoom in / out</td></tr>
                     <tr><td>+ / &minus;, PageUp / PageDown</td><td>Zoom in / out, one step</td></tr>

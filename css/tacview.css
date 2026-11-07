@@ -205,13 +205,29 @@ html, body {
     right: 0;
     bottom: 0;
     display: flex;
-    align-items: center;
-    flex-wrap: nowrap;          /* the scrub bar shrinks instead of wrapping the bar */
-    gap: 8px;
-    padding: 8px 10px;
-    background: linear-gradient(to top, rgba(4, 10, 24, 0.95), rgba(4, 10, 24, 0));
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 10px 8px;
+    background: linear-gradient(to top, rgba(4, 10, 24, 0.96), rgba(4, 10, 24, 0.72) 60%, rgba(4, 10, 24, 0));
     z-index: 5;
     font-size: 11px;
+}
+/* Room above the track for the event pins (20 px tall). */
+#scrubRow { padding: 21px 0 0; }
+#scrubBar {
+    position: relative;
+    width: 100%;
+    height: 12px;
+    background: rgba(10, 22, 46, 0.85);
+    border: 1px solid #2b406a;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#timelineControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
 }
 #timeline button {
     background: rgba(10, 22, 46, 0.85);
@@ -244,16 +260,6 @@ html, body {
     font-family: var(--font-num);
 }
 
-#scrubBar {
-    position: relative;
-    flex: 1 1 120px;
-    height: 12px;
-    min-width: 90px;
-    background: rgba(10, 22, 46, 0.85);
-    border: 1px solid #2b406a;
-    border-radius: 3px;
-    cursor: pointer;
-}
 #scrubProgress {
     position: absolute;
     left: 0;
@@ -281,30 +287,44 @@ html, body {
     pointer-events: none;
     overflow: visible;
 }
-/* Event pins: a map-pin planted on the track, with a 14 x 17 px hit area instead
-   of the old 2 px tick. The tip lands on the bar's top edge; --row staggers pins
-   that would otherwise overlap (set from JS once the bar has a width). */
+/* Event markers: a tick in the track with a map-pin above it. The button covers
+   the whole tick plus pin (16 x 32), so the hit area is a real target instead of a
+   2 px sliver. Colour comes from --mk, set in JS: events that sit within a few
+   pixels of each other take different colours rather than stacking in rows. */
 .event-marker {
     position: absolute;
-    top: calc(-20px - var(--row, 0) * 13px);
+    top: -20px;
     width: 16px;
-    height: 20px;
+    height: 20px;      /* the pin only: the tick below it must not block the track */
     margin-left: -8px;
     padding: 0;
     border: 0;
     background: none;
-    color: #ffd27f;
+    color: var(--mk, #ffd27f);
     pointer-events: auto;
     cursor: pointer;
-    transition: color 0.12s linear;
+}
+.event-marker::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;         /* the tick hangs into the track, below the pin */
+    width: 2px;
+    height: 12px;
+    margin-left: -1px;
+    background: var(--mk, #ffd27f);
+    border-radius: 1px;
 }
 .event-marker svg {
-    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 16px;
     height: 20px;
-    fill: currentColor;
-    filter: drop-shadow(0 0 3px rgba(255, 210, 127, 0.35));
+    fill: var(--mk, #ffd27f);
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
 }
+.event-marker:hover, .event-marker:focus-visible { filter: brightness(1.35); }
 .event-marker:focus-visible { outline: 1px solid #9fd0ff; outline-offset: 1px; }
 .event-marker span {
     position: absolute;
@@ -335,10 +355,7 @@ html, body {
 .maneuver-bar.impulsive { background: #ffd27f; height: 3px; }
 .maneuver-bar.constant { background: #ff7a3d; }
 /* Phase markers are the coarse jump targets: taller tick, brighter label. */
-.event-marker.phase { color: #ffe8b8; }
-.event-marker.phase span { color: #ffe8b8; font-weight: bold; }
-.event-marker.milestone { color: #9fd0ff; }
-.event-marker:hover { color: #ffffff; }
+.event-marker.phase span { font-weight: bold; }
 /* A long mission packs many events into a short scrub bar, so labels are
    hover-only: the ticks stay readable and the header names the current phase. */
 .event-marker span { opacity: 0; transition: opacity 0.12s linear; }
@@ -363,7 +380,8 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 6px;
+    gap: 4px;
+    padding: 6px 6px;
     background: rgba(10, 22, 46, 0.85);
     border: 1px solid #2b406a;
     border-radius: 3px;
@@ -377,6 +395,13 @@ html, body {
     height: 1px;
     background: rgba(159, 184, 216, 0.4);
     pointer-events: none;
+}
+.zoom-sign {
+    font-size: 11px;
+    line-height: 1;
+    color: #7f97b8;
+    pointer-events: none;
+    user-select: none;
 }
 #zoomSlider {
     -webkit-appearance: none;

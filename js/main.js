@@ -260,6 +260,10 @@
             if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); setHelp(false); }
             return;
         }
+        // Numpad pans the view around the selected object: 4/6 left-right, 8/2 up-down.
+        // Matched on e.code first, so a numpad 2 pans instead of switching camera mode.
+        const NUM_PAN = { Numpad4: 'left', Numpad6: 'right', Numpad8: 'up', Numpad2: 'down' };
+        if (NUM_PAN[e.code]) { e.preventDefault(); cameraCtl.panKey(NUM_PAN[e.code]); return; }
         if (e.key === '1') cameraCtl.setMode('orbit');
         else if (e.key === '2') cameraCtl.setMode('follow');
         else if (e.key === 't' || e.key === 'T') setTrails(!(entities[0] && entities[0].getTrailsVisible()));

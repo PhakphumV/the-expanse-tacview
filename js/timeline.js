@@ -155,27 +155,36 @@
                 btn.appendChild(lab);
                 eventMarkersEl.appendChild(btn);
             }
-            staggerPins();
+            paintMarkers();
         }
 
-        // Pins sit at the same x when events are close in time (Apollo packs the EVA
-        // and the landing into the same few pixels), so stack them: the first pin
-        // that fits in a row stays there, the next goes up a row. Re-run whenever the
-        // bar is resized, because the pixel gaps depend on its width.
-        function staggerPins() {
+        // Events that land within a few pixels of each other keep their own tick and
+        // pin — nothing is stacked — and are told apart by colour instead: the first
+        // of a cluster keeps its type colour (phase amber, milestone blue) and each
+        // neighbour after it takes the next palette colour. Re-run on resize, because
+        // how close "close" is depends on the track's width in pixels.
+        const CLUSTER_COLORS = ['#ffe8b8', '#9fd0ff', '#ffb3c7', '#a8f0a0', '#d9b3ff', '#ffc98a'];
+        function paintMarkers() {
             if (!eventMarkersEl) return;
             const pins = Array.prototype.slice.call(eventMarkersEl.querySelectorAll('.event-marker'));
-            const rowRight = [-Infinity, -Infinity, -Infinity];
+            let lastX = -1e9;
+            let step = 0;
+            let prev = null;
             for (const pin of pins) {
                 const x = pin.offsetLeft;
-                let row = 0;
-                while (row < rowRight.length && x - rowRight[row] < 17) row++;
-                if (row >= rowRight.length) row = rowRight.length - 1;
-                rowRight[row] = x;
-                pin.style.setProperty('--row', row);
+                step = (x - lastX >= 14) ? 0 : step + 1;
+                const base = pin.classList.contains('milestone') ? '#9fd0ff'
+                    : (pin.classList.contains('phase') ? '#ffe8b8' : '#ffd27f');
+                let color = step === 0 ? base : CLUSTER_COLORS[step % CLUSTER_COLORS.length];
+                // Never give a neighbour the colour it already has: that is the whole
+                // point of tinting a cluster.
+                if (color === prev) color = CLUSTER_COLORS[(step + 1) % CLUSTER_COLORS.length];
+                pin.style.setProperty('--mk', color);
+                prev = color;
+                lastX = x;
             }
         }
-        window.addEventListener('resize', staggerPins);
+        window.addEventListener('resize', paintMarkers);
 
         function updateUI() {
             const t = engine.getTime();

@@ -32,8 +32,10 @@ python3 -m http.server 8000
   interpolation of state-vector samples, per track.
 - **Multiple scenarios & timeline events** (`js/ephemeris.js`, `js/timeline.js`):
   a SCENARIO selector switches between replayable missions; each scenario can
-  carry labeled events rendered as markers on the timeline scrub bar, and every
-  marker is a click-to-jump target. Events typed `phase` drive the header's
+  carry labeled events rendered as pins on a full-width scrub track — each pin has
+  a tick at its exact time and is a 16 x 20 px click target, and events that land
+  within a few pixels of each other take different colours instead of stacking.
+  Events typed `phase` drive the header's
   PHASE readout, so a long mission reads as a sequence of phases rather than a
   bare clock. A scenario may also declare its own `default_speed`,
   `default_target` and framing distance.
@@ -83,8 +85,11 @@ python3 -m http.server 8000
   never competes with a spacecraft's track.
 - **Viewport** (`js/camera.js`): two modes — **Orbit** (free rotation around the
   selected target) and **Follow** (chase the selected moving object; drag to
-  orbit it, zoom to pull in). Wheel and `+`/`-`/PageUp/PageDown zoom by a fixed
-  step. The zoom rail on the left edge is **vertical** and momentary: hold the
+  orbit it, zoom to pull in). Both can **pan** as well as orbit: right-drag in
+  Orbit, Shift-drag in Follow, or the numpad — 4/6 left-right, 8/2 up-down — with
+  the step scaled to the view distance. The pan offset survives playback and the
+  target moving, and it resets when you select a new target. Wheel and
+  `+`/`-`/PageUp/PageDown zoom by a fixed step. The zoom rail on the left edge is **vertical** and momentary: hold the
   thumb up to zoom in or down to zoom out, faster the further it is pushed, and it
   springs back to the centre tick (no zoom) when released — one gesture works from
   a 50 m close-up to the lunar orbit. **Flip** (button or `F`) rolls the view 180°
