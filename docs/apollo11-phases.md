@@ -33,7 +33,7 @@ and validated.
 | 4 | Undocking → DOI → PDI → landing | 100:12:00 → 102:45:40 | `EAGLE` becomes its own track: undocking, separation, descent orbit (15 × 111 km), powered descent | Separation 100:39:53, DOI 101:36:14, PDI 102:33:05, touchdown 102:45:40 | DONE |
 | 5 | Surface stay and EVA | 102:45:40 → 124:22:01 | `EAGLE` parked (zero relative velocity), EVA events | EVA start 109:07:33, first step 109:24:15 | DONE |
 | 6 | Ascent → rendezvous → docking → LM jettison | 124:22:01 → 130:09:00 | `EAGLE` lift-off and ascent (593 s, 18.6 km cutoff, 18.0 × 86.6 km), TPI + braking, docking, jettison; `COLUMBIA` extended through the rendezvous | Liftoff 124:22:01, docking 128:03:00, jettison 130:09:00 | DONE |
-| 7 | TEI → trans-Earth coast → entry → splashdown | 130:09:00 → 195:18:35 | TEI burn, 3-day coast, final midcourse, entry interface at 400 000 ft, splashdown | TEI 135:22:42, entry state at EI (400 kft), splashdown 195:18:35 |
+| 7 | TEI → trans-Earth coast → entry → splashdown | 130:09:00 → 195:18:35 | TEI burn (solved), 2.5-day coast, entry interface at 400 000 ft, shaped entry, splashdown | TEI 135:22:42, entry state at EI (400 kft), splashdown 195:18:35 | DONE |
 
 ## Per-phase workflow
 
@@ -217,6 +217,42 @@ LOI-1 time — which produced the 64.0 m/s burn above. The coast samples
   `COLUMBIA`'s 10 s coast grid inside 30 000 km was thinned to 20 s (9 147 →
   6 984 samples; Hermite through the sample velocities is unchanged to metres).
   Payload went 1.99 MB → **1.85 MB** for 11 742 samples.
+
+
+## Phase 7 notes (implemented)
+
+- **TEI is solved against the entry corridor, not guessed.** Two constraints (the
+  craft is 121.92 km up at 195:03:05 — 400 000 ft — and descending at -6.5 deg) and
+  three unknowns, so the burn takes the Gauss-Newton **minimum-norm** step: the
+  cheapest of the family that satisfies both. It converges in 20 iterations to
+  122 km / -6.51 deg / 11.03 km/s: the published entry state, to within 0.75 km.
+- **Why 1 562 m/s instead of the flown ~998 m/s.** This reconstruction's lunar
+  phase is not Apollo's (its orbit is 92 x 122 km, not a 111 km circle), so the
+  burn has to absorb that difference to hit the same corridor at the same second.
+  A two-component solve in the coast's plane was tried first: it needed only
+  705 m/s but *missed* the corridor entirely — 353 000 km above the Earth with a
+  positive flight path angle — which is exactly what a minimum-norm solve exists to
+  avoid. The maneuver note records the number and its reason.
+- **The coast is integrated on a fixed 60 s step and sampled coarser.** A first
+  attempt stepped at the sampling cadence (900 s between samples), which near Earth
+  moves 10 000 km per step and lost 1.5 km/s of speed: the entry interface read
+  9.5 km/s instead of 11.0. Sampling and integration cadence are now separate.
+- **The entry is shaped from velocity anchors, not from a deceleration bump.** An
+  earlier version integrated a lognormal 5.8 g deceleration profile, but the
+  *shallow* start (11 km/s at -6.5 deg is 1 245 m/s of vertical speed) meant the
+  craft hit the ground in 160 s. The entry now integrates a vertical-speed profile
+  (1 245 m/s at the interface down to a 9 m/s chute descent) and a horizontal-speed
+  profile (10.9 km/s to walking pace), with altitude and downrange as the integrals.
+  Result: 2 627 km of downrange, peak deceleration **5.22 g** at 130 s (published
+  5.8 g), splashdown at 12.5 m/s. The first anchor is taken from the real
+  interface state so the seam with the coast is exact; the integral scale is baked
+  into the later anchors instead of multiplying the profile, which would have left
+  a 145 m/s step at the join.
+- **New event:** ENTRY INTERFACE at 195:03:05 (a milestone, so the header keeps the
+  RETURN / ENTRY phase).
+- **Payload:** 537 new COLUMBIA samples (coast at 15 to 900 s, entry at 5 s),
+  1.85 MB → **1.95 MB** for 12 317 samples. The mission is complete: the track now
+  spans 000:00:00 to 195:18:35.
 
 ## Known gaps carried by the skeleton
 
