@@ -191,18 +191,22 @@
         if (btn) btn.addEventListener('click', () => cameraCtl.setMode(m));
     }
 
-    // Zoom-speed slider + keyboard (1=Orbit, 2=Follow, T=trails, zoom keys).
-    // The slider sets how fast a notch changes the distance, not the distance
-    // itself: the scene spans metres to a lunar orbit.
+    // Bipolar zoom slider: centre (50) = no zoom, left = continuous zoom out,
+    // right = continuous zoom in, and the further from centre the faster the
+    // view distance changes.
     const zoomSlider = document.getElementById('zoomSlider');
     const zoomLabel = document.getElementById('zoomSliderLabel');
-    function applyZoomRate() {
+    function applyZoomSlider() {
         if (!zoomSlider) return;
-        cameraCtl.setZoomRateNorm(+zoomSlider.value / 100);
-        if (zoomLabel) zoomLabel.textContent = 'ZOOM ' + cameraCtl.getZoomRate().toFixed(2) + 'x';
+        const n = (+zoomSlider.value - 50) / 50;
+        cameraCtl.setZoomVelocity(n);
+        if (zoomLabel) {
+            const pct = Math.round(Math.abs(n) * 100);
+            zoomLabel.textContent = pct === 0 ? 'ZOOM' : (n < 0 ? 'OUT ' : 'IN ') + pct + '%';
+        }
     }
-    if (zoomSlider) zoomSlider.addEventListener('input', applyZoomRate);
-    applyZoomRate();
+    if (zoomSlider) zoomSlider.addEventListener('input', applyZoomSlider);
+    applyZoomSlider();
     const trailsBtn = document.getElementById('trailsBtn');
     window.addEventListener('keydown', function (e) {
         const tag = (e.target && e.target.tagName) || '';
@@ -210,8 +214,8 @@
         if (e.key === '1') cameraCtl.setMode('orbit');
         else if (e.key === '2') cameraCtl.setMode('follow');
         else if (e.key === 't' || e.key === 'T') setTrails(!(entities[0] && entities[0].getTrailsVisible()));
-        else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.getZoomRate());
-        else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.getZoomRate());
+        else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.ZOOM_STEP);
+        else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.ZOOM_STEP);
     });
     if (trailsBtn) trailsBtn.addEventListener('click', () => setTrails(!(entities[0] && entities[0].getTrailsVisible())));
 
@@ -228,6 +232,7 @@
         const now = performance.now();
         const dt = (now - lastT) / 1000;
         lastT = now;
+        cameraCtl.applyZoomVelocity(dt);
 
         if (!timeline.isScrubbing() && engine.isPlaying() && engine.getDuration() > 0) {
             let t = engine.getTime() + dt * engine.getSpeed();
