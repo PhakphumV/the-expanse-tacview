@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HUD plate preview — ADR-0005</title>
+<style>
+  :root {
+    --hud-green: #39ff6a;
+    --hud-green-dim: #1f8f3d;
+    --hud-text: #d8ffe4;
+    --hud-label: #6bff96;
+    --hud-bg: rgba(0, 24, 10, 0.55);
+    --hud-close: #59b6ff;
+    --hud-recede: #ff6a55;
+    --hud-neutral: #8899a6;
+  }
+  html, body {
+    margin: 0; height: 100%;
+    background: #000;
+    color: var(--hud-text);
+    font: 13px/1.5 ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    overflow: hidden;
+  }
+  /* --- stage: black sky, a few stars, an Earth limb ---------------------- */
+  #stage { position: fixed; inset: 0; }
+  #stars { position: absolute; inset: 0; }
+  #stars i {
+    position: absolute; width: 1px; height: 1px; background: #fff; opacity: .55;
+    border-radius: 50%;
+  }
+  #earth {
+    position: absolute; left: -18vw; bottom: -46vw; width: 78vw; height: 78vw;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 30%, #1d3a52 0%, #10202e 45%, #050a10 70%);
+    box-shadow: 0 0 90px 10px rgba(60,130,190,.18) inset, 0 0 120px rgba(40,90,130,.15);
+  }
+  #moon {
+    position: absolute; right: 16vw; top: 14vh; width: 92px; height: 92px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 36% 32%, #6f747a 0%, #3a3e43 55%, #15171a 100%);
+    opacity: .85;
+  }
+  /* --- the plates ------------------------------------------------------- */
+  .plate {
+    position: absolute;
+    min-width: 168px;
+    padding: 5px 8px 6px;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 2px),
+      var(--hud-bg);
+    border: 1px solid currentColor;
+    color: var(--hud-green);
+    box-shadow: 0 0 12px -2px currentColor, inset 0 0 14px -6px currentColor;
+    text-shadow: 0 0 6px currentColor;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    font-size: 10px;
+    line-height: 1.45;
+    animation: flicker 3s infinite steps(1);
+    user-select: none;
+  }
+  .plate::before, .plate::after {
+    content: ""; position: absolute; width: 7px; height: 7px;
+    border: 1px solid currentColor;
+  }
+  .plate::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+  .plate::after  { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+  .plate .dot {
+    position: absolute; left: -6px; bottom: -6px; width: 3px; height: 3px;
+    background: currentColor; box-shadow: 0 0 6px currentColor;
+  }
+  .plate .head {
+    display: flex; justify-content: space-between; gap: 14px;
+    color: var(--hud-label); font-weight: 600;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    padding-bottom: 2px; margin-bottom: 3px;
+  }
+  .plate .tag { color: currentColor; opacity: .95; }
+  .plate .row { display: flex; justify-content: space-between; gap: 12px; }
+  .plate .k { color: var(--hud-label); opacity: .8; }
+  .plate .v { color: var(--hud-text); text-shadow: 0 0 5px rgba(255,255,255,.25); }
+  .plate.is-target { box-shadow: 0 0 18px -1px currentColor, inset 0 0 16px -5px currentColor; }
+  .plate.is-compact { min-width: 0; font-size: 9px; padding: 3px 7px; }
+  .plate.is-compact .row { display: none; }
+  @keyframes flicker {
+    0%, 96%, 100% { opacity: 1; }
+    97% { opacity: .93; }
+    98% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .plate { animation: none; }
+  }
+  /* --- control strip ---------------------------------------------------- */
+  #panel {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    padding: 10px 14px 12px;
+    background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,10,5,.92) 40%);
+    font-size: 11px; color: #9fb4a8;
+    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  }
+  #panel b { color: var(--hud-label); font-weight: 600; }
+  button {
+    font: inherit; background: transparent; color: var(--hud-label);
+    border: 1px solid rgba(57,255,106,.45); padding: 3px 9px; cursor: pointer;
+    letter-spacing: .06em; text-transform: uppercase;
+  }
+  button:hover { background: rgba(57,255,106,.12); }
+  button.on { background: rgba(57,255,106,.18); color: #eafff0; box-shadow: 0 0 10px -2px var(--hud-green); }
+  input[type=range] { width: 180px; accent-color: var(--hud-green); }
+  #note {
+    position: fixed; left: 14px; top: 14px; width: 244px;
+    font-size: 10px; line-height: 1.6; color: #7f8f86;
+    border-left: 1px solid rgba(57,255,106,.3); padding-left: 10px;
+  }
+  #note b { color: var(--hud-label); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="stars"></div>
+  <div id="earth"></div>
+  <div id="moon"></div>
+</div>
+
+<div class="plate is-target" id="p-columbia" style="left: 42vw; top: 42vh">
+<span class="dot"></span>
+<div class="head"><span>COLUMBIA</span><span class="tag">TARGET</span></div>
+<div class="row"><span class="k">ALT</span><span class="v">1 234 km</span></div>
+<div class="row"><span class="k">VEL</span><span class="v">2.41 km/s</span></div>
+<div class="row"><span class="k">Δλ</span><span class="v" data-shift>0.014 nm</span></div>
+</div>
+
+<div class="plate" id="p-eagle" style="left: 34vw; top: 16vh">
+<span class="dot"></span>
+<div class="head"><span>EAGLE</span><span class="tag" data-tag>CLOSING</span></div>
+<div class="row"><span class="k">ALT</span><span class="v">112 km</span></div>
+<div class="row"><span class="k">VEL</span><span class="v">2.31 km/s</span></div>
+<div class="row"><span class="k">RNG RATE</span><span class="v" data-rate>−0.86 km/s</span></div>
+</div>
+
+<div class="plate" id="p-sivb" style="left: 58vw; top: 12vh">
+<span class="dot"></span>
+<div class="head"><span>S-IVB</span><span class="tag" data-tag>OPENING</span></div>
+<div class="row"><span class="k">ALT</span><span class="v">1 402 km</span></div>
+<div class="row"><span class="k">VEL</span><span class="v">2.36 km/s</span></div>
+<div class="row"><span class="k">RNG RATE</span><span class="v" data-rate>+1.20 km/s</span></div>
+</div>
+
+<div class="plate is-compact" id="p-lm" style="left: 56vw; top: 62vh">
+  <span class="dot"></span>
+  <div class="head"><span>LM-5</span><span class="tag" data-tag>CLOSING</span></div>
+</div>
+
+<div id="note">
+  <b>HUD plate preview — ADR-0005.</b> Frames are tinted by the stylised Doppler
+  indicator: blue when the craft is closing on the selected target, red when
+  receding. The <b>numbers</b> are real; the <b>saturation</b> is exaggerated
+  (~270×) because a true shift at 7.8 km/s is 0.014 nm — about 1 % of one
+  just-noticeable hue difference. Selected target stays green so the reference
+  frame is unambiguous.
+</div>
+
+<div id="panel">
+  <span><b>target</b></span>
+  <button id="t-none">none</button>
+  <button id="t-columbia" class="on">COLUMBIA</button>
+  <span><b>closing rate</b></span>
+  <input id="rate" type="range" min="0" max="12000" value="7800" step="10">
+  <span id="rateLabel">7.80 km/s</span>
+  <span><b>compact</b></span>
+  <button id="t-compact">toggle</button>
+</div>
+
+<script>
+  // Stars.
+  (function () {
+    const box = document.getElementById('stars');
+    for (let i = 0; i < 220; i++) {
+      const s = document.createElement('i');
+      s.style.left = Math.random() * 100 + '%';
+      s.style.top = Math.random() * 100 + '%';
+      s.style.opacity = (0.15 + Math.random() * 0.55).toFixed(2);
+      box.appendChild(s);
+    }
+  })();
+
+  const C = 299792458;
+  const V_REF = 12000;          // m/s
+  const GAMMA = 0.45;
+
+  // Stylised Doppler tint: hue is the direction (blue = closing, red = receding),
+  // saturation is the magnitude with a legibility gain. Lightness stays put so
+  // the frame never drops contrast against the black sky.
+  function tint(vr) {
+    const t = Math.pow(Math.min(1, Math.abs(vr) / V_REF), GAMMA);
+    const hue = vr < 0 ? 210 : 4;
+    const sat = 12 + 76 * t;
+    const light = 52 + 14 * t;
+    return 'hsl(' + hue + ' ' + sat.toFixed(0) + '% ' + light.toFixed(0) + '%)';
+  }
+  function shiftNm(vr) {
+    const b = Math.abs(vr) / C;
+    return ((Math.sqrt((1 + b) / (1 - b)) - 1) * 550).toFixed(3);
+  }
+
+  const plates = ['p-eagle', 'p-sivb', 'p-lm'].map((id) => document.getElementById(id));
+  let targetMode = 'columbia';
+
+  function render() {
+    const vr = +document.getElementById('rate').value;
+    document.getElementById('rateLabel').textContent = (vr / 1000).toFixed(2) + ' km/s';
+    for (const p of plates) {
+      if (targetMode === 'none') {
+        p.style.color = 'var(--hud-green)';
+        p.querySelectorAll('[data-tag]').forEach((el) => (el.textContent = ''));
+        p.querySelectorAll('[data-rate]').forEach((el) => (el.textContent = '—'));
+      } else {
+        // EAGLE closes, S-IVB opens, LM-5 closes — alternate signs per plate.
+        const sign = p.id === 'p-sivb' ? 1 : -1;
+        const local = vr * sign;
+        p.style.color = tint(local);
+        p.querySelectorAll('[data-tag]').forEach((el) => {
+          el.textContent = local < 0 ? '▲ CLOSING' : local > 0 ? '▼ OPENING' : '—';
+        });
+        p.querySelectorAll('[data-rate]').forEach((el) => {
+          el.textContent = (local < 0 ? '−' : '+') + (Math.abs(local) / 1000).toFixed(2) + ' km/s';
+        });
+      }
+    }
+    // Selected plate: green, Δλ shows the true shift of the closing rate.
+    const col = document.getElementById('p-columbia');
+    col.style.color = 'var(--hud-green)';
+    col.querySelector('[data-shift]').textContent = shiftNm(vr) + ' nm';
+  }
+
+  document.getElementById('rate').addEventListener('input', render);
+  document.getElementById('t-none').addEventListener('click', () => {
+    targetMode = 'none';
+    document.getElementById('t-none').classList.add('on');
+    document.getElementById('t-columbia').classList.remove('on');
+    document.getElementById('p-columbia').style.display = 'none';
+    render();
+  });
+  document.getElementById('t-columbia').addEventListener('click', () => {
+    targetMode = 'columbia';
+    document.getElementById('t-columbia').classList.add('on');
+    document.getElementById('t-none').classList.remove('on');
+    document.getElementById('p-columbia').style.display = '';
+    render();
+  });
+  document.getElementById('t-compact').addEventListener('click', () => {
+    for (const p of plates) p.classList.toggle('is-compact');
+  });
+  render();
+</script>
+</body>
+</html>
