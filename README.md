@@ -50,6 +50,10 @@ python3 -m http.server 8000
   (LOI-1 into 111 × 314 km, LOI-2 to ~92 × 122 km), and the LM's own descent —
   undocking, DOI, powered descent and touchdown. Remaining phases are tracked in
   `docs/apollo11-phases.md`.
+- **Typeface**: Orbitron (Google Fonts, SIL OFL 1.1), self-hosted from
+  `vendor/orbitron/` so the page still works from `file://` with no network. The
+  latin subset is a variable font (wght 400–700) with equal advance widths, so
+  live readouts don't jitter as digits change.
 - **Readable at any scale** (`js/entities.js`): bodies and spacecraft keep a
   minimum apparent size, so a 26 m vehicle and a 3 500 km Moon both stay visible
   at cislunar range instead of collapsing to a pixel.

@@ -86,7 +86,7 @@ renderer:
 
 Treatment: 1 px solid border, 2 px corner L-brackets (pseudo-elements),
 `repeating-linear-gradient` scanlines at 22 % black, `text-shadow: 0 0 6px`
-at ~35 % of the current colour, `font: 10–11px ui-monospace`, uppercase,
+at ~35 % of the current colour, `font: 10–11px Orbitron` (the app typeface), uppercase,
 `letter-spacing: .07em`, no border radius. A 3 s 2 %-opacity flicker animation,
 disabled under `prefers-reduced-motion`.
 

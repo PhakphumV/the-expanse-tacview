@@ -14,11 +14,20 @@
     --hud-recede: #ff6a55;
     --hud-neutral: #8899a6;
   }
+  /* Orbitron, the app's typeface (self-hosted from vendor/orbitron). */
+  @font-face {
+    font-family: 'Orbitron';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('../vendor/orbitron/orbitron-latin.woff2') format('woff2');
+  }
   html, body {
     margin: 0; height: 100%;
     background: #000;
     color: var(--hud-text);
-    font: 13px/1.5 ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font: 10px/1.6 'Orbitron', 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
     overflow: hidden;
   }
   /* --- stage: black sky, a few stars, an Earth limb ---------------------- */
@@ -43,7 +52,7 @@
   /* --- the plates ------------------------------------------------------- */
   .plate {
     position: absolute;
-    min-width: 168px;
+    min-width: 200px;
     padding: 5px 8px 6px;
     background:
       repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 2px),
@@ -54,8 +63,8 @@
     text-shadow: 0 0 6px currentColor;
     letter-spacing: .07em;
     text-transform: uppercase;
-    font-size: 10px;
-    line-height: 1.45;
+    font-size: 8px;
+    line-height: 1.7;
     animation: flicker 3s infinite steps(1);
     user-select: none;
   }
@@ -70,6 +79,7 @@
     background: currentColor; box-shadow: 0 0 6px currentColor;
   }
   .plate .head {
+    letter-spacing: 0.5px;
     display: flex; justify-content: space-between; gap: 14px;
     color: var(--hud-label); font-weight: 600;
     border-bottom: 1px solid rgba(255,255,255,.12);
@@ -95,8 +105,8 @@
     position: fixed; left: 0; right: 0; bottom: 0;
     padding: 10px 14px 12px;
     background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,10,5,.92) 40%);
-    font-size: 11px; color: #9fb4a8;
-    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+    font-size: 10px; color: #9fb4a8;
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
   }
   #panel b { color: var(--hud-label); font-weight: 600; }
   button {
@@ -108,8 +118,8 @@
   button.on { background: rgba(57,255,106,.18); color: #eafff0; box-shadow: 0 0 10px -2px var(--hud-green); }
   input[type=range] { width: 180px; accent-color: var(--hud-green); }
   #note {
-    position: fixed; left: 14px; top: 14px; width: 244px;
-    font-size: 10px; line-height: 1.6; color: #7f8f86;
+    position: fixed; left: 14px; top: 14px; width: 316px;
+    font-size: 9px; line-height: 1.75; color: #7f8f86;
     border-left: 1px solid rgba(57,255,106,.3); padding-left: 10px;
   }
   #note b { color: var(--hud-label); }
@@ -122,7 +132,7 @@
   <div id="moon"></div>
 </div>
 
-<div class="plate is-target" id="p-columbia" style="left: 42vw; top: 42vh">
+<div class="plate is-target" id="p-columbia" style="left: 44vw; top: 54vh">
 <span class="dot"></span>
 <div class="head"><span>COLUMBIA</span><span class="tag">TARGET</span></div>
 <div class="row"><span class="k">ALT</span><span class="v">1 234 km</span></div>
@@ -130,7 +140,7 @@
 <div class="row"><span class="k">Δλ</span><span class="v" data-shift>0.014 nm</span></div>
 </div>
 
-<div class="plate" id="p-eagle" style="left: 34vw; top: 16vh">
+<div class="plate" id="p-eagle" style="left: 44vw; top: 24vh">
 <span class="dot"></span>
 <div class="head"><span>EAGLE</span><span class="tag" data-tag>CLOSING</span></div>
 <div class="row"><span class="k">ALT</span><span class="v">112 km</span></div>
@@ -138,7 +148,7 @@
 <div class="row"><span class="k">RNG RATE</span><span class="v" data-rate>−0.86 km/s</span></div>
 </div>
 
-<div class="plate" id="p-sivb" style="left: 58vw; top: 12vh">
+<div class="plate" id="p-sivb" style="left: 70vw; top: 8vh">
 <span class="dot"></span>
 <div class="head"><span>S-IVB</span><span class="tag" data-tag>OPENING</span></div>
 <div class="row"><span class="k">ALT</span><span class="v">1 402 km</span></div>
@@ -146,7 +156,7 @@
 <div class="row"><span class="k">RNG RATE</span><span class="v" data-rate>+1.20 km/s</span></div>
 </div>
 
-<div class="plate is-compact" id="p-lm" style="left: 56vw; top: 62vh">
+<div class="plate is-compact" id="p-lm" style="left: 70vw; top: 40vh">
   <span class="dot"></span>
   <div class="head"><span>LM-5</span><span class="tag" data-tag>CLOSING</span></div>
 </div>
