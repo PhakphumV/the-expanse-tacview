@@ -60,8 +60,11 @@ python3 -m http.server 8000
   oriented, head→tail color gradient) whose width scales with camera distance, so
   the band keeps its apparent size at any zoom. Trail **length comes from the
   object's own orbit** (ADR-0006): an eighth of the orbit for a craft (5 339 km
-  in LEO, 151 000 km on a trans-lunar coast), 0.45 of it for a celestial body —
-  almost half the ring — with vertices spread by arc length rather than by time.
+  in LEO), 0.45 of it for a celestial body — almost half the ring — with vertices
+  spread by arc length rather than by time. On a **transfer trajectory** (an open
+  or near-escape arc, e ≥ 0.9, about the dominant body) the window is capped at
+  the last 60 minutes instead, so a trans-lunar coast shows a 7 000 km tail rather
+  than 27 hours of ribbon.
   Celestial bodies (`kind: "celestial"`, i.e. the Moon) use the same ribbon in a
   subdued form — colder, thinner, but kept in the orbital plane — so a body's arc
   never competes with a spacecraft's track.

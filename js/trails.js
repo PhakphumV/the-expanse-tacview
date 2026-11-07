@@ -20,6 +20,8 @@
     const OBJECT_FRACTION = 0.125;
     const ARC_CAP_FRACTION = 0.35;  // presentation guard, not physics
     const FALLBACK_SECONDS = 300;   // no orbit (on the pad, or escaping)
+    const TRANSFER_ECC = 0.9;       // eccentricity that means "coasting somewhere"
+    const TRANSFER_WINDOW_S = 3600; // a transfer trail shows the last 60 minutes
     const MIN_LENGTH = 1e4;         // m
     const MAX_LENGTH = 1e10;        // m — ceiling for very distant bodies
     const ZERO = { x: 0, y: 0, z: 0 };
@@ -108,6 +110,20 @@
         return acc;
     }
 
+    // Is this state coasting between bodies rather than orbiting one? A transfer
+    // is an open or near-escape arc about the dominant body: Apollo's trans-lunar
+    // coast is e = 0.977 about Earth. A parking orbit, a lunar orbit and a
+    // heliocentric cruise are not transfers.
+    function isTransfer(opts) {
+        const st = opts && opts.state;
+        if (!st || !st.position || !st.velocity) return false;
+        const body = centralBody(st.position, opts.moon);
+        if (body.name !== 'earth') return false;
+        const orb = orbit(sub(st.position, body.pos), sub(st.velocity, body.vel), body.mu);
+        if (!orb) return false;
+        return !orb.closed || orb.e >= TRANSFER_ECC;
+    }
+
     function indexAtOrBefore(samples, t) {
         const n = samples.length;
         if (!n) return -1;
@@ -171,9 +187,9 @@
     const Trails = {
         MU_EARTH, MU_MOON,
         CELESTIAL_FRACTION, OBJECT_FRACTION, ARC_CAP_FRACTION,
-        FALLBACK_SECONDS, MIN_LENGTH, MAX_LENGTH,
+        FALLBACK_SECONDS, TRANSFER_ECC, TRANSFER_WINDOW_S, MIN_LENGTH, MAX_LENGTH,
         len, sub, dist, cross,
-        perimeter, orbit, centralBody, targetLength,
+        perimeter, orbit, centralBody, isTransfer, targetLength,
         arcLength, indexAtOrBefore, pointAt, windowStart,
     };
 

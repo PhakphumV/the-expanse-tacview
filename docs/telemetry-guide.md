@@ -368,10 +368,12 @@ itself against the motion.
 ## 10. What the viewer does with your data
 
 - **Trail**: the last eighth of the object's orbit (celestial bodies: 0.45 of the
-  orbit — almost half the ring), drawn as a ribbon whose width scales with camera
-  distance, so its apparent size holds at any zoom. Vertices are spread by arc
-  length, not by time. Celestial bodies get a dimmer, thinner version. A trail
-  longer than the track's own history stops at the first sample, so give a
+  orbit — almost half the ring), but only the last **60 minutes** when the object
+  is on a transfer trajectory (open or near-escape arc, e ≥ 0.9) — a trans-lunar
+  coast would otherwise draw 27 hours of ribbon. Width scales with camera
+  distance, so the band holds its apparent size at any zoom. Vertices are spread
+  by arc length, not by time. Celestial bodies get a dimmer, thinner version. A
+  trail longer than the track's own history stops at the first sample, so give a
   celestial track a pre-roll (`npm run preroll`) if you want its full arc.
 - **Path line**: the whole track as a dashed line; dashes rescale with zoom.
 - **Labels/HUD**: one label per track; HUD shows altitude, speed, position,

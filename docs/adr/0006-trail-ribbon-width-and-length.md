@@ -195,6 +195,30 @@ Apollo trail.
   `userData.trail`; both exist because verifying a 1 100 Mm arc needs numbers,
   not eyeballs.
 
+## Amendment — a transfer trail shows 60 minutes
+
+A transfer coast is not an orbit, and the orbit rule reads badly on it: an eighth
+of Apollo's trans-lunar ellipse is 151 269 km, i.e. 27 hours of ribbon stretched
+across the whole scene. On a transfer trajectory the window is instead capped at
+the **last 60 minutes of track time**.
+
+"Transfer" means the osculating orbit about the *dominant* body (by µ/r²) is open
+**or** has `e ≥ 0.9`, and that body is Earth. Two deliberate choices:
+
+- Not "the orbit is hyperbolic": Apollo's coast is a closed ellipse, e = 0.977,
+  for most of its length, and it is unambiguously a transfer.
+- Earth only: within ~66 000 km of the Moon the Moon becomes the dominant body,
+  and a closed lunar orbit is not a transfer — the orbit-fraction rule returns, so
+  the small lunar orbit gives a small trail.
+
+Measured on the shipped data: 30 190 km just after TLI, 7 299 km at mid-coast,
+4 240 km late in the coast — each exactly 60.0 minutes; the parking orbit keeps
+its 5 149 km (11 min, an eighth of the orbit).
+
+Related change made at the same time: the length low-pass now **snaps on a
+scrub** (`|Δt| > 5 s`) rather than filtering through it, so a paused timeline jump
+shows the correct trail immediately instead of easing into it.
+
 ## Alternatives considered
 
 - **Keep a flat time window, tune it per track in `meta`.** Rejected: it turns

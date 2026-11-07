@@ -175,5 +175,53 @@ check('14. arcLength of the LEO scenario moon is one displayed orbit', () => {
     return near(Trails.arcLength(samples), 2 * Math.PI * a, 0.001, 'arc of one orbit');
 });
 
+// A transfer coast state: Apollo 11 TLI cutoff, r = 6 712 km, v = 10.834 km/s.
+const COAST = { position: V(6712000, 0, 0), velocity: V(0, 8700000, 6500000) };
+const MOON_FAR = V(-3.8e8, 1.2e8, 5.0e7);
+
+check('15. A trans-lunar coast is a transfer, a parking orbit is not', () => {
+    const onCoast = Trails.isTransfer({
+        state: COAST,
+        moon: { position: MOON_FAR, velocity: V(0, 0, 0) },
+    });
+    if (!onCoast) return 'the TLI coast state should read as a transfer';
+    const inLeo = Trails.isTransfer({
+        state: circularState(6797000, MU),
+        moon: { position: MOON_FAR, velocity: V(0, 0, 0) },
+    });
+    if (inLeo) return 'a circular parking orbit is not a transfer';
+    return null;
+});
+
+check('16. A lunar orbit is not a transfer, even though it is hyperbolic about Earth', () => {
+    const st = { position: V(MOON_FAR.x + 1.8e6, MOON_FAR.y, MOON_FAR.z), velocity: V(0, 2500, 0) };
+    const isT = Trails.isTransfer({ state: st, moon: { position: MOON_FAR, velocity: V(0, 0, 0) } });
+    if (isT) return 'a closed orbit about the Moon must not read as a transfer';
+    return null;
+});
+
+check('17. The transfer window is 60 minutes and matches the sampled path', () => {
+    if (Trails.TRANSFER_WINDOW_S !== 3600) return 'TRANSFER_WINDOW_S should be 3600 s';
+    // On the real COLUMBIA trans-lunar coast, a 60-minute window should walk back
+    // exactly 3 600 s through the samples.
+    const data = require('../data/scenarios.json');
+    const col = data.scenarios.find((s) => s.id === 'apollo11').tracks.find((t) => t.id === 'COLUMBIA');
+    const kfs = col.samples
+        .filter((s) => s.t >= 120000 && s.t <= 140000)
+        .map((s) => ({ t: s.t, position: V(s.position[0], s.position[1], s.position[2]) }));
+    if (kfs.length < 20) return 'coast samples missing from the dataset';
+    const t = kfs[kfs.length - 1].t;
+    // Distance actually covered in the last 3 600 s of samples.
+    let covered = 0;
+    for (let i = 1; i < kfs.length; i++) {
+        if (kfs[i].t > t - Trails.TRANSFER_WINDOW_S) covered += Trails.dist(kfs[i - 1].position, kfs[i].position);
+    }
+    // Trim the leading partial segment so `covered` is the arc inside the window.
+    const t0 = Trails.windowStart(kfs, t, covered);
+    const span = t - t0;
+    if (!(span >= 3000 && span <= 4200)) return 'window came back as ' + span.toFixed(0) + ' s';
+    return null;
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

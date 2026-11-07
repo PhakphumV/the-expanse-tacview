@@ -258,6 +258,9 @@
         let lengthSmooth = null;
         let lastSolveMs = -1e9;
         let lastFrameMs = 0;
+        let lastTransfer = false;
+        let effLength = null;
+        let lastT = null;   // previous frame's time, to detect scrubs
         const vertTimes = new Float64Array(TRAIL_VERTS);
         const probe = { p: new THREE.Vector3(), v: new THREE.Vector3(), q: null };
         const cursor = { i: 0 };
@@ -292,6 +295,7 @@
                 vertTimes[i] = times[j] + (times[j + 1] - times[j]) * f;
             }
             vertTimes[TRAIL_VERTS - 1] = tEnd;
+            return total;
         }
 
         // Gradient, orientation-aware ribbon since the trail start (ADR-0006).
@@ -307,6 +311,11 @@
             const dtMs = lastFrameMs ? Math.min(nowMs - lastFrameMs, 100) : 16;
             lastFrameMs = nowMs;
 
+            // A scrub or a jump is not a regime change: snap the length instead of
+            // low-passing it, so a paused scrub shows the right trail immediately.
+            const jumped = lastT !== null && Math.abs(t - lastT) > 5;
+            lastT = t;
+
             // 1. How long should the trail be right now? (ADR-0006 §2/§3)
             const moonState = moonTrack ? engine.getStateAtTimeFor(moonTrack.id, t) : null;
             const target = Trails.targetLength({
@@ -315,18 +324,29 @@
                 moon: moonState ? { position: moonState.position, velocity: moonState.velocity } : null,
                 arcLength: trackArc,
             });
-            if (lengthSmooth === null) lengthSmooth = target;
+            if (lengthSmooth === null || jumped) lengthSmooth = target;
             else lengthSmooth += (target - lengthSmooth) * Math.min(1, dtMs / (LENGTH_TAU_S * 1000));
 
             // 2. Re-solve the window at 5 Hz: the vertex times do not move between
             //    solves (they are historical points), so the ribbon is stable.
-            const firstT = kfs[0].t, lastT = kfs[kfs.length - 1].t;
-            const tEnd = Math.min(lastT, t);
+            const firstT = kfs[0].t, trackLastT = kfs[kfs.length - 1].t;
+            const tEnd = Math.min(trackLastT, t);
             if (nowMs - lastSolveMs > SOLVE_INTERVAL_MS) {
                 lastSolveMs = nowMs;
-                const t0 = Math.max(firstT, Trails.windowStart(kfs, tEnd, lengthSmooth));
-                solveWindow(t, kfs, t0, tEnd);
-                ribbon.userData.trail = { target, smooth: lengthSmooth, t0, tEnd, trackArc };
+                // A transfer coast trails only its last 60 minutes: an eighth of a
+                // trans-lunar orbit would otherwise be ~27 h of ribbon across the
+                // whole scene. Parking orbits and lunar orbits keep the orbit rule.
+                const transfer = !isCelestial && Trails.isTransfer({
+                    state: { position: st.position, velocity: st.velocity },
+                    moon: moonState ? { position: moonState.position, velocity: moonState.velocity } : null,
+                });
+                let t0 = Math.max(firstT, Trails.windowStart(kfs, tEnd, lengthSmooth));
+                if (transfer) t0 = Math.max(t0, tEnd - Trails.TRANSFER_WINDOW_S);
+                lastTransfer = transfer;
+                effLength = solveWindow(t, kfs, t0, tEnd);
+                ribbon.userData.trail = {
+                    target, smooth: lengthSmooth, t0, tEnd, trackArc, transfer, effective: effLength,
+                };
             }
             vertTimes[TRAIL_VERTS - 1] = tEnd;
 
@@ -391,7 +411,11 @@
         function getTrailsVisible() { return trailVisible; }
         function getTrackId() { return trackId; }
         function isCelestialBody() { return isCelestial; }
-        function getTrailLength() { return lengthSmooth; }
+        // Length actually drawn (after the transfer cap), falling back to the
+        // orbit-derived target before the first solve.
+        function getTrailLength() { return effLength === null ? lengthSmooth : effLength; }
+        function isTransferTrail() { return lastTransfer; }
+        function getTrailTarget() { return lengthSmooth; }
 
         function update(t) {
             const st = engine.getStateAtTimeFor(trackId, t);
@@ -413,7 +437,7 @@
 
         return {
             update, setTrailsVisible, getTrailsVisible, getTrackId, isCelestialBody,
-            getTrailLength, getMesh: () => mesh,
+            getTrailLength, getTrailTarget, isTransferTrail, getMesh: () => mesh,
         };
     }
 
