@@ -19,7 +19,7 @@
 
     function createScene(container) {
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000010);
+        scene.background = new THREE.Color(0x000000);
 
         const camera = new THREE.PerspectiveCamera(
             60,
