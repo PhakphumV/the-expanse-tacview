@@ -82,8 +82,13 @@
         }
 
         // A scenario's timeline spans all its tracks and events, so a multi-track
-        // or event-bearing scenario replays over the full union.
+        // or event-bearing scenario replays over the full union. A scenario may
+        // declare an explicit `duration_s` to end the replay at a mission
+        // milestone instead (e.g. splashdown) even when a celestial track's
+        // ephemeris runs longer.
         function scenarioDuration(sc) {
+            const declared = sc.meta && sc.meta.duration_s;
+            if (typeof declared === 'number' && isFinite(declared) && declared > 0) return declared;
             let d = 0;
             for (const tr of sc.tracks) {
                 const s = tr.samples;

@@ -32,9 +32,15 @@ python3 -m http.server 8000
   interpolation of state-vector samples, per track.
 - **Multiple scenarios & timeline events** (`js/ephemeris.js`, `js/timeline.js`):
   a SCENARIO selector switches between replayable missions; each scenario can
-  carry labeled events rendered as markers on the timeline scrub bar (e.g. an
-  upcoming Apollo 11 / Apollo 13 scenario with its mission events — real
-  NASA/SPICE trajectory data planned for a future session).
+  carry labeled events rendered as markers on the timeline scrub bar, and every
+  marker is a click-to-jump target. Events typed `phase` drive the header's
+  PHASE readout, so a long mission reads as a sequence of phases rather than a
+  bare clock. A scenario may also declare its own `default_speed`,
+  `default_target` and framing distance.
+- **Apollo 11, 1969** (`data/scenarios.json`): an eight-phase replay from launch
+  to splashdown — 195 h 18 m of real mission time with the Moon on its true
+  geocentric ephemeris (JPL Horizons/DE441). The spacecraft tracks land one
+  phase at a time; `docs/apollo11-phases.md` tracks the plan and provenance.
 - **Selectable target HUD** (`js/hud.js`): lists every celestial body (Earth,
   Moon) and space object (ISS, Tiangong); click to retarget the camera and see
   that target's telemetry (altitude/speed/position for objects; radius/orbit
@@ -65,7 +71,8 @@ data/
   scenarios.json         — canonical source dataset (validated by npm test)
 js/
   main.js                 — entry point, wiring, per-frame loop
-  scene.js                — ECI scene, Earth body + Moon orbit ring (no starfield)
+  scene.js                — ECI scene, Earth body (no starfield)
+  orbit-ring.js           — faint orbit guide ring derived from a celestial track
   ephemeris.js            — track/ephemeris engine (state queries, playback)
   entities.js             — per-track body, orbital path, ribbon trails (object vs celestial)
   spacecraft-model.js     — procedural spacecraft body (heading/orientation)
@@ -76,6 +83,9 @@ js/
   scenarios-data.js       — generated from data/scenarios.json (do not edit)
 scripts/
   validate-telemetry.js   — validates the contract (shape, quaternions, heading)
+docs/
+  adr/                    — architecture decision records
+  apollo11-phases.md      — Apollo 11 phase plan, data anchors and provenance
 ```
 
 ## Development

@@ -20,6 +20,10 @@
     const trackGroup = new THREE.Group();
     scene.add(trackGroup);
 
+    // Faint orbit guide rings for celestial tracks (built from their own data).
+    const ringGroup = new THREE.Group();
+    scene.add(ringGroup);
+
     let entities = [];
     let hud = null;
     let labels = null;
@@ -48,16 +52,20 @@
     // Populate the active scenario's render layer + UI.
     function buildScenario() {
         trackGroup.clear();
+        ringGroup.clear();
         if (labels) labels.reset();
         entities = engine.getTracks().map((tr) => T.createTrackEntity(trackGroup, engine, camera, tr.id));
+        engine.getTracks().filter(isCelestialTrack).forEach((tr) => {
+            const ring = T.createOrbitRing(tr.samples);
+            if (ring) ringGroup.add(ring);
+        });
 
         if (!labels) labels = T.createLabels(engine, camera);
         if (!hud) hud = T.createHUD(engine, buildTargets(), (id) => cameraCtl.setTarget(id));
         else hud.setTargets(buildTargets());
 
         timeline.populateEvents();
-        cameraCtl.setTarget('earth');
-        hud.setTarget('earth');
+        applyScenarioDefaults();
         const t = engine.getTime();
         entities.forEach((e) => e.update(t));
         if (labels) labels.update();
@@ -65,17 +73,41 @@
         timeline.updateUI();
     }
 
+    // Per-scenario presentation hints: playback speed and the framing distance of
+    // the initial Earth view (a cislunar scenario needs a far wider shot than a
+    // low-Earth-orbit one).
+    function applyScenarioDefaults() {
+        const meta = (engine.getActiveScenario() || {}).meta || {};
+        const speed = typeof meta.default_speed === 'number' ? meta.default_speed : 1;
+        engine.setSpeed(speed);
+        const sel = document.getElementById('speedSelect');
+        if (sel) {
+            const want = String(speed);
+            const has = Array.from(sel.options).some((o) => o.value === want);
+            sel.value = has ? want : sel.value;
+            if (!has) engine.setSpeed(parseFloat(sel.value));
+        }
+        const target = typeof meta.default_target === 'string' ? meta.default_target : 'earth';
+        hud.setTarget(target);
+        cameraCtl.setTarget(target, target === 'earth' ? meta.view_distance_m : undefined);
+    }
+
     // Header readouts (replay status, elapsed, remaining).
     const liveDotEl = document.getElementById('liveDot');
     const statusEl = document.getElementById('replayStatus');
     const elapsedEl = document.getElementById('elapsedReadout');
     const remainEl = document.getElementById('remainingReadout');
-    function pad2(n) { return (n < 10 ? '0' : '') + n; }
-    function fmt(d) {
-        const m = Math.floor(d / 60);
-        const s = d - m * 60;
-        return pad2(m) + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+    const phaseEl = document.getElementById('phaseReadout');
+
+    // Current mission phase = the last event typed "phase" at or before t.
+    function currentPhase(t) {
+        let label = null;
+        for (const ev of engine.getEvents()) {
+            if (ev.type === 'phase' && ev.t <= t) label = ev.label;
+        }
+        return label;
     }
+    function fmt(d) { return T.formatMissionTime(d, engine.getDuration() >= 86400); }
     function updateHeader() {
         const t = engine.getTime();
         const dur = engine.getDuration();
@@ -87,6 +119,10 @@
             if (statusEl.textContent !== label) statusEl.textContent = label;
         }
         if (liveDotEl) liveDotEl.classList.toggle('paused', !engine.isPlaying());
+        if (phaseEl) {
+            const label = currentPhase(t) || '\u2014';
+            if (phaseEl.textContent !== label) phaseEl.textContent = label;
+        }
     }
 
     // Scenario selector.

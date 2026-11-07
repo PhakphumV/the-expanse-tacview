@@ -8,10 +8,20 @@
 (function (global) {
     'use strict';
 
-    function formatTime(t) {
+    // Elapsed-time formatting. Short replays read as MM:SS.s; multi-day missions
+    // (Apollo, 195 h) read as HHH:MM:SS so the readout stays legible.
+    function formatMissionTime(t, longForm) {
+        t = Math.max(0, t);
+        const pad2 = (n) => (n < 10 ? '0' : '') + n;
+        if (longForm) {
+            const h = Math.floor(t / 3600);
+            const m = Math.floor((t % 3600) / 60);
+            const s = Math.floor(t % 60);
+            return pad2(h) + ':' + pad2(m) + ':' + pad2(s);
+        }
         const m = Math.floor(t / 60);
         const s = t - m * 60;
-        return 'T+' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+        return pad2(m) + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
     }
 
     function createTimeline(engine) {
@@ -25,6 +35,9 @@
         const restartBtn = document.getElementById('restartBtn');
         const jumpStartBtn = document.getElementById('jumpStartBtn');
         const jumpEndBtn = document.getElementById('jumpEndBtn');
+
+        // Multi-day missions (Apollo) read as HHH:MM:SS rather than MM:SS.s.
+        function isLong() { return engine.getDuration() >= 86400; }
 
         function refreshPlayPauseLabel() {
             const want = engine.isPlaying() ? 'Pause' : 'Play';
@@ -76,19 +89,39 @@
         window.addEventListener('mouseup', function () { scrubbing = false; });
 
         // Render labeled event markers from the active scenario onto the scrub
-        // bar at t/duration. Rebuilt whenever the scenario changes.
+        // bar at t/duration. Rebuilt whenever the scenario changes. Clicking a
+        // marker jumps the replay to that event (phases double as jump targets).
         function populateEvents() {
             if (!eventMarkersEl) return;
             eventMarkersEl.innerHTML = '';
             const events = engine.getEvents();
             const dur = engine.getDuration() || 1;
-            for (const ev of events) {
+            for (let i = 0; i < events.length; i++) {
+                const ev = events[i];
                 const m = document.createElement('div');
                 m.className = 'event-marker' + (ev.type ? ' ' + ev.type : '');
                 m.style.left = (ev.t / dur * 100) + '%';
-                m.title = ev.label + ' (T+' + formatTime(ev.t) + ')' + (ev.description ? ' — ' + ev.description : '');
+                m.title = ev.label + ' (T+' + formatMissionTime(ev.t, isLong()) + ')' + (ev.description ? ' — ' + ev.description : '');
+                m.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    engine.setTime(ev.t);
+                    refreshPlayPauseLabel();
+                    updateUI();
+                });
                 const lab = document.createElement('span');
                 lab.textContent = ev.label;
+                // Stagger label rows so clustered events stay readable, and
+                // anchor labels at the bar's ends instead of centering them off
+                // the edge.
+                const frac = ev.t / dur;
+                lab.style.bottom = (13 + (i % 3) * 13) + 'px';
+                if (frac < 0.06) {
+                    lab.style.left = '0';
+                    lab.style.transform = 'none';
+                } else if (frac > 0.94) {
+                    lab.style.left = '100%';
+                    lab.style.transform = 'translateX(-100%)';
+                }
                 m.appendChild(lab);
                 eventMarkersEl.appendChild(m);
             }
@@ -102,7 +135,7 @@
                 scrubProgress.style.width = (frac * 100) + '%';
                 scrubHandle.style.left = (frac * 100) + '%';
             }
-            timeReadout.textContent = formatTime(t);
+            timeReadout.textContent = 'T+' + formatMissionTime(t, isLong());
             refreshPlayPauseLabel();
         }
 
@@ -113,4 +146,5 @@
 
     global.Tacview = global.Tacview || {};
     global.Tacview.createTimeline = createTimeline;
+    global.Tacview.formatMissionTime = formatMissionTime;
 })(window);

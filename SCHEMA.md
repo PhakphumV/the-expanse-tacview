@@ -61,6 +61,18 @@ session) will be its own scenario carrying its tracks and mission events.
 - `description` (string, optional).
 - `tracks` (array, required, non-empty): space-object ephemerides (below).
 - `events` (array, optional): named timeline events (below).
+- `epoch` (string, optional): ISO 8601 UTC instant that `t = 0` corresponds to
+  (e.g. `"1969-07-16T13:32:00Z"` for Apollo 11's launch). Provenance only.
+- `duration_s` (number, optional): explicit replay length in seconds. Defaults
+  to the union of track windows and event times; set it to end the replay at a
+  milestone (Apollo 11 ends at splashdown even though the Moon track runs on).
+- `default_speed` (number, optional): playback multiplier selected on load, for
+  scenarios whose realistic rate would otherwise crawl (Apollo 11: `512`).
+- `default_target` (string, optional): target id the camera frames on load
+  (default `"earth"`).
+- `view_distance_m` (number, optional): framing distance in metres for the
+  initial Earth view — a cislunar scenario needs a much wider shot than a
+  low-Earth-orbit one.
 
 ## Track fields
 
@@ -88,9 +100,12 @@ session) will be its own scenario carrying its tracks and mission events.
   trail.
 - `radius_m` (number, required when `kind` is `"celestial"`): body radius in
   metres, used to size the rendered sphere.
+- `SOURCE` (string, optional): provenance for the samples — the dataset, model
+  or document they came from. Required in spirit for any reconstructed track.
 - `CENTER_NAME` (string, default `"EARTH"`): central body the `REF_FRAME` is
   fixed to.
-- `REF_FRAME` (string, required): inertial reference frame, `"TEME"` or `"ECI"`.
+- `REF_FRAME` (string, required): inertial reference frame — `"TEME"`, `"ECI"`
+  or `"ICRF"`.
 - `TIME_SYSTEM` (string, required): `"UTC"`.
 - `mean_elements` (object, optional): the **nominal-orbit descriptor** (OMM
   mean elements). This is provenance for coast segments and is **not** used as
@@ -173,7 +188,11 @@ timeline UI at `t / duration` along the scrub bar.
 
 - `t` (number, seconds, required): timeline position, relative to scenario
   start. Must be finite; events should be time-ordered.
-- `type` (string, optional): category used for marker styling.
+- `type` (string, optional): category used for marker styling. `"phase"` marks
+  the start of a mission phase — the header's PHASE readout shows the last phase
+  event at or before the current time, and every event is a click-to-jump target
+  on the scrub bar. `"milestone"` is the other convention used by the Apollo 11
+  scenario for one-off events (docking, EVA start, splashdown).
 - `label` (string, required): short text shown as the marker label and tooltip.
 - `description` (string, optional): fuller detail shown in the marker tooltip.
 

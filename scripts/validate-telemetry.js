@@ -25,6 +25,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const datasetPath = path.join(repoRoot, 'data', 'scenarios.json');
 const ORIENT_TOL = 1e-4;      // unit-quaternion tolerance
 const FWD_DOT_MIN = 0.98;     // attitude.forward vs velocity unit direction
+const IDLE_SPEED = 1.0;       // m/s — below this the vehicle is parked/landed
 
 let passCount = 0, failCount = 0;
 function check(name, fn) {
@@ -76,7 +77,7 @@ function checkShape() {
 
 function checkSyntax() {
     const modules = [
-        'js/ephemeris.js', 'js/scene.js', 'js/entities.js', 'js/spacecraft-model.js',
+        'js/ephemeris.js', 'js/scene.js', 'js/orbit-ring.js', 'js/entities.js', 'js/spacecraft-model.js',
         'js/camera.js', 'js/hud.js', 'js/timeline.js', 'js/labels.js', 'js/main.js',
         'js/scenarios-data.js',
     ];
@@ -122,7 +123,10 @@ function checkHeading() {
                 const wfl = Math.sqrt(wf.reduce((a, c) => a + c * c, 0));
                 const v = s.velocity;
                 const vl = Math.sqrt(v.reduce((a, c) => a + c * c, 0));
-                if (wfl < 1e-9 || vl < 1e-9) return `${t.id} sample t=${s.t}: degenerate`;
+                // A landed or parked vehicle has no heading to check; its
+                // orientation is still required to be a unit quaternion.
+                if (vl < IDLE_SPEED) continue;
+                if (wfl < 1e-9) return `${t.id} sample t=${s.t}: degenerate`;
                 const dot = (wf[0] * v[0] + wf[1] * v[1] + wf[2] * v[2]) / (wfl * vl);
                 if (dot < FWD_DOT_MIN) return `${t.id} sample t=${s.t}: forward/velocity dot=${dot.toFixed(4)}`;
             }
@@ -174,6 +178,26 @@ function checkCelestial() {
     return null;
 }
 
+function checkScenarioFields() {
+    for (const sc of scenarios()) {
+        if (sc.epoch !== undefined && !Number.isFinite(Date.parse(sc.epoch)))
+            return `${sc.id}: epoch "${sc.epoch}" is not an ISO 8601 date`;
+        for (const f of ['duration_s', 'default_speed', 'view_distance_m']) {
+            if (sc[f] === undefined) continue;
+            if (typeof sc[f] !== 'number' || !isFinite(sc[f]) || sc[f] <= 0)
+                return `${sc.id}: ${f} must be a positive number`;
+        }
+        if (sc.default_target !== undefined && (typeof sc.default_target !== 'string' || !sc.default_target))
+            return `${sc.id}: default_target must be a non-empty string`;
+        if (typeof sc.duration_s === 'number') {
+            const lastEvent = (sc.events || []).reduce((m, e) => Math.max(m, e.t), 0);
+            if (sc.duration_s < lastEvent)
+                return `${sc.id}: duration_s (${sc.duration_s}) ends before its last event (${lastEvent})`;
+        }
+    }
+    return null;
+}
+
 console.log(`Validating ${path.relative(repoRoot, datasetPath)}\n`);
 check('1. Dataset shape conforms to schema', checkShape);
 check('2. JS module syntax', checkSyntax);
@@ -182,6 +206,7 @@ check('4. Orientation is a unit quaternion', checkUnitQuaternions);
 check('5. Attitude forward maps onto velocity (heading)', checkHeading);
 check('6. Scenario events well-formed and time-ordered', checkEvents);
 check('7. Celestial tracks carry radius and match their orbit', checkCelestial);
+check('8. Scenario presentation fields are well-formed', checkScenarioFields);
 
 console.log(`\n${passCount} passed, ${failCount} failed`);
 process.exit(failCount === 0 ? 0 : 1);

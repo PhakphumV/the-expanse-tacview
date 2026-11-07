@@ -20,6 +20,7 @@
             <span id="replayStatus">REPLAYING</span>
             <span class="timeGroup">ELAPSED <span id="elapsedReadout">00:00.0</span></span>
             <span class="timeGroup">REMAINING <span id="remainingReadout">-00:00.0</span></span>
+            <span class="timeGroup">PHASE <span id="phaseReadout">&mdash;</span></span>
             <span class="scenario-group">
                 <label for="scenarioSelect">SCENARIO</label>
                 <select id="scenarioSelect" aria-label="Scenario"></select>
@@ -59,6 +60,10 @@
             <option value="128">128x</option>
             <option value="256">256x</option>
             <option value="512">512x</option>
+            <option value="1024">1024x</option>
+            <option value="2048">2048x</option>
+            <option value="4096">4096x</option>
+            <option value="8192">8192x</option>
         </select>
         <button id="modeOrbitBtn" class="mode-btn active">Orbit</button>
         <button id="modeFollowBtn" class="mode-btn">Follow</button>
@@ -101,6 +106,7 @@
     <script>window.Tacview = {};</script>
     <script src="js/scenarios-data.js"></script>
     <script src="js/scene.js"></script>
+    <script src="js/orbit-ring.js"></script>
     <script src="js/spacecraft-model.js"></script>
     <script src="js/entities.js"></script>
     <script src="js/labels.js"></script>

@@ -14,9 +14,6 @@
     const THREE = global.THREE;
 
     const EARTH_RADIUS = 6371000;   // m
-    const MOON_RADIUS = 1737400;    // m
-    const MOON_DIST = 384400000;    // m — mean Moon orbital radius
-    const MOON_INCL = 0.40;         // rad — representative inclination (~23 deg)
 
     function createScene(container) {
         const scene = new THREE.Scene();
@@ -46,26 +43,8 @@
         scene.add(earth);
         earth.userData.targetId = 'earth';
 
-        // Moon's mean orbital path ring. The Moon itself is a celestial track in
-        // the scenario telemetry (`kind: "celestial"`), so its mesh and trail are
-        // rendered by entities.js and it moves along this ring as time advances.
-        // The ring is only the guide.
-        const ringSeg = 256;
-        const ringPos = new Float32Array((ringSeg + 1) * 3);
-        for (let i = 0; i <= ringSeg; i++) {
-            const a = (i / ringSeg) * Math.PI * 2;
-            ringPos[i * 3]     = Math.cos(a) * MOON_DIST;
-            ringPos[i * 3 + 1] = 0;
-            ringPos[i * 3 + 2] = Math.sin(a) * MOON_DIST;
-        }
-        const ringGeo = new THREE.BufferGeometry();
-        ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPos, 3));
-        const ring = new THREE.LineLoop(ringGeo, new THREE.LineBasicMaterial({
-            color: 0x556, transparent: true, opacity: 0.18,
-        }));
-        ring.frustumCulled = false;
-        ring.rotation.x = MOON_INCL;
-        scene.add(ring);
+        // Moon's mean orbital path ring is built per scenario from the celestial
+        // track's own data (see js/orbit-ring.js and main.js buildScenario).
 
         function onResize() {
             camera.aspect = window.innerWidth / window.innerHeight;

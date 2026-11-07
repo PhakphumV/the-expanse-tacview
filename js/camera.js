@@ -174,7 +174,7 @@
 
         function getMode() { return mode; }
 
-        function setTarget(id) {
+        function setTarget(id, distOverride) {
             targetId = id;
             const tp = resolveTarget(engine.getTime(), targetPos);
             if (!tp) return;
@@ -182,8 +182,11 @@
                 seedFollow();
                 applyFollow(tp);
             } else {
-                // Frame the target at a sensible distance.
-                const d = viewDist(id);
+                // Frame the target at a sensible distance (callers may override,
+                // e.g. a scenario that needs a cislunar-wide shot).
+                const d = (typeof distOverride === 'number' && distOverride > 0)
+                    ? distOverride
+                    : viewDist(id);
                 controls.target.copy(tp);
                 camera.position.set(tp.x + d * 0.8, tp.y + d * 0.6, tp.z + d);
                 camera.lookAt(tp);

@@ -55,6 +55,7 @@ html, body {
 }
 #liveDot.paused { background: #d58a2a; box-shadow: 0 0 8px #d58a2a; }
 #replayStatus { letter-spacing: 2px; font-weight: bold; }
+#phaseReadout { color: #ffe8b8; letter-spacing: 1px; }
 .scenario-group { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .scenario-group label { color: #888; font-size: 11px; letter-spacing: 2px; font-weight: bold; }
 #scenarioSelect {
@@ -142,6 +143,8 @@ html, body {
     bottom: 0;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    row-gap: 6px;
     gap: 8px;
     padding: 8px 10px;
     background: linear-gradient(to top, rgba(4, 10, 24, 0.95), rgba(4, 10, 24, 0));
@@ -170,9 +173,9 @@ html, body {
 
 #scrubBar {
     position: relative;
-    flex: 1;
+    flex: 1 1 220px;
     height: 12px;
-    min-width: 120px;
+    min-width: 200px;
     background: rgba(10, 22, 46, 0.85);
     border: 1px solid #2b406a;
     border-radius: 3px;
@@ -235,6 +238,13 @@ html, body {
     border-radius: 2px;
     padding: 1px 4px;
 }
+/* Phase markers are the coarse jump targets: taller tick, brighter label. */
+.event-marker.phase::before { height: 18px; background: #ffe8b8; }
+.event-marker.phase span { color: #ffe8b8; font-weight: bold; }
+/* A long mission packs many events into a short scrub bar, so labels are
+   hover-only: the ticks stay readable and the header names the current phase. */
+.event-marker span { opacity: 0; transition: opacity 0.12s linear; }
+.event-marker:hover span { opacity: 1; color: #ffffff; background: rgba(43, 108, 176, 0.85); }
 #speedSelect {
     background: rgba(10, 22, 46, 0.85);
     color: #cfe3ff;
