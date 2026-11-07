@@ -191,9 +191,18 @@
         if (btn) btn.addEventListener('click', () => cameraCtl.setMode(m));
     }
 
-    // Zoom slider + keyboard (1=Orbit, 2=Follow, T=trails, zoom keys).
+    // Zoom-speed slider + keyboard (1=Orbit, 2=Follow, T=trails, zoom keys).
+    // The slider sets how fast a notch changes the distance, not the distance
+    // itself: the scene spans metres to a lunar orbit.
     const zoomSlider = document.getElementById('zoomSlider');
-    if (zoomSlider) zoomSlider.addEventListener('input', () => cameraCtl.setZoomNorm(+zoomSlider.value / 100));
+    const zoomLabel = document.getElementById('zoomSliderLabel');
+    function applyZoomRate() {
+        if (!zoomSlider) return;
+        cameraCtl.setZoomRateNorm(+zoomSlider.value / 100);
+        if (zoomLabel) zoomLabel.textContent = 'ZOOM ' + cameraCtl.getZoomRate().toFixed(2) + 'x';
+    }
+    if (zoomSlider) zoomSlider.addEventListener('input', applyZoomRate);
+    applyZoomRate();
     const trailsBtn = document.getElementById('trailsBtn');
     window.addEventListener('keydown', function (e) {
         const tag = (e.target && e.target.tagName) || '';
@@ -201,8 +210,8 @@
         if (e.key === '1') cameraCtl.setMode('orbit');
         else if (e.key === '2') cameraCtl.setMode('follow');
         else if (e.key === 't' || e.key === 'T') setTrails(!(entities[0] && entities[0].getTrailsVisible()));
-        else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.ZOOM_BUTTON_STEP);
-        else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.ZOOM_BUTTON_STEP);
+        else if (e.key === 'PageUp' || e.key === '+' || e.key === '=') cameraCtl.zoom(1 / cameraCtl.getZoomRate());
+        else if (e.key === 'PageDown' || e.key === '-') cameraCtl.zoom(cameraCtl.getZoomRate());
     });
     if (trailsBtn) trailsBtn.addEventListener('click', () => setTrails(!(entities[0] && entities[0].getTrailsVisible())));
 
@@ -228,6 +237,9 @@
 
         const t = engine.getTime();
         entities.forEach((e) => e.update(t));
+        // Dashed guide rings rescale with the camera distance.
+        const camDist = camera.position.length();
+        ringGroup.children.forEach((ring) => T.updateDashScale(ring, camDist));
         cameraCtl.update(t);
         timeline.updateUI();
         if (hud) hud.update();

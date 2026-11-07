@@ -15,8 +15,12 @@
 
     const MIN_DIST = 50;        // m — close enough to see a spacecraft
     const MAX_DIST = 9e8;       // m — far enough to frame the Moon orbit
-    const WHEEL_STEP = 1.12;    // zoom factor per wheel notch
-    const ZOOM_BUTTON_STEP = 1.3;
+    // The scene spans 50 m to 9e8 m, so the zoom slider controls the zoom *rate*
+    // (how many × the view distance changes per wheel notch or key press) rather
+    // than an absolute distance.
+    const ZOOM_RATE_MIN = 1.03;
+    const ZOOM_RATE_MAX = 2.5;
+    const ZOOM_RATE_DEFAULT = 0.4;   // slider position, 0..1
     const FOLLOW_R_MIN = 60;
     const FOLLOW_R_MAX = 2e5;
     const CHASE_BACK = 3500;    // m — seed offset behind a moving object
@@ -28,7 +32,15 @@
         let mode = 'orbit';
         let targetId = 'earth';
         let followSph = null;   // { theta, phi, radius } around the target
+        let zoomRate = ZOOM_RATE_MIN * Math.pow(ZOOM_RATE_MAX / ZOOM_RATE_MIN, ZOOM_RATE_DEFAULT);
         const targetPos = new THREE.Vector3();
+
+        // Slider 0..1 -> per-notch zoom factor (geometric, so both ends feel even).
+        function setZoomRateNorm(n) {
+            n = clamp(n, 0, 1);
+            zoomRate = ZOOM_RATE_MIN * Math.pow(ZOOM_RATE_MAX / ZOOM_RATE_MIN, n);
+        }
+        function getZoomRate() { return zoomRate; }
 
         function isStaticTarget() { return targetId === 'earth'; }
         function isCelestialTarget() {
@@ -110,28 +122,16 @@
 
         function zoom(factor) { dolly(factor); }
 
-        function normToDist(n) { return MIN_DIST * Math.pow(MAX_DIST / MIN_DIST, 1 - n); }
         function setZoomNorm(n) {
-            n = clamp(n, 0, 1);
-            if (mode === 'follow' && followSph) {
-                const r = followRange();
-                followSph.radius = r.min * Math.pow(r.max / r.min, 1 - n);
-                return;
-            }
-            const dir = new THREE.Vector3().copy(camera.position).sub(controls.target);
-            if (dir.lengthSq() < 1e-9) return;
-            const nd = normToDist(n);
-            dir.normalize().multiplyScalar(nd);
-            camera.position.copy(controls.target).add(dir);
-            camera.lookAt(controls.target);
-            if (mode === 'orbit') controls.update();
+            // Deprecated: the slider now sets the zoom rate, not the distance.
+            setZoomRateNorm(n);
         }
 
         // Wheel zoom (both modes). Scroll up = zoom in.
         const dom = controls.domElement;
         dom.addEventListener('wheel', function (e) {
             e.preventDefault();
-            dolly(e.deltaY > 0 ? WHEEL_STEP : 1 / WHEEL_STEP);
+            dolly(e.deltaY > 0 ? zoomRate : 1 / zoomRate);
         }, { passive: false });
         controls.enableZoom = false;
 
@@ -206,7 +206,10 @@
             }
         }
 
-        return { setMode, getMode, setTarget, getTarget, update, zoom, setZoomNorm, ZOOM_BUTTON_STEP };
+        return {
+            setMode, getMode, setTarget, getTarget, update,
+            zoom, setZoomNorm, setZoomRateNorm, getZoomRate,
+        };
     }
 
     global.Tacview = global.Tacview || {};

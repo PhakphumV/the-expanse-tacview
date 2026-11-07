@@ -151,18 +151,20 @@
     function buildPathLine(eng, id, style) {
         const kfs = eng.getSamplesFor(id);
         const pos = new Float32Array(kfs.length * 3);
+        let extent = 0;
         kfs.forEach((s, i) => {
             pos[i * 3] = s.position.x;
             pos[i * 3 + 1] = s.position.y;
             pos[i * 3 + 2] = s.position.z;
+            if (i > 0) extent += s.position.distanceTo(kfs[i - 1].position);
         });
         const geom = new THREE.BufferGeometry();
         geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-        const line = new THREE.Line(geom, new THREE.LineBasicMaterial({
-            color: style.pathColor, transparent: true, opacity: style.pathOpacity,
-        }));
-        line.frustumCulled = false;
-        return line;
+        return global.Tacview.makeDashedLine(geom, {
+            color: style.pathColor,
+            opacity: style.pathOpacity,
+            extent,
+        });
     }
 
     function createTrackEntity(container, engine, camera, trackId) {
@@ -272,6 +274,7 @@
                 const dist = camera.position.distanceTo(st.position);
                 const extent = isCelestial ? (meta.radius_m || 1737400) * 2 : MODEL_EXTENT;
                 mesh.scale.setScalar(Math.max(1, dist * MIN_APPARENT_RAD / extent));
+                if (pathLine) global.Tacview.updateDashScale(pathLine, dist);
                 updateTrails(t, st);
             } else {
                 mesh.visible = false;
