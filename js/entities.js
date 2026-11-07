@@ -21,6 +21,13 @@
     const WIDTH_MAX = 4e6;          // m — ceiling so it never blows up
     const WIDTH_DIST_SCALE = 0.02;  // ribbon width ≈ 2% of camera distance
 
+    // At cislunar range a 26 m spacecraft and a 3 500 km Moon are both far
+    // smaller than a pixel. Like the trail width, the body is scaled up with
+    // camera distance so it never shrinks below MIN_APPARENT_RAD — true scale is
+    // only used once you are close enough for it to read.
+    const MODEL_EXTENT = 26;        // m — spacecraft hull length
+    const MIN_APPARENT_RAD = 0.012; // ≈ 9 px on a 780 px viewport at 60° fov
+
     // Bright trail: artificial space objects only (head bright, mid blue).
     const OBJECT_TRAIL = {
         head: new THREE.Color(0xd6f4ff),
@@ -261,6 +268,10 @@
                 mesh.visible = true;
                 mesh.position.copy(st.position);
                 if (!isCelestial) mesh.quaternion.copy(st.orientation);
+                // Keep the object readable at orbital range (see MODEL_EXTENT).
+                const dist = camera.position.distanceTo(st.position);
+                const extent = isCelestial ? (meta.radius_m || 1737400) * 2 : MODEL_EXTENT;
+                mesh.scale.setScalar(Math.max(1, dist * MIN_APPARENT_RAD / extent));
                 updateTrails(t, st);
             } else {
                 mesh.visible = false;

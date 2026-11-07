@@ -102,7 +102,7 @@
         }
         const target = typeof meta.default_target === 'string' ? meta.default_target : 'earth';
         hud.setTarget(target);
-        cameraCtl.setTarget(target, target === 'earth' ? meta.view_distance_m : undefined);
+        cameraCtl.setTarget(target, meta.view_distance_m);
     }
 
     // Header readouts (replay status, elapsed, remaining).

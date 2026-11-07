@@ -39,8 +39,13 @@ python3 -m http.server 8000
   `default_target` and framing distance.
 - **Apollo 11, 1969** (`data/scenarios.json`): an eight-phase replay from launch
   to splashdown — 195 h 18 m of real mission time with the Moon on its true
-  geocentric ephemeris (JPL Horizons/DE441). The spacecraft tracks land one
-  phase at a time; `docs/apollo11-phases.md` tracks the plan and provenance.
+  geocentric ephemeris (JPL Horizons/DE441). Phase 1 is in: `COLUMBIA` launches,
+  climbs through S-IC/S-II staging, parks in a 185.5 km orbit and burns TLI onto
+  the published Apollo 11 cutoff state. Remaining phases are tracked in
+  `docs/apollo11-phases.md`.
+- **Readable at any scale** (`js/entities.js`): bodies and spacecraft keep a
+  minimum apparent size, so a 26 m vehicle and a 3 500 km Moon both stay visible
+  at cislunar range instead of collapsing to a pixel.
 - **Selectable target HUD** (`js/hud.js`): lists every celestial body (Earth,
   Moon) and space object (ISS, Tiangong); click to retarget the camera and see
   that target's telemetry (altitude/speed/position for objects; radius/orbit

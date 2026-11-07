@@ -14,16 +14,16 @@ window.TacviewManifest = {
     {
       "id": "apollo11",
       "name": "Apollo 11 — Lunar Landing",
-      "description": "Apollo 11, 16-24 July 1969. The Moon rides its real geocentric ephemeris; the spacecraft tracks are added phase by phase.",
+      "description": "Apollo 11, 16-24 July 1969: launch through splashdown, with the Moon on its real geocentric ephemeris. Phase 1 covers launch, ascent, the parking orbit and TLI.",
       "epoch": "1969-07-16T13:32:00Z",
       "duration_s": 703115,
       "default_speed": 512,
-      "default_target": "moon",
-      "view_distance_m": 750000000,
-      "tracks": 1,
-      "events": 12,
-      "samples": 786,
-      "bytes": 118840
+      "default_target": "earth",
+      "view_distance_m": 14000000,
+      "tracks": 2,
+      "events": 15,
+      "samples": 2236,
+      "bytes": 342855
     }
   ]
 };

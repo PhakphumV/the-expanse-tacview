@@ -27,7 +27,7 @@ and validated.
 | # | Phase | GET range | Track content | Real data anchor |
 |---|-------|-----------|---------------|------------------|
 | 0 | Scenario skeleton | 000:00:00 → 195:18:35 | Moon only, real ephemeris; 12 phase/milestone events | JPL Horizons 301 (Moon), DE441, 15-min steps |
-| 1 | Launch → parking orbit → TLI | 000:00:00 → 002:50:13 | `COLUMBIA` from the pad, S-IC/S-II ascent, 185 km / 32.5° parking orbit, TLI burn | Apollo 11 TLI state vector (Apollo by the Numbers / Postflight Trajectories); parking-orbit elements from the mission report |
+| 1 | Launch → parking orbit → TLI | 000:00:00 → 002:50:13 | `COLUMBIA` from the pad, S-IC/S-II ascent, 185 km / 32.5° parking orbit, TLI burn | Apollo 11 TLI state vector (Apollo by the Numbers / Postflight Trajectories); parking-orbit elements from the mission report | DONE |
 | 2 | Trans-lunar coast | 002:50:13 → 075:49:50 | Free-return coast, MCC-2 (026:44:59), lunar SOI entry | TLI state + two-body + Moon gravity integration, targeted to the real lunar arrival geometry |
 | 3 | Lunar orbit insertion | 075:49:50 → 100:12:00 | LOI-1 (111 × 314 km), LOI-2 (≈ 99 × 121 km), lunar orbits | Published LOI-1/LOI-2 ΔV and orbit elements; arrival state from phase 2 |
 | 4 | Undocking → DOI → PDI → landing | 100:12:00 → 102:45:40 | `EAGLE` becomes its own track: undocking, separation, descent orbit (≈ 15 × 111 km), powered descent | Separation 100:39:53, touchdown 102:45:40 (JPL/NASA mission summary); descent ΔV budget |
@@ -49,10 +49,30 @@ and validated.
 5. Replay in a browser: scrub the phase, check the trail geometry, the trail
    colour (bright for vehicles, subtle for the Moon), and the HUD readouts.
 
+## Phase 1 notes (implemented)
+
+- `COLUMBIA` covers 000:00:00 → 002:50:13 at mixed sample rates: 2 s through the
+  ascent and the TLI burn, 10 s on the parking-orbit coast (1 450 samples).
+- Anchors that are real: the TLI cutoff state (r 6 711.964 km, v 10 834.3 m/s,
+  fpa 7.367°, i 31.383°), the staging times (S-IC cutoff 000:02:42, S-II cutoff
+  000:09:18), orbit insertion 000:11:49, TLI ignition 002:44:16 and cutoff
+  002:50:13.
+- Built around those anchors: the ascent is a gravity-turn profile tuned to the
+  published staging altitudes (66.6 km at S-IC cutoff, 184 km at S-II cutoff)
+  and shaped onto the insertion state; the 185.5 km circular parking orbit and
+  the 8.9 m/s² constant-thrust TLI burn are two-body integrations, trimmed onto
+  the published cutoff state over the burn (162 km / 29 m/s of correction).
+- Caveats: the launch site's inertial position is a free parameter (the pad
+  implies ≈18° geocentric latitude, not the real 28.6°N — invisible on an
+  untextured Earth), and the burn model is constant prograde thrust rather than
+  the real pitch programme, so its thrust integral (3.18 km/s) exceeds the
+  published ΔV.
+
 ## Known gaps carried by the skeleton
 
-- Celestial bodies are drawn at true scale, so at cislunar zoom the Earth and
-  Moon are single-pixel dots. Phase 1 adds a minimum-apparent-size body marker.
+- Celestial bodies and spacecraft are drawn at true scale but floored at a
+  minimum apparent size (≈1.2% of the view), so at cislunar zoom they stay
+  visible instead of collapsing to a pixel.
 - The HUD has no vehicle rows for a cislunar track yet (altitude above the Earth
   is meaningless in lunar space). Phase 2 adds range-rate / lunar-altitude rows.
 - Data is split per scenario (`js/scenario-<id>.js` + manifest) and only the
