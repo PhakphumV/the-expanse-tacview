@@ -83,8 +83,10 @@ python3 -m http.server 8000
 
 ```
 index.html                — application entry (embeds classic scripts + data)
+CONTRIBUTING.md           — how to contribute, add a scenario, review checklist
 SCHEMA.md                 — telemetry contract (OMM/OEM/XTCE)
 CONTEXT.md                — domain glossary
+docs/telemetry-guide.md   — authoring guide: data model, recipes, validation, traps
 docs/adr/                 — architecture decision records
 data/
   scenarios.json         — canonical source dataset (validated by npm test)
@@ -122,6 +124,15 @@ the canonical source; `npm run embed` splits it into one payload per scenario
 (`js/scenario-<id>.js`) plus a manifest (`js/scenarios-data.js`), so the viewer
 only ever loads the scenario being watched. `npm test` fails if the generated
 files drift from the canonical dataset.
+
+## Contributing
+
+Want to add your own scenario, or your own telemetry? Start with
+**[CONTRIBUTING.md](CONTRIBUTING.md)** (setup, workflow, honesty rules) and
+**[docs/telemetry-guide.md](docs/telemetry-guide.md)** (the data model, a
+verified minimal example, generation recipes, and the ten automated checks).
+The contract itself is [SCHEMA.md](SCHEMA.md); the reasoning behind it is in
+[`docs/adr/`](docs/adr/).
 
 ## License
 

@@ -1,8 +1,12 @@
 # Space Telemetry Dataset Contract
 
 This document defines the telemetry contract consumed by `index.html`. The
-implementation loads `data/iss.json` via `fetch` and expects it to match this
-schema.
+implementation loads the embedded per-scenario payloads generated from
+`data/scenarios.json` and expects them to match this schema.
+
+For a step-by-step authoring guide — data flow, a verified minimal example,
+generation recipes and the ten automated checks — see
+**[docs/telemetry-guide.md](docs/telemetry-guide.md)**.
 
 The contract is grounded in the CCSDS 502 family recommendations:
 
