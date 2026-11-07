@@ -8,8 +8,8 @@ window.TacviewManifest = {
       "description": "ISS and Tiangong (CSS) in low Earth orbit, with the Moon orbiting Earth (celestial track, one revolution per replay).",
       "tracks": 3,
       "events": 0,
-      "samples": 2448,
-      "bytes": 418056
+      "samples": 2549,
+      "bytes": 433884
     },
     {
       "id": "apollo11",
@@ -22,8 +22,8 @@ window.TacviewManifest = {
       "view_distance_m": 14000000,
       "tracks": 2,
       "events": 17,
-      "samples": 10520,
-      "bytes": 1626726
+      "samples": 11701,
+      "bytes": 1812375
     }
   ]
 };

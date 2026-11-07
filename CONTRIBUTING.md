@@ -30,7 +30,7 @@ Two consequences you will notice in review:
 ```bash
 git clone https://github.com/PhakphumV/the-expanse-tacview.git
 cd the-expanse-tacview
-npm test          # 10 checks, no dependencies to install
+npm test          # 10 data checks + 14 trail-maths checks, no dependencies
 npm run embed     # regenerate the embedded payloads from data/scenarios.json
 npm run serve     # optional: http://localhost:8000
 ```
@@ -56,7 +56,9 @@ js/scene.js, orbit-ring.js    renderer scaffolding, guide rings
 js/entities.js                per-track body, trail, path line
 js/camera.js, hud.js, timeline.js, labels.js
 scripts/embed-scenarios.js    dataset -> embedded payloads
-scripts/validate-telemetry.js the 10 checks behind `npm test`
+scripts/validate-telemetry.js the 10 data checks behind `npm test`
+scripts/test-trails.js        the 14 trail-geometry checks
+scripts/pre-roll-celestial.js extends celestial tracks back half an orbit
 SCHEMA.md                     the telemetry contract
 docs/telemetry-guide.md       how to author a scenario (start here)
 docs/adr/                     decisions: ephemeris, combat layer, quaternions, maneuvers
@@ -146,7 +148,7 @@ style(theme): use absolute black for the background
 
 ## Checklist before you open the PR
 
-- [ ] `npm run embed && npm test` — 10/10.
+- [ ] `npm run embed && npm test` — validator 10/10, trail maths 14/14.
 - [ ] Scenario loads in a browser and replays without visible jumps.
 - [ ] Continuity check: for adjacent samples, `|Δr| / (½(v_i + v_i+1)·Δt) ≈ 1.0`.
 - [ ] Page still loads from `file://` (classic scripts only, no `fetch`).

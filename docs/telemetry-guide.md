@@ -111,7 +111,7 @@ Then:
 
 ```bash
 npm run embed   # regenerate js/scenario-demo.js + the manifest
-npm test        # 10 checks, including "maneuvers match the samples"
+npm test        # 10 data checks + 14 trail-maths checks
 ```
 
 …and open `index.html`. Two samples are enough only because the demo is short;
@@ -343,7 +343,9 @@ was produced.
 
 ## 9. Validation — `npm test`
 
-Ten checks run against `data/scenarios.json`; any failure names the field.
+Ten checks run against `data/scenarios.json`; any failure names the field. A
+second suite (`scripts/test-trails.js`, 14 checks) covers the trail-geometry
+maths in `js/trails.js`.
 
 | # | Check | What fails it |
 |---|---|---|
@@ -365,8 +367,12 @@ itself against the motion.
 
 ## 10. What the viewer does with your data
 
-- **Trail**: the last 300 s of each object, drawn as a ribbon whose width scales
-  with camera distance. Celestial bodies get a dimmer, thinner version.
+- **Trail**: the last eighth of the object's orbit (celestial bodies: 0.45 of the
+  orbit — almost half the ring), drawn as a ribbon whose width scales with camera
+  distance, so its apparent size holds at any zoom. Vertices are spread by arc
+  length, not by time. Celestial bodies get a dimmer, thinner version. A trail
+  longer than the track's own history stops at the first sample, so give a
+  celestial track a pre-roll (`npm run preroll`) if you want its full arc.
 - **Path line**: the whole track as a dashed line; dashes rescale with zoom.
 - **Labels/HUD**: one label per track; HUD shows altitude, speed, position,
   cumulative ΔV, plus lunar altitude for cislunar tracks.

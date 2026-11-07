@@ -6,7 +6,13 @@
 //     the scene's orbit ring already shows the orbit) + the same ribbon trail,
 //     rendered far more subtly (dimmer, thinner, colder) so a body's arc never
 //     competes with an artificial object's.
-// Ribbon width scales with camera distance so it stays visible when zoomed out.
+//
+// Trail geometry follows ADR-0006: the ribbon is half as wide as it used to be
+// for craft, its width scales with camera distance (constant apparent size at
+// any zoom), and its *length* comes from the object's own orbit — 0.45 of the
+// orbit perimeter for a celestial body, an eighth for a craft — instead of a
+// fixed 300 s. Vertices are placed at equal arc length so a long coast does not
+// waste them on nothing.
 //
 // Classic-script module: attaches Tacview.createTrackEntity.
 
@@ -14,9 +20,12 @@
     'use strict';
     const THREE = global.THREE;
     const createSpacecraftModel = global.Tacview.createSpacecraftModel;
+    const Trails = global.Tacview.Trails;
 
-    const TRAIL_SECONDS = 300;
-    const TRAIL_SAMPLES = 60;       // path samples along the ribbon
+    const TRAIL_VERTS = 128;        // vertices along the ribbon (equal arc length)
+    const SOLVE_INTERVAL_MS = 200;  // trail window solve rate (5 Hz)
+    const LENGTH_TAU_S = 0.5;       // low-pass on the target length
+    const SUBSTEPS = 256;           // time steps used to measure arc length
     const WIDTH_MIN = 40;           // m — floor ribbon width
     const WIDTH_MAX = 4e6;          // m — ceiling so it never blows up
     const WIDTH_DIST_SCALE = 0.02;  // ribbon width ≈ 2% of camera distance
@@ -29,11 +38,13 @@
     const MIN_APPARENT_RAD = 0.012; // ≈ 9 px on a 780 px viewport at 60° fov
 
     // Bright trail: artificial space objects only (head bright, mid blue).
+    // widthScale 0.5 is ADR-0006's "halve the craft ribbon": the band used to be
+    // 2% of the camera distance, now 1%.
     const OBJECT_TRAIL = {
         head: new THREE.Color(0xd6f4ff),
         mid: new THREE.Color(0x3a8fe0),
         alpha: 1.0,
-        widthScale: 1.0,
+        widthScale: 0.5,
         pathLine: true,
         pathColor: 0x3a7bd5,
         pathOpacity: 0.4,
@@ -75,12 +86,12 @@
     }
 
     function createTrailRibbon(style) {
-        const verts = TRAIL_SAMPLES * 2;
+        const verts = TRAIL_VERTS * 2;
         const positions = new Float32Array(verts * 3);
         const colors = new Float32Array(verts * 3);
         const alphas = new Float32Array(verts);
         const indices = [];
-        for (let i = 0; i < TRAIL_SAMPLES - 1; i++) {
+        for (let i = 0; i < TRAIL_VERTS - 1; i++) {
             const a0 = i * 2, a1 = i * 2 + 1;
             const b0 = (i + 1) * 2, b1 = (i + 1) * 2 + 1;
             indices.push(a0, a1, b0, a1, b0, b1);
@@ -126,34 +137,70 @@
     }
 
     // Fade the tail (p=0) in to full opacity by p=0.4, so the far end is
-    // transparent, the middle is solid mid, the head is solid head.
+    // transparent, the middle is solid mid, the head is solid head. p is the
+    // arc-length fraction, so a 12-day lunar arc fades exactly like an
+    // 11-minute LEO arc.
     function writeAlpha(arr, i, p, style) {
         const fade = p < 0.4 ? p / 0.4 : 1;
         arr[i] = fade * style.alpha;
     }
 
-    // Interpolated position at time tt (lightweight, O(1) via cursor). Cubic
-    // Hermite through the sample velocities, matching the engine so sparse
-    // sampling still draws a smooth ribbon (ADR-0004 item 5).
-    function positionAt(kfs, tt, cursor) {
+    // Interpolated state at time tt (O(1) via cursor). Cubic Hermite through the
+    // sample positions and velocities, matching the engine so sparse sampling
+    // still draws a smooth ribbon (ADR-0004 item 5). Velocity is lerped (the
+    // ribbon only needs a tangent) and the orientation is the nearest sample's
+    // (roll changes far too slowly to matter along a trail).
+    function sampleAt(kfs, tt, cursor, out) {
         let i = cursor.i;
-        if (i < 0 || i >= kfs.length - 1 || kfs[i + 1].t <= tt) i = 0;
+        // Resume from the cursor only when it is still behind tt; a ribbon walks
+        // its vertices forward from the tail, so a stale cursor must restart.
+        if (i < 0 || i >= kfs.length - 1 || kfs[i + 1].t <= tt || kfs[i].t > tt) i = 0;
         while (i < kfs.length - 2 && kfs[i + 1].t <= tt) i++;
         const a = kfs[i], b = kfs[i + 1];
-        const span = b.t - a.t;
         cursor.i = i;
-        if (!(span > 0)) return { x: a.position.x, y: a.position.y, z: a.position.z };
-        const u = (tt - a.t) / span;
+        const span = b.t - a.t;
+        if (!(span > 0)) {
+            out.p.x = a.position.x; out.p.y = a.position.y; out.p.z = a.position.z;
+            out.v.x = a.velocity.x; out.v.y = a.velocity.y; out.v.z = a.velocity.z;
+            out.q = a.orientation;
+            return out;
+        }
+        const u = clamp((tt - a.t) / span, 0, 1);
+        // Hermite is only valid when the sample velocities describe the sample
+        // spacing. The LEO scenario compresses the Moon's motion for display, so
+        // its stored velocities (real, ~1 km/s) say nothing about positions that
+        // move 200x faster; Hermite there folds the ribbon onto itself. When the
+        // tangents disagree with the chord, interpolate linearly instead.
+        const dx = b.position.x - a.position.x;
+        const dy = b.position.y - a.position.y;
+        const dz = b.position.z - a.position.z;
+        const chord = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const tangentRun = 0.5 * span * Math.sqrt(
+            (a.velocity.x + b.velocity.x) ** 2 + (a.velocity.y + b.velocity.y) ** 2 + (a.velocity.z + b.velocity.z) ** 2);
+        const consistent = chord > 0 && tangentRun > 0 && tangentRun / chord > 0.5 && tangentRun / chord < 2;
+        if (!consistent) {
+            out.p.x = a.position.x + dx * u;
+            out.p.y = a.position.y + dy * u;
+            out.p.z = a.position.z + dz * u;
+            out.v.x = dx / span;
+            out.v.y = dy / span;
+            out.v.z = dz / span;
+            out.q = u < 0.5 ? a.orientation : b.orientation;
+            return out;
+        }
         const u2 = u * u, u3 = u2 * u;
         const h00 = 2 * u3 - 3 * u2 + 1;
         const h10 = u3 - 2 * u2 + u;
         const h01 = -2 * u3 + 3 * u2;
         const h11 = u3 - u2;
-        return {
-            x: h00 * a.position.x + h10 * span * a.velocity.x + h01 * b.position.x + h11 * span * b.velocity.x,
-            y: h00 * a.position.y + h10 * span * a.velocity.y + h01 * b.position.y + h11 * span * b.velocity.y,
-            z: h00 * a.position.z + h10 * span * a.velocity.z + h01 * b.position.z + h11 * span * b.velocity.z,
-        };
+        out.p.x = h00 * a.position.x + h10 * span * a.velocity.x + h01 * b.position.x + h11 * span * b.velocity.x;
+        out.p.y = h00 * a.position.y + h10 * span * a.velocity.y + h01 * b.position.y + h11 * span * b.velocity.y;
+        out.p.z = h00 * a.position.z + h10 * span * a.velocity.z + h01 * b.position.z + h11 * span * b.velocity.z;
+        out.v.x = a.velocity.x + (b.velocity.x - a.velocity.x) * u;
+        out.v.y = a.velocity.y + (b.velocity.y - a.velocity.y) * u;
+        out.v.z = a.velocity.z + (b.velocity.z - a.velocity.z) * u;
+        out.q = u < 0.5 ? a.orientation : b.orientation;
+        return out;
     }
 
     function buildPathLine(eng, id, style) {
@@ -200,18 +247,88 @@
 
         let trailVisible = true;
 
-        // Gradient, orientation-aware ribbon over [t-TRAIL_SECONDS, t]. Width is
-        // scaled to the camera distance so the ribbon stays visible when zoomed
-        // out. Artificial objects orient the ribbon to the body's roll (body-up
-        // projected off the path tangent); celestial bodies keep it in the
-        // orbital plane (orbit normal x tangent) so the arc hugs the orbit.
+        // Trail length is measured against the object's own orbit, so the track's
+        // total arc is needed once as the presentation cap (ADR-0006 §2).
+        const allSamples = engine.getSamplesFor(trackId) || [];
+        const trackArc = allSamples.length > 1 ? Trails.arcLength(allSamples) : 0;
+        // At lunar distance the craft is hyperbolic about Earth but orbiting the
+        // Moon; the Moon's state is what the dominance test needs.
+        const moonTrack = isCelestial ? null : engine.getTrack('moon');
+
+        let lengthSmooth = null;
+        let lastSolveMs = -1e9;
+        let lastFrameMs = 0;
+        const vertTimes = new Float64Array(TRAIL_VERTS);
+        const probe = { p: new THREE.Vector3(), v: new THREE.Vector3(), q: null };
+        const cursor = { i: 0 };
+        const fwd = new THREE.Vector3();
+        const upBody = new THREE.Vector3();
+        const normal = new THREE.Vector3();
+        const lat = new THREE.Vector3();
+        const prevLat = new THREE.Vector3();
+        const unitY = new THREE.Vector3(0, 1, 0);
+        const zeroQuat = new THREE.Quaternion();
+
+        // Place the vertex times at equal arc-length spacing across the window.
+        function solveWindow(t, kfs, t0, tEnd) {
+            const times = new Float64Array(SUBSTEPS);
+            const cum = new Float64Array(SUBSTEPS);
+            let prev = Trails.pointAt(kfs, t0);
+            let acc = 0;
+            times[0] = t0; cum[0] = 0;
+            for (let i = 1; i < SUBSTEPS; i++) {
+                const tt = t0 + (tEnd - t0) * (i / (SUBSTEPS - 1));
+                const p = Trails.pointAt(kfs, tt);
+                acc += Trails.dist(prev, p);
+                times[i] = tt; cum[i] = acc; prev = p;
+            }
+            const total = acc;
+            let j = 0;
+            for (let i = 0; i < TRAIL_VERTS; i++) {
+                const want = total * (i / (TRAIL_VERTS - 1));
+                while (j < SUBSTEPS - 2 && cum[j + 1] < want) j++;
+                const spanArc = cum[j + 1] - cum[j];
+                const f = spanArc > 0 ? (want - cum[j]) / spanArc : 0;
+                vertTimes[i] = times[j] + (times[j + 1] - times[j]) * f;
+            }
+            vertTimes[TRAIL_VERTS - 1] = tEnd;
+        }
+
+        // Gradient, orientation-aware ribbon since the trail start (ADR-0006).
+        // Width scales to the camera distance so the ribbon keeps its apparent
+        // size at any zoom. Artificial objects orient the ribbon to the body's
+        // roll (body-up projected off the path tangent); celestial bodies keep it
+        // in the orbital plane (orbit normal x tangent) so the arc hugs the orbit.
         function updateTrails(t, st) {
-            const kfs = engine.getSamplesFor(trackId);
+            const kfs = allSamples;
             if (!trailVisible || !kfs || kfs.length < 2) { ribbon.visible = false; return; }
+            const nowMs = (typeof performance !== 'undefined' && performance.now)
+                ? performance.now() : Date.now();
+            const dtMs = lastFrameMs ? Math.min(nowMs - lastFrameMs, 100) : 16;
+            lastFrameMs = nowMs;
+
+            // 1. How long should the trail be right now? (ADR-0006 §2/§3)
+            const moonState = moonTrack ? engine.getStateAtTimeFor(moonTrack.id, t) : null;
+            const target = Trails.targetLength({
+                kind: isCelestial ? 'celestial' : 'object',
+                state: { position: st.position, velocity: st.velocity },
+                moon: moonState ? { position: moonState.position, velocity: moonState.velocity } : null,
+                arcLength: trackArc,
+            });
+            if (lengthSmooth === null) lengthSmooth = target;
+            else lengthSmooth += (target - lengthSmooth) * Math.min(1, dtMs / (LENGTH_TAU_S * 1000));
+
+            // 2. Re-solve the window at 5 Hz: the vertex times do not move between
+            //    solves (they are historical points), so the ribbon is stable.
             const firstT = kfs[0].t, lastT = kfs[kfs.length - 1].t;
-            const t1 = Math.max(firstT, t - TRAIL_SECONDS);
             const tEnd = Math.min(lastT, t);
-            const span = Math.max(tEnd - t1, 1e-9);
+            if (nowMs - lastSolveMs > SOLVE_INTERVAL_MS) {
+                lastSolveMs = nowMs;
+                const t0 = Math.max(firstT, Trails.windowStart(kfs, tEnd, lengthSmooth));
+                solveWindow(t, kfs, t0, tEnd);
+                ribbon.userData.trail = { target, smooth: lengthSmooth, t0, tEnd, trackArc };
+            }
+            vertTimes[TRAIL_VERTS - 1] = tEnd;
 
             const camDist = camera.position.distanceTo(st.position);
             const halfW = (clamp(camDist * WIDTH_DIST_SCALE, WIDTH_MIN, WIDTH_MAX) / 2) * style.widthScale;
@@ -219,33 +336,36 @@
             const positions = ribbon.geometry.attributes.position.array;
             const colors = ribbon.geometry.attributes.color.array;
             const alphas = ribbon.geometry.attributes.alpha.array;
-            const fwd = new THREE.Vector3();
-            const upBody = new THREE.Vector3();
-            const normal = new THREE.Vector3();
-            const lat = new THREE.Vector3();
-            const cursor = { i: 0 };
-            const unitY = new THREE.Vector3(0, 1, 0);
 
-            for (let i = 0; i < TRAIL_SAMPLES; i++) {
-                const u = i / (TRAIL_SAMPLES - 1);
-                const tt = t1 + span * u;
-                const p = positionAt(kfs, tt, cursor);
-                const sti = engine.getStateAtTimeFor(trackId, tt);
+            prevLat.set(0, 0, 0);
+            cursor.i = 0;
+            for (let i = 0; i < TRAIL_VERTS; i++) {
+                const u = i / (TRAIL_VERTS - 1);
+                // The head is pinned to the live state so the ribbon always
+                // touches the object, whatever the solve rate.
+                const p = i === TRAIL_VERTS - 1 ? st.position : sampleAt(kfs, vertTimes[i], cursor, probe).p;
 
-                if (sti && sti.velocity.lengthSq() > 1e-12) fwd.copy(sti.velocity).normalize();
+                if (i === TRAIL_VERTS - 1) fwd.copy(st.velocity);
+                else fwd.copy(probe.v);
+                if (fwd.lengthSq() > 1e-12) fwd.normalize();
                 else fwd.set(0, 0, -1);
 
                 if (isCelestial) {
-                    normal.crossVectors(sti ? sti.position : p, fwd);
+                    normal.crossVectors(i === TRAIL_VERTS - 1 ? st.position : probe.p, fwd);
                     if (normal.lengthSq() > 1e-12) lat.crossVectors(normal.normalize(), fwd);
                     else lat.copy(unitY);
                 } else {
-                    upBody.set(0, 1, 0).applyQuaternion(sti ? sti.orientation : new THREE.Quaternion());
+                    upBody.set(0, 1, 0).applyQuaternion(
+                        (i === TRAIL_VERTS - 1 ? st.orientation : probe.q) || zeroQuat);
                     lat.copy(upBody).addScaledVector(fwd, -upBody.dot(fwd));
-                    if (lat.lengthSq() < 1e-12) lat.crossVectors(sti ? sti.position : new THREE.Vector3(), fwd);
+                    if (lat.lengthSq() < 1e-12) lat.crossVectors(i === TRAIL_VERTS - 1 ? st.position : probe.p, fwd);
                 }
                 if (lat.lengthSq() < 1e-12) lat.copy(unitY);
                 lat.normalize();
+                // Keep the ribbon from twisting: over a long arc the up-vector can
+                // flip between adjacent vertices, which folds the band.
+                if (i > 0 && lat.dot(prevLat) < 0) lat.negate();
+                prevLat.copy(lat);
 
                 const a = i * 2, b = i * 2 + 1;
                 positions[a * 3]     = p.x + lat.x * halfW;
@@ -271,6 +391,7 @@
         function getTrailsVisible() { return trailVisible; }
         function getTrackId() { return trackId; }
         function isCelestialBody() { return isCelestial; }
+        function getTrailLength() { return lengthSmooth; }
 
         function update(t) {
             const st = engine.getStateAtTimeFor(trackId, t);
@@ -292,7 +413,7 @@
 
         return {
             update, setTrailsVisible, getTrailsVisible, getTrackId, isCelestialBody,
-            getMesh: () => mesh,
+            getTrailLength, getMesh: () => mesh,
         };
     }
 

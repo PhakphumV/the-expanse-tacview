@@ -4,8 +4,9 @@
   "private": true,
   "description": "Space-object telemetry viewer grounded in CCSDS OMM/OEM. No build step.",
   "scripts": {
-    "test": "node scripts/validate-telemetry.js",
+    "test": "node scripts/validate-telemetry.js && node scripts/test-trails.js",
     "embed": "node scripts/embed-scenarios.js",
+    "preroll": "node scripts/pre-roll-celestial.js",
     "serve": "python3 -m http.server 8000"
   }
 }

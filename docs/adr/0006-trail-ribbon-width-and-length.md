@@ -1,6 +1,6 @@
 # ADR-0006 — Trail ribbons: thinner for craft, length from orbit geometry
 
-- **Status:** proposed
+- **Status:** accepted — implemented in `js/trails.js` + `js/entities.js`
 - **Date:** 2026-11-07
 - **Related:** `js/entities.js` (ribbon builder), `data/scenarios.json` (celestial
   sample coverage), ADR-0001 (state vectors as render source)
@@ -162,6 +162,38 @@ and the 0.45 / 0.125 fractions.
 (regenerate + `npm run embed`), retuned gradient and celestial opacity once the
 long trails are on screen, README description, and a screenshot of the new
 Apollo trail.
+
+## Implementation notes (what differed from the plan)
+
+- **Perimeter, not circumference.** `P = 4a·E(e)` via Ramanujan, because `2πa`
+  overstates COLUMBIA's e = 0.977 orbit by 48.8 %. The tests pin both the circle
+  identity and that eccentric case.
+- **The arc cap is craft-only.** Applied to celestial tracks it silently shortened
+  the lunar arc: the Moon's track (pre-roll + replay) is 0.75 of an orbit, so a
+  35 % cap would have clipped the 45 % target. Celestial trails use the fraction
+  as designed; craft trails keep the guard.
+- **Arc length from positions, not from velocities.** The `leo` scenario
+  compresses the Moon's motion for display (period 11 150 s) while storing its
+  real ~1 km/s velocities. Integrating `v` would have measured 1/200th of the
+  path. Positions are the source of truth, so `windowStart` walks the samples.
+- **Hermite needs a sanity check.** For the same reason, cubic Hermite through
+  those samples folds the ribbon back on itself; `sampleAt` now falls back to
+  linear interpolation when the tangents disagree with the chord by more than 2x.
+- **A stale-cursor bug cost a debugging round.** Reusing one `{ i }` cursor across
+  frames meant the first vertex of a new frame resumed at the *end* of the
+  previous frame's window, so ribbons drew as short stubs (11 Mm instead of
+  758 Mm). The cursor now restarts when it is ahead of the requested time.
+- **Pre-roll is a script, not a data patch.** `npm run preroll`
+  (`scripts/pre-roll-celestial.js`) extends a celestial track backwards — copying
+  the periodic tail for `leo`, fetching JPL Horizons for `apollo11` — and is
+  idempotent (it skips a track that already has negative-time samples).
+- **Validator check 7 had to learn about eccentricity.** It compared every sample
+  radius against `SEMI_MAJOR_AXIS` within 5 %, which the real Moon (e = 0.055,
+  apogee 406 000 km) exceeds. The tolerance is now `max(5 %, 1.1·e)`.
+- **`window.TacviewDebug`** exposes `{ engine, entities, camera, scene }` after a
+  scenario builds, and each ribbon records its last solve in
+  `userData.trail`; both exist because verifying a 1 100 Mm arc needs numbers,
+  not eyeballs.
 
 ## Alternatives considered
 

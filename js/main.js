@@ -84,6 +84,9 @@
         if (labels) labels.update();
         updateHeader();
         timeline.updateUI();
+        // Developer hook: the console can inspect live entities, the camera and
+        // the trail lengths without every module exporting them.
+        window.TacviewDebug = { engine, entities, camera, scene, cameraCtl, trackGroup };
     }
 
     // Per-scenario presentation hints: playback speed and the framing distance of

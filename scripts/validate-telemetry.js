@@ -185,10 +185,16 @@ function checkCelestial() {
             const a = me.SEMI_MAJOR_AXIS;
             if (typeof a !== 'number' || !(a > 0))
                 return `${t.id}: celestial track missing mean_elements.SEMI_MAJOR_AXIS`;
+            // A real orbit is not a circle: allow the ellipse's own radial swing
+            // (a·e) plus a small margin, so an eccentric body such as the Moon
+            // (e = 0.055, perigee 363 000 km / apogee 406 000 km) is not flagged
+            // for being where its elements say it should be.
+            const e = typeof me.ECCENTRICITY === 'number' && me.ECCENTRICITY >= 0 ? me.ECCENTRICITY : 0;
+            const tol = Math.max(0.05, Math.min(0.5, e) * 1.1) + 0.005;
             for (const s of t.samples) {
                 const r = Math.hypot(s.position[0], s.position[1], s.position[2]);
-                if (Math.abs(r - a) / a > 0.05)
-                    return `${t.id} sample t=${s.t}: radius ${(r / 1000).toFixed(0)} km off SEMI_MAJOR_AXIS ${(a / 1000).toFixed(0)} km`;
+                if (Math.abs(r - a) / a > tol)
+                    return `${t.id} sample t=${s.t}: radius ${(r / 1000).toFixed(0)} km off SEMI_MAJOR_AXIS ${(a / 1000).toFixed(0)} km (tolerance ${(tol * 100).toFixed(1)}% for e=${e})`;
             }
         }
     return null;

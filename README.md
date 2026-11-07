@@ -55,12 +55,16 @@ python3 -m http.server 8000
   Moon) and space object (ISS, Tiangong); click to retarget the camera and see
   that target's telemetry (altitude/speed/position for objects; radius/orbit
   for bodies).
-- **Gradient ribbon trails** (`js/entities.js`): each artificial space object
-  leaves a bright, orientation-aware ribbon (body-roll oriented, head→tail color
-  gradient) whose width scales with camera distance so it stays visible when
-  zoomed out. Celestial bodies (`kind: "celestial"`, i.e. the Moon) use the same
-  ribbon in a subdued form — colder, thinner, but kept in the orbital plane — so
-  a body's arc never competes with a spacecraft's track.
+- **Gradient ribbon trails** (`js/entities.js`, math in `js/trails.js`): each
+  artificial space object leaves a bright, orientation-aware ribbon (body-roll
+  oriented, head→tail color gradient) whose width scales with camera distance, so
+  the band keeps its apparent size at any zoom. Trail **length comes from the
+  object's own orbit** (ADR-0006): an eighth of the orbit for a craft (5 339 km
+  in LEO, 151 000 km on a trans-lunar coast), 0.45 of it for a celestial body —
+  almost half the ring — with vertices spread by arc length rather than by time.
+  Celestial bodies (`kind: "celestial"`, i.e. the Moon) use the same ribbon in a
+  subdued form — colder, thinner, but kept in the orbital plane — so a body's arc
+  never competes with a spacecraft's track.
 - **Viewport** (`js/camera.js`): two modes — **Orbit** (free rotation around the
   selected target) and **Follow** (chase the selected moving object; drag to
   orbit it, zoom to pull in). Wheel and `+`/`-`/PageUp/PageDown zoom by a fixed
@@ -97,6 +101,7 @@ js/
   orbit-ring.js           — faint orbit guide ring derived from a celestial track
   ephemeris.js            — track/ephemeris engine (state queries, playback)
   entities.js             — per-track body, orbital path, ribbon trails (object vs celestial)
+  trails.js               — trail length/window maths (pure, tested in Node)
   spacecraft-model.js     — procedural spacecraft body (heading/orientation)
   labels.js               — billboarded on-screen labels (one per track)
   camera.js               — Orbit / Follow viewport modes around a target
