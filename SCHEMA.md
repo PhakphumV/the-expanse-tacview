@@ -186,6 +186,10 @@ maneuver records are validated *against* them.
   the vector step for an impulsive burn, the **speed change** for a prograde or
   retrograde finite burn (the vector turns under gravity during the burn, so its
   magnitude difference is not the dv).
+- `gravity_loss_mps`: optional, for a burn that also lifts the vehicle. A launch
+  burn's thrust integral is always larger than the speed it gains, so the samples
+  check compares against `dv_mps - gravity_loss_mps` (the LM ascent spends
+  1 920 m/s of thrust to gain 1 650 m/s). Must be non-negative and below `dv_mps`.
 - `accel_mps2` **or** `thrust_n` + `mass_kg.start`: the validator checks
   `dv_mps / (t_end - t_start)` against it (15 % tolerance, which absorbs gravity
   and steering losses). If `isp_s` and both masses are present, the rocket

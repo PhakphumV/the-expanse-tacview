@@ -32,7 +32,7 @@ and validated.
 | 3 | Lunar orbit insertion | 075:49:50 → 100:39:53 | LOI-1 (111 × 314 km), LOI-2 (≈ 92 × 122 km), lunar orbits to separation | Published LOI-1/LOI-2 ΔV and orbit elements; arrival state from phase 2 | DONE |
 | 4 | Undocking → DOI → PDI → landing | 100:12:00 → 102:45:40 | `EAGLE` becomes its own track: undocking, separation, descent orbit (15 × 111 km), powered descent | Separation 100:39:53, DOI 101:36:14, PDI 102:33:05, touchdown 102:45:40 | DONE |
 | 5 | Surface stay and EVA | 102:45:40 → 124:22:01 | `EAGLE` parked (zero relative velocity), EVA events | EVA start 109:07:33, first step 109:24:15 | DONE |
-| 6 | Ascent → rendezvous → docking → LM jettison | 124:22:01 → 130:09:00 | Ascent to 18 × 87 km, rendezvous with `COLUMBIA`, docking, jettison | Liftoff 124:22:01, docking 128:03:00 |
+| 6 | Ascent → rendezvous → docking → LM jettison | 124:22:01 → 130:09:00 | `EAGLE` lift-off and ascent (593 s, 18.6 km cutoff, 18.0 × 86.6 km), TPI + braking, docking, jettison; `COLUMBIA` extended through the rendezvous | Liftoff 124:22:01, docking 128:03:00, jettison 130:09:00 | DONE |
 | 7 | TEI → trans-Earth coast → entry → splashdown | 130:09:00 → 195:18:35 | TEI burn, 3-day coast, final midcourse, entry interface at 400 000 ft, splashdown | TEI 135:22:42, entry state at EI (400 kft), splashdown 195:18:35 |
 
 ## Per-phase workflow
@@ -175,6 +175,48 @@ LOI-1 time — which produced the 64.0 m/s burn above. The coast samples
     round-off produced when the altitude sat a few metres under the radius.
 - The EVA events (109:07:33 start, 109:24:15 first step) have existed since phase 0;
   they now have four hours of parked telemetry underneath them.
+
+
+## Phase 6 notes (implemented)
+
+- **Ascent is integrated, not shaped.** RK4 with Earth + Moon gravity, the engine
+  on a pitch programme `theta = 90 deg * (u/pitchFrac)^shape`, and three knobs
+  (burn length, pitch fraction, pitch exponent) solved for three targets: perilune
+  18 km, apolune 87 km, altitude at cutoff 18 km. Result: 593 s, 1.90 km/s of
+  thrust, cutoff at **18.6 km and 1.687 km/s**, orbit **18.0 × 86.6 km** — the
+  published insertion is 18 × 87 km at ~1.69 km/s.
+- **The pitch exponent is what keeps the insertion low.** With a linear programme
+  (`shape = 1`) the same two orbit targets are met by *lofting*: cutoff at 58 km,
+  then climbing to 87 km and coming back down. Sweeping the exponent and keeping
+  the solution with the lowest cutoff is what puts the engine cutoff at 18 km,
+  where Apollo's was.
+- **Rendezvous is solved, not animated.** Two impulses: TPI 67.5 m/s at 124:38:34
+  (`t = 448 674`) and a braking burn 65.4 m/s at 128:00:00, found with a 6×6
+  Newton so `EAGLE` arrives at `COLUMBIA`'s reconstructed position *and* velocity
+  at docking. Miss at 128:03:00: **232 m, 0.33 m/s**. The TPI epoch was scanned
+  (2–130 min after insertion × 1–15 min before docking) for the cheapest transfer.
+- **Why 133 m/s instead of Apollo's ~55 m/s.** The real rendezvous was four small
+  burns over 3.5 h; this is two large ones, because a two-impulse model must buy
+  the whole phase difference at once. The `TPI` maneuver note records it.
+- **Docking through jettison is one object.** From 128:03 `EAGLE` copies
+  `COLUMBIA`'s own samples (same knots, so the engine's interpolation agrees at
+  every instant: measured separation 0.000 km, relative speed 0.00 m/s). At
+  130:09 a 0.6 m/s retrograde push separates them; the gap grows to 4.6 km by
+  130:25 and 12.4 km at the end of the track.
+- **Hermite, not linear, when sampling `COLUMBIA`.** The first attempt interpolated
+  the CSM's 180 s grid linearly and put the docked LM **5 km** off the CSM it was
+  supposed to be attached to: a linear chord across a 180 s lunar-orbit step is
+  ~5.6 km short of the real arc. The generator now uses the same cubic Hermite the
+  engine uses.
+- **New schema field: `gravity_loss_mps`.** A launch burn's thrust integral always
+  exceeds the speed it gains (1 920 vs 1 650 m/s here): the validator used to
+  compare `dv_mps` with the samples straight and would fail a perfectly good
+  ascent. It now compares against `dv_mps - gravity_loss_mps`, and the field is
+  validated (non-negative, below `dv_mps`).
+- **Payload.** Phase 6 added ~1 030 `EAGLE` samples and 126 `COLUMBIA` samples, so
+  `COLUMBIA`'s 10 s coast grid inside 30 000 km was thinned to 20 s (9 147 →
+  6 984 samples; Hermite through the sample velocities is unchanged to metres).
+  Payload went 1.99 MB → **1.85 MB** for 11 742 samples.
 
 ## Known gaps carried by the skeleton
 

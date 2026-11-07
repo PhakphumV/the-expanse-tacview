@@ -243,6 +243,10 @@ velocities*; velocity lerps and orientation slerps. Practical consequences:
   gravity during a long burn (Apollo's TLI: 4 421 m/s of vector change for
   3 037 m/s of speed change).
 - Optional `isp_s` + `mass_kg: {start, end}` enables a rocket-equation check.
+- A burn that also lifts the vehicle declares `gravity_loss_mps`: the thrust
+  integral exceeds the speed gained, so the samples check compares against
+  `dv_mps - gravity_loss_mps` instead of `dv_mps` (the Apollo 11 LM ascent
+  spends 1 920 m/s of thrust to gain 1 650 m/s of speed over 593 s).
 - The validator checks an **impulsive** burn's step against the declared
   direction (dot ≥ 0.98, ~11°) but only the **sense** of a finite burn (speed
   must rise for prograde, fall for retrograde): during a long burn the velocity

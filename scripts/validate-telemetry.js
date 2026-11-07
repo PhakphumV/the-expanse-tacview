@@ -292,6 +292,12 @@ function checkManeuvers() {
                     return `${where} dv_direction "${m.dv_direction}" is not one of ${BURN_DIRECTIONS.join('|')}`;
                 if (m.dv_rtn !== undefined && !(Array.isArray(m.dv_rtn) && m.dv_rtn.length === 3 && m.dv_rtn.every(Number.isFinite)))
                     return `${where} dv_rtn must be a finite [radial, transverse, normal] triplet`;
+                if (m.gravity_loss_mps !== undefined) {
+                    if (!(typeof m.gravity_loss_mps === 'number' && m.gravity_loss_mps >= 0))
+                        return `${where} gravity_loss_mps must be a non-negative number`;
+                    if (typeof m.dv_mps === 'number' && m.gravity_loss_mps >= m.dv_mps)
+                        return `${where} gravity_loss_mps must be below dv_mps`;
+                }
                 if (m.dv_vector !== undefined && !(Array.isArray(m.dv_vector) && m.dv_vector.length === 3 && m.dv_vector.every(Number.isFinite)))
                     return `${where} dv_vector must be a finite [x, y, z] triplet`;
 
@@ -325,10 +331,14 @@ function checkManeuvers() {
                         }
                         // A finite burn near a body also gains/loses speed to gravity
                         // (Apollo's LOI-1 shows 770 m/s across a 862 m/s burn), so it
-                        // gets a wider band than an impulsive step.
+                        // gets a wider band than an impulsive step. A launch burn loses
+                        // more again: part of its dv goes into lifting the vehicle, so
+                        // the speed it gains is dv minus the declared gravity loss.
+                        const expected = m.dv_mps - (m.gravity_loss_mps || 0);
                         const dvTol = m.kind === 'impulsive' ? DV_VS_SAMPLES_TOL : Math.max(DV_VS_SAMPLES_TOL, 0.15);
-                        if (Math.abs(observed - m.dv_mps) > dvTol * m.dv_mps)
-                            return `${where} (${m.id}): samples show ${observed.toFixed(0)} m/s, dv_mps says ${m.dv_mps}`;
+                        if (Math.abs(observed - expected) > dvTol * expected)
+                            return `${where} (${m.id}): samples show ${observed.toFixed(0)} m/s, dv_mps says ${m.dv_mps}`
+                                + (m.gravity_loss_mps ? ` (expected ${expected.toFixed(0)} after ${m.gravity_loss_mps} m/s of gravity loss)` : '');
                         if (m.kind !== 'impulsive') {
                             const rate = m.dv_mps / (m.t_end - m.t_start);
                             let declaredAccel = null;
