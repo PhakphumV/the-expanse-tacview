@@ -238,6 +238,21 @@ html, body {
     border-radius: 2px;
     padding: 1px 4px;
 }
+/* Burn spans render as a bar above the scrub track (ADR-0004). */
+.maneuver-bar {
+    position: absolute;
+    top: -5px;
+    height: 4px;
+    min-width: 3px;
+    border-radius: 2px;
+    background: #ff9d3d;
+    opacity: 0.8;
+    pointer-events: auto;
+    cursor: pointer;
+}
+.maneuver-bar:hover { opacity: 1; box-shadow: 0 0 6px rgba(255, 157, 61, 0.8); }
+.maneuver-bar.impulsive { background: #ffd27f; height: 3px; }
+.maneuver-bar.constant { background: #ff7a3d; }
 /* Phase markers are the coarse jump targets: taller tick, brighter label. */
 .event-marker.phase::before { height: 18px; background: #ffe8b8; }
 .event-marker.phase span { color: #ffe8b8; font-weight: bold; }

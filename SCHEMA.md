@@ -117,7 +117,12 @@ session) will be its own scenario carrying its tracks and mission events.
   render data. It may be omitted; the ephemeris is the ground truth.
 - `attitude` (object, required): body-frame convention. `frame` names the
   reference (e.g. `ECItoBody`); `forward` and `up` name the body axes so a
-  reader can derive heading and orientation.
+  reader can derive heading and orientation. Optional `mode` declares which way
+  the body is meant to point: `"velocity"` (default, forward along velocity),
+  `"antivelocity"` (retrograde/braking attitude) or `"fixed"` (attitude
+  unrelated to the velocity, e.g. a parked or landed vehicle). `npm test` checks
+  the heading against the declared mode.
+- `maneuvers` (array, optional): ordered burn records, see *Maneuvers* below.
 - `samples` (array, required, non-empty): time-ordered state samples (below).
 
 ### Ephemeris sample
@@ -142,6 +147,52 @@ session) will be its own scenario carrying its tracks and mission events.
 Neither OMM nor the CCSDS ephemeris messages define attitude; this contract
 adds `orientation` as a per-sample unit quaternion so spacecraft heading and
 orientation can be rendered in 3D.
+
+The renderer interpolates **position with cubic Hermite** through the sample
+positions and velocities, so a sparsely sampled curved arc stays smooth; velocity
+lerps and orientation slerps. Samples may therefore be as far apart as the
+trajectory's curvature allows (60–120 s on a coast, 1–10 s through a burn).
+
+## Maneuvers
+
+A track may carry an ordered `maneuvers` array describing the burns that
+produced its ephemeris (ADR-0004). The samples remain the ground truth; the
+maneuver records are validated *against* them.
+
+```json
+{
+  "id": "TLI",
+  "kind": "finite",              // impulsive | finite | constant
+  "t_start": 9856,
+  "t_end": 10213,                // required unless kind is "impulsive"
+  "dv_mps": 3040,                // velocity change of the burn
+  "dv_frame": "ECI",
+  "accel_mps2": 8.9,             // or thrust_n + mass_kg
+  "thrust_n": 1000000,
+  "isp_s": 421,
+  "mass_kg": { "start": 115000, "end": 53000 },
+  "attitude": "prograde",
+  "note": "S-IVB restart, 5 m 57 s"
+}
+```
+
+- `kind`: `impulsive` (a velocity step between two consecutive samples),
+  `finite` (a burn with a duration) or `constant` (continuous low thrust).
+- `dv_mps`: the burn's velocity change. `npm test` compares it with the samples —
+  the vector step for an impulsive burn, the **speed change** for a prograde or
+  retrograde finite burn (the vector turns under gravity during the burn, so its
+  magnitude difference is not the dv).
+- `accel_mps2` **or** `thrust_n` + `mass_kg.start`: the validator checks
+  `dv_mps / (t_end - t_start)` against it (15 % tolerance, which absorbs gravity
+  and steering losses). If `isp_s` and both masses are present, the rocket
+  equation must also agree with `dv_mps` (10 %).
+- `attitude`: `prograde` | `retrograde` | `fixed`, used to interpret the burn.
+
+### Events with duration
+
+A burn is an interval, so an event may carry `t_end`. The timeline draws a bar
+for it; maneuvers with a duration draw their own bars without needing a
+duplicate event.
 
 ## Celestial tracks
 

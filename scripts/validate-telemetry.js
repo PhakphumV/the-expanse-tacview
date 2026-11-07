@@ -15,6 +15,8 @@
 //   7. Celestial tracks carry a radius and stay on their declared orbit.
 //   8. Scenario presentation fields (epoch, duration_s, speeds, framing) are sane.
 //   9. The generated per-scenario payloads match data/scenarios.json.
+//  10. Maneuver records are ordered, inside the track window, and match the
+//      velocity change / acceleration the samples actually show.
 //
 // Run:    npm test   (or)   node scripts/validate-telemetry.js
 // Exits 0 on success, 1 on any failed check.
@@ -29,6 +31,9 @@ const datasetPath = path.join(repoRoot, 'data', 'scenarios.json');
 const ORIENT_TOL = 1e-4;      // unit-quaternion tolerance
 const FWD_DOT_MIN = 0.98;     // attitude.forward vs velocity unit direction
 const IDLE_SPEED = 1.0;       // m/s — below this the vehicle is parked/landed
+const DV_VS_SAMPLES_TOL = 0.10;   // maneuver dv vs the samples' velocity change
+const ACCEL_TOL = 0.15;           // thrust acceleration vs dv/duration
+const TSIOLKOVSKY_TOL = 0.10;     // rocket-equation consistency
 
 let passCount = 0, failCount = 0;
 function check(name, fn) {
@@ -117,7 +122,10 @@ function checkUnitQuaternions() {
 function checkHeading() {
     for (const sc of scenarios())
         for (const t of sc.tracks) {
-            const fwd = t.attitude.forward;
+            const fwd = (t.attitude && t.attitude.forward) || [0, 0, -1];
+            const mode = (t.attitude && t.attitude.mode) || 'velocity';
+            if (['velocity', 'antivelocity', 'fixed'].indexOf(mode) === -1)
+                return `${t.id}: attitude.mode "${mode}" is not velocity|antivelocity|fixed`;
             for (const s of t.samples) {
                 const q = s.orientation;
                 const p = [fwd[0], fwd[1], fwd[2], 0];
@@ -132,7 +140,11 @@ function checkHeading() {
                 if (vl < IDLE_SPEED) continue;
                 if (wfl < 1e-9) return `${t.id} sample t=${s.t}: degenerate`;
                 const dot = (wf[0] * v[0] + wf[1] * v[1] + wf[2] * v[2]) / (wfl * vl);
-                if (dot < FWD_DOT_MIN) return `${t.id} sample t=${s.t}: forward/velocity dot=${dot.toFixed(4)}`;
+                // A "fixed" attitude is unrelated to the velocity direction.
+                if (mode === 'fixed') continue;
+                const signed = mode === 'antivelocity' ? -dot : dot;
+                if (signed < FWD_DOT_MIN)
+                    return `${t.id} sample t=${s.t}: ${mode} heading dot=${dot.toFixed(4)}`;
             }
         }
     return null;
@@ -240,6 +252,102 @@ function checkEmbeddedData() {
     return null;
 }
 
+function checkManeuvers() {
+    for (const sc of scenarios())
+        for (const t of sc.tracks) {
+            if (t.maneuvers === undefined) continue;
+            if (!Array.isArray(t.maneuvers)) return `${t.id}: maneuvers must be an array`;
+            const t0 = t.samples[0].t, t1 = t.samples[t.samples.length - 1].t;
+            const seen = new Set();
+            let prevStart = -Infinity;
+
+            for (const [i, m] of t.maneuvers.entries()) {
+                const where = `${t.id}.maneuvers[${i}]`;
+                if (!m || typeof m !== 'object') return `${where} not an object`;
+                if (typeof m.id !== 'string' || !m.id) return `${where} missing string id`;
+                if (seen.has(m.id)) return `${t.id}: duplicate maneuver id "${m.id}"`;
+                seen.add(m.id);
+                if (['impulsive', 'finite', 'constant'].indexOf(m.kind) === -1)
+                    return `${where} kind must be impulsive|finite|constant`;
+                if (typeof m.t_start !== 'number' || !isFinite(m.t_start)) return `${where} t_start not finite`;
+                if (m.t_start < t0 || m.t_start > t1) return `${where} t_start outside the track window`;
+                if (m.t_start < prevStart) return `${where} maneuvers are not time-ordered`;
+                prevStart = m.t_start;
+
+                if (m.kind !== 'impulsive') {
+                    if (typeof m.t_end !== 'number' || !isFinite(m.t_end))
+                        return `${where} t_end is required for a ${m.kind} burn`;
+                    if (m.t_end <= m.t_start) return `${where} t_end must be after t_start`;
+                    if (m.t_end > t1) return `${where} t_end outside the track window`;
+                }
+                if (m.dv_mps !== undefined && !(typeof m.dv_mps === 'number' && m.dv_mps > 0))
+                    return `${where} dv_mps must be a positive number`;
+
+                // The samples are the ground truth: the declared burn has to show
+                // up as a matching velocity change. An impulsive burn is a step in
+                // the vector; a finite prograde/retrograde burn shows up as a speed
+                // change (the vector turns under gravity during the burn, so its
+                // magnitude difference is not the dv).
+                if (typeof m.dv_mps === 'number') {
+                    const before = sampleAtOrBefore(t.samples, m.t_start);
+                    // An impulsive burn is a step between two consecutive samples, so
+                    // the "after" sample must be strictly later; a finite burn ends
+                    // at t_end and that sample is the end state.
+                    const after = m.kind === 'impulsive'
+                        ? sampleStrictlyAfter(t.samples, m.t_start)
+                        : sampleAtOrAfter(t.samples, m.t_end);
+                    if (!before || !after) return `${where} needs samples bracketing the burn`;
+                    const onAxis = (m.attitude || 'prograde') === 'prograde' || m.attitude === 'antivelocity';
+                    let observed;
+                    if (m.kind === 'impulsive' || !onAxis) {
+                        observed = dist3(before.velocity, after.velocity);
+                    } else {
+                        observed = Math.abs(norm3(after.velocity) - norm3(before.velocity));
+                    }
+                    if (Math.abs(observed - m.dv_mps) > DV_VS_SAMPLES_TOL * m.dv_mps)
+                        return `${where} (${m.id}): samples show ${observed.toFixed(0)} m/s, dv_mps says ${m.dv_mps}`;
+                    if (m.kind !== 'impulsive') {
+                        const rate = m.dv_mps / (m.t_end - m.t_start);
+                        let declared = null;
+                        if (typeof m.accel_mps2 === 'number') declared = m.accel_mps2;
+                        else if (typeof m.thrust_n === 'number' && m.mass_kg && m.mass_kg.start)
+                            declared = m.thrust_n / m.mass_kg.start;
+                        if (declared && Math.abs(rate - declared) / declared > ACCEL_TOL)
+                            return `${where} (${m.id}): ${rate.toFixed(2)} m/s2 implied, declared ${declared.toFixed(2)}`;
+                    }
+                }
+                if (typeof m.isp_s === 'number' && m.mass_kg && m.mass_kg.start && m.mass_kg.end) {
+                    const m0 = m.mass_kg.start, m1 = m.mass_kg.end;
+                    if (!(m1 < m0)) return `${where} mass_kg.end must be below mass_kg.start`;
+                    const rocket = m.isp_s * 9.80665 * Math.log(m0 / m1);
+                    if (typeof m.dv_mps === 'number' && Math.abs(rocket - m.dv_mps) / m.dv_mps > TSIOLKOVSKY_TOL)
+                        return `${where} (${m.id}): dv ${m.dv_mps} m/s vs rocket equation ${rocket.toFixed(0)} m/s`;
+                }
+            }
+        }
+    return null;
+}
+
+function dist3(a, b) {
+    return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+}
+function norm3(v) {
+    return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+}
+function sampleAtOrBefore(samples, t) {
+    let out = null;
+    for (const s of samples) { if (s.t <= t + 1e-9) out = s; else break; }
+    return out;
+}
+function sampleAtOrAfter(samples, t) {
+    for (const s of samples) if (s.t >= t - 1e-9) return s;
+    return null;
+}
+function sampleStrictlyAfter(samples, t) {
+    for (const s of samples) if (s.t > t + 1e-9) return s;
+    return null;
+}
+
 console.log(`Validating ${path.relative(repoRoot, datasetPath)}\n`);
 check('1. Dataset shape conforms to schema', checkShape);
 check('2. JS module syntax', checkSyntax);
@@ -250,6 +358,7 @@ check('6. Scenario events well-formed and time-ordered', checkEvents);
 check('7. Celestial tracks carry radius and match their orbit', checkCelestial);
 check('8. Scenario presentation fields are well-formed', checkScenarioFields);
 check('9. Embedded scenario files match the canonical dataset', checkEmbeddedData);
+check('10. Maneuvers are consistent with the ephemeris', checkManeuvers);
 
 console.log(`\n${passCount} passed, ${failCount} failed`);
 process.exit(failCount === 0 ? 0 : 1);

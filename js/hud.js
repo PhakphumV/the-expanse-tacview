@@ -87,11 +87,25 @@
             const radius = st.position.length();
             const altKm = (radius - EARTH_RADIUS) / 1000;
             const speedKmps = st.velocity.length() / 1000;
-            return [
+            const dvUsed = engine.getDeltaVUsed(t, time);
+            const rows = [
                 ['ALT', altKm.toFixed(1) + ' km'],
                 ['SPD', speedKmps.toFixed(3) + ' km/s'],
                 ['POS', `[${(st.position.x / 1000).toFixed(0)}, ${(st.position.y / 1000).toFixed(0)}, ${(st.position.z / 1000).toFixed(0)}]`],
+                ['\u0394V', dvUsed >= 1000 ? (dvUsed / 1000).toFixed(2) + ' km/s' : dvUsed.toFixed(0) + ' m/s'],
             ];
+            // Cislunar tracks: Earth altitude is not the interesting number, so
+            // report the Moon as well (ADR-0004 follow-up).
+            const moonState = engine.getStateAtTimeFor('moon', time);
+            const moonInfo = engine.getTrack('moon') ? engine.getTrack('moon').meta : null;
+            if (moonState && moonInfo && moonInfo.radius_m) {
+                const dist = st.position.distanceTo(moonState.position);
+                const moonAlt = (dist - moonInfo.radius_m) / 1000;
+                if (dist < 2e8) {
+                    rows.push(['MOON', (moonAlt >= 0 ? 'ALT ' : 'BELOW ') + Math.abs(moonAlt).toFixed(0) + ' km']);
+                }
+            }
+            return rows;
         }
 
         function labelFor(id) {

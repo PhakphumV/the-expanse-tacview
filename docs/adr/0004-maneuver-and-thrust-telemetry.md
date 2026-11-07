@@ -1,6 +1,7 @@
 # ADR-0004 — Maneuvers, thrust and wide-scale trajectory telemetry
 
-- Status: proposed
+- Status: accepted (items 1, 3, 4, 5 and 7 implemented; items 2 and 6 deferred
+  until an interplanetary scenario needs them)
 - Date: 2026-11
 
 ## Context

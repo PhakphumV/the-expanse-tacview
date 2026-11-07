@@ -21,9 +21,9 @@ window.TacviewManifest = {
       "default_target": "earth",
       "view_distance_m": 14000000,
       "tracks": 2,
-      "events": 15,
-      "samples": 2236,
-      "bytes": 341349
+      "events": 17,
+      "samples": 10520,
+      "bytes": 1626599
     }
   ]
 };

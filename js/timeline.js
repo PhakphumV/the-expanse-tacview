@@ -91,11 +91,31 @@
         // Render labeled event markers from the active scenario onto the scrub
         // bar at t/duration. Rebuilt whenever the scenario changes. Clicking a
         // marker jumps the replay to that event (phases double as jump targets).
+        // Maneuvers with an interval draw as a bar instead of a tick (ADR-0004).
         function populateEvents() {
             if (!eventMarkersEl) return;
             eventMarkersEl.innerHTML = '';
             const events = engine.getEvents();
             const dur = engine.getDuration() || 1;
+
+            for (const m of engine.getAllManeuvers()) {
+                if (m.t_start == null || m.t_end == null || m.t_end <= m.t_start) continue;
+                const bar = document.createElement('div');
+                bar.className = 'maneuver-bar ' + (m.kind === 'impulsive' ? 'impulsive' : m.kind);
+                bar.style.left = (m.t_start / dur * 100) + '%';
+                bar.style.width = Math.max(0.4, (m.t_end - m.t_start) / dur * 100) + '%';
+                const dv = m.dv_mps ? ' · Δv ' + (m.dv_mps >= 1000 ? (m.dv_mps / 1000).toFixed(2) + ' km/s' : m.dv_mps.toFixed(1) + ' m/s') : '';
+                bar.title = (m.id || 'burn') + ' — ' + m.kind + ' burn, T+' + formatMissionTime(m.t_start, isLong()) +
+                    '–' + formatMissionTime(m.t_end, isLong()) + dv + (m.note ? ' — ' + m.note : '');
+                bar.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    engine.setTime(m.t_start);
+                    refreshPlayPauseLabel();
+                    updateUI();
+                });
+                eventMarkersEl.appendChild(bar);
+            }
+
             for (let i = 0; i < events.length; i++) {
                 const ev = events[i];
                 const m = document.createElement('div');

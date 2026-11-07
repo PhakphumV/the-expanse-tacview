@@ -41,6 +41,7 @@
                 id: typeof raw.id === 'string' && raw.id ? raw.id : 'track-' + (idx + 1),
                 meta: raw,
                 samples: buildSamples(raw.samples),
+                maneuvers: normalizeManeuvers(raw.maneuvers),
             };
         }
 
@@ -50,9 +51,41 @@
                 if (typeof e.t !== 'number' || !isFinite(e.t)) throw new Error('ephemeris: event ' + i + ' t must be finite');
                 return {
                     t: e.t,
+                    // A burn is an interval: t_end lets the timeline draw a bar
+                    // instead of a tick (ADR-0004 item 3).
+                    t_end: typeof e.t_end === 'number' && isFinite(e.t_end) ? e.t_end : null,
                     type: e.type != null ? String(e.type) : 'event',
                     label: e.label != null ? String(e.label) : (e.type ? String(e.type) : 'event'),
                     description: e.description != null ? String(e.description) : '',
+                };
+            });
+        }
+
+        // Indexed annotations over the ephemeris (ADR-0004 item 1). The samples
+        // stay the ground truth; maneuvers describe what produced them.
+        const MANEUVER_KINDS = ['impulsive', 'finite', 'constant'];
+
+        function normalizeManeuvers(list) {
+            return (list || []).map((m, i) => {
+                if (!m || typeof m !== 'object') throw new Error('ephemeris: maneuver ' + i + ' must be an object');
+                const kind = m.kind != null ? String(m.kind) : 'impulsive';
+                if (MANEUVER_KINDS.indexOf(kind) === -1) {
+                    throw new Error('ephemeris: maneuver ' + i + ' has unknown kind "' + kind + '"');
+                }
+                const num = (v) => (typeof v === 'number' && isFinite(v) ? v : null);
+                return {
+                    id: typeof m.id === 'string' && m.id ? m.id : 'maneuver-' + (i + 1),
+                    kind,
+                    t_start: num(m.t_start),
+                    t_end: num(m.t_end),
+                    dv_mps: num(m.dv_mps),
+                    dv_frame: m.dv_frame != null ? String(m.dv_frame) : 'ECI',
+                    accel_mps2: num(m.accel_mps2),
+                    thrust_n: num(m.thrust_n),
+                    isp_s: num(m.isp_s),
+                    mass_kg: m.mass_kg && typeof m.mass_kg === 'object' ? m.mass_kg : null,
+                    attitude: m.attitude != null ? String(m.attitude) : 'prograde',
+                    note: m.note != null ? String(m.note) : '',
                 };
             });
         }
@@ -142,6 +175,9 @@
         }
 
         // Interpolate a track's samples at time t (null outside its window).
+        // Position uses cubic Hermite through the sample velocities (ADR-0004
+        // item 5), so sparse sampling of a curved arc does not facet; velocity
+        // lerps and orientation slerps.
         function interp(kfs, t) {
             if (!kfs || kfs.length === 0) return null;
             if (t < kfs[0].t || t > kfs[kfs.length - 1].t) return null;
@@ -157,11 +193,21 @@
             }
             const a = kfs[i], b = kfs[i + 1];
             const span = b.t - a.t;
-            const alpha = span > 0 ? (t - a.t) / span : 0;
+            const u = span > 0 ? (t - a.t) / span : 0;
+            const u2 = u * u, u3 = u2 * u;
+            const h00 = 2 * u3 - 3 * u2 + 1;
+            const h10 = u3 - 2 * u2 + u;
+            const h01 = -2 * u3 + 3 * u2;
+            const h11 = u3 - u2;
+            const position = new THREE.Vector3(
+                h00 * a.position.x + h10 * span * a.velocity.x + h01 * b.position.x + h11 * span * b.velocity.x,
+                h00 * a.position.y + h10 * span * a.velocity.y + h01 * b.position.y + h11 * span * b.velocity.y,
+                h00 * a.position.z + h10 * span * a.velocity.z + h01 * b.position.z + h11 * span * b.velocity.z
+            );
             return {
-                position: new THREE.Vector3().copy(a.position).lerp(b.position, alpha),
-                velocity: new THREE.Vector3().copy(a.velocity).lerp(b.velocity, alpha),
-                orientation: new THREE.Quaternion().copy(a.orientation).slerp(b.orientation, alpha),
+                position,
+                velocity: new THREE.Vector3().copy(a.velocity).lerp(b.velocity, u),
+                orientation: new THREE.Quaternion().copy(a.orientation).slerp(b.orientation, u),
             };
         }
 
@@ -170,6 +216,29 @@
         function getTrack(id) { return state.tracks.find((t) => t.id === id) || null; }
         function getSamplesFor(id) { const t = getTrack(id); return t ? t.samples : []; }
         function getStateAtTimeFor(id, t) { return interp(getSamplesFor(id), t); }
+
+        // Maneuver accessors (ADR-0004 item 1).
+        function getManeuvers(trackId) {
+            const tr = getTrack(trackId);
+            return tr ? tr.maneuvers : [];
+        }
+        function getAllManeuvers() {
+            const out = [];
+            for (const tr of state.tracks) {
+                for (const m of tr.maneuvers) out.push(Object.assign({ trackId: tr.id }, m));
+            }
+            return out.sort((a, b) => (a.t_start == null ? Infinity : a.t_start) - (b.t_start == null ? Infinity : b.t_start));
+        }
+        // Cumulative dv burned by a track up to time t.
+        function getDeltaVUsed(trackId, t) {
+            let dv = 0;
+            for (const m of getManeuvers(trackId)) {
+                if (!m.dv_mps) continue;
+                const end = m.t_end != null ? m.t_end : m.t_start;
+                if (end != null && end <= t) dv += m.dv_mps;
+            }
+            return dv;
+        }
 
         function getScenarios() { return state.scenarios; }
         function getScenario(id) { return state.scenarios.find((s) => s.id === id) || null; }
@@ -200,6 +269,7 @@
             getStateAtTime,
             getStateAtTimeFor,
             getSamplesFor,
+            getManeuvers, getAllManeuvers, getDeltaVUsed,
             getTrack,
             getScenarios, getScenario, getActiveScenario,
             getEvents, getEventsUpTo,

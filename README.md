@@ -37,12 +37,17 @@ python3 -m http.server 8000
   PHASE readout, so a long mission reads as a sequence of phases rather than a
   bare clock. A scenario may also declare its own `default_speed`,
   `default_target` and framing distance.
+- **Maneuvers** (`SCHEMA.md`, ADR-0004): each track can carry ordered burn
+  records — impulsive, finite or constant-thrust — with Δv, thrust, mass and
+  attitude. The samples stay the ground truth and `npm test` checks the declared
+  burns against them; the HUD shows cumulative ΔV and burn spans render as bars
+  on the timeline. Position interpolation is cubic Hermite, so sparse coast
+  sampling still draws smooth arcs.
 - **Apollo 11, 1969** (`data/scenarios.json`): an eight-phase replay from launch
   to splashdown — 195 h 18 m of real mission time with the Moon on its true
-  geocentric ephemeris (JPL Horizons/DE441). Phase 1 is in: `COLUMBIA` launches,
-  climbs through S-IC/S-II staging, parks in a 185.5 km orbit and burns TLI onto
-  the published Apollo 11 cutoff state. Remaining phases are tracked in
-  `docs/apollo11-phases.md`.
+  geocentric ephemeris (JPL Horizons/DE441). Phases 1–2 are in: launch, ascent,
+  parking orbit, TLI, and the trans-lunar coast with MCC-2 to the lunar
+  perilune. Remaining phases are tracked in `docs/apollo11-phases.md`.
 - **Readable at any scale** (`js/entities.js`): bodies and spacecraft keep a
   minimum apparent size, so a 26 m vehicle and a 3 500 km Moon both stay visible
   at cislunar range instead of collapsing to a pixel.

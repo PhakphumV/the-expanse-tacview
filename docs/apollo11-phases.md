@@ -28,7 +28,7 @@ and validated.
 |---|-------|-----------|---------------|------------------|
 | 0 | Scenario skeleton | 000:00:00 → 195:18:35 | Moon only, real ephemeris; 12 phase/milestone events | JPL Horizons 301 (Moon), DE441, 15-min steps |
 | 1 | Launch → parking orbit → TLI | 000:00:00 → 002:50:13 | `COLUMBIA` from the pad, S-IC/S-II ascent, 185 km / 32.5° parking orbit, TLI burn | Apollo 11 TLI state vector (Apollo by the Numbers / Postflight Trajectories); parking-orbit elements from the mission report | DONE |
-| 2 | Trans-lunar coast | 002:50:13 → 075:49:50 | Free-return coast, MCC-2 (026:44:59), lunar SOI entry | TLI state + two-body + Moon gravity integration, targeted to the real lunar arrival geometry |
+| 2 | Trans-lunar coast | 002:50:13 → 075:49:50 | Free-return coast, MCC-2 (026:44:59), lunar SOI entry | TLI state + two-body + Moon gravity integration, targeted to the real lunar arrival geometry | DONE |
 | 3 | Lunar orbit insertion | 075:49:50 → 100:12:00 | LOI-1 (111 × 314 km), LOI-2 (≈ 99 × 121 km), lunar orbits | Published LOI-1/LOI-2 ΔV and orbit elements; arrival state from phase 2 |
 | 4 | Undocking → DOI → PDI → landing | 100:12:00 → 102:45:40 | `EAGLE` becomes its own track: undocking, separation, descent orbit (≈ 15 × 111 km), powered descent | Separation 100:39:53, touchdown 102:45:40 (JPL/NASA mission summary); descent ΔV budget |
 | 5 | Surface stay and EVA | 102:45:40 → 124:22:01 | `EAGLE` parked (zero velocity, real landing site), EVA events | EVA start 109:07:33, first step 109:24:15 |
@@ -67,6 +67,23 @@ and validated.
   untextured Earth), and the burn model is constant prograde thrust rather than
   the real pitch programme, so its thrust integral (3.18 km/s) exceeds the
   published ΔV.
+
+## Phase 2 notes (implemented)
+
+- Coast from TLI cutoff to LOI-1: 10 520 samples on `COLUMBIA`, integrated with
+  Earth + Moon gravity (the Moon read from the scenario's own ephemeris).
+  Sampling: 120 s mid-course, 30 s inside 100 000 km of the Moon, 5 s inside
+  30 000 km — safe now that interpolation is cubic Hermite (ADR-0004 item 5).
+- The Phase-1 reconstruction's inertial longitude was unconstrained (free pad
+  position), so the whole `COLUMBIA` track is rotated 111° about Earth's spin
+  axis to line up with the real intercept. Ascent, parking orbit and TLI arc
+  rotate rigidly; staging altitudes and the TLI state are unchanged.
+- MCC-2 (026:44:59) is a solved impulsive burn, 68.9 m/s, retargeting the
+  reconstructed state onto the 111 km perilune at LOI-1. The real MCC-2 was
+  1.04 m/s: the difference absorbs the phase error above. Recorded in the
+  maneuver's `note` and in the track's `SOURCE`.
+- Arrival at LOI-1: 56 km above the Moon (target 111 km), lunar-relative speed
+  2.565 km/s. ΔV used at that point: 3.11 km/s.
 
 ## Known gaps carried by the skeleton
 

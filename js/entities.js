@@ -132,19 +132,27 @@
         arr[i] = fade * style.alpha;
     }
 
-    // Interpolated position at time tt (lightweight, O(1) via cursor).
+    // Interpolated position at time tt (lightweight, O(1) via cursor). Cubic
+    // Hermite through the sample velocities, matching the engine so sparse
+    // sampling still draws a smooth ribbon (ADR-0004 item 5).
     function positionAt(kfs, tt, cursor) {
         let i = cursor.i;
         if (i < 0 || i >= kfs.length - 1 || kfs[i + 1].t <= tt) i = 0;
         while (i < kfs.length - 2 && kfs[i + 1].t <= tt) i++;
         const a = kfs[i], b = kfs[i + 1];
         const span = b.t - a.t;
-        const alpha = span > 0 ? (tt - a.t) / span : 0;
         cursor.i = i;
+        if (!(span > 0)) return { x: a.position.x, y: a.position.y, z: a.position.z };
+        const u = (tt - a.t) / span;
+        const u2 = u * u, u3 = u2 * u;
+        const h00 = 2 * u3 - 3 * u2 + 1;
+        const h10 = u3 - 2 * u2 + u;
+        const h01 = -2 * u3 + 3 * u2;
+        const h11 = u3 - u2;
         return {
-            x: a.position.x + (b.position.x - a.position.x) * alpha,
-            y: a.position.y + (b.position.y - a.position.y) * alpha,
-            z: a.position.z + (b.position.z - a.position.z) * alpha,
+            x: h00 * a.position.x + h10 * span * a.velocity.x + h01 * b.position.x + h11 * span * b.velocity.x,
+            y: h00 * a.position.y + h10 * span * a.velocity.y + h01 * b.position.y + h11 * span * b.velocity.y,
+            z: h00 * a.position.z + h10 * span * a.velocity.z + h01 * b.position.z + h11 * span * b.velocity.z,
         };
     }
 
