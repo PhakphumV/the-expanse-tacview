@@ -30,11 +30,19 @@
         if (btn) btn.textContent = v ? 'Trail: ON' : 'Trail: OFF';
     }
 
+    function isCelestialTrack(track) {
+        return !!(track && track.meta && track.meta.kind === 'celestial');
+    }
+
+    // Bodies first (Earth, then any celestial track such as the Moon), then the
+    // artificial space objects — never a duplicate for a body that also has a
+    // telemetry track.
     function buildTargets() {
-        return [
-            { id: 'earth', label: 'Earth' },
-            { id: 'moon', label: 'Moon' },
-        ].concat(engine.getTracks().map((tr) => ({ id: tr.id, label: tr.meta.OBJECT_NAME || tr.id })));
+        const tracks = engine.getTracks();
+        const row = (tr) => ({ id: tr.id, label: tr.meta.OBJECT_NAME || tr.id });
+        return [{ id: 'earth', label: 'Earth' }]
+            .concat(tracks.filter(isCelestialTrack).map(row))
+            .concat(tracks.filter((tr) => !isCelestialTrack(tr)).map(row));
     }
 
     // Populate the active scenario's render layer + UI.

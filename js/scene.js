@@ -1,7 +1,8 @@
 // js/scene.js
-// ECI scene, camera, renderer, orbit controls, and the celestial bodies
-// (Earth, Moon, and the Moon's mean orbital path ring). Pure setup; no
-// gameplay logic. No background starfield (removed as distracting).
+// ECI scene, camera, renderer, orbit controls, and Earth plus the Moon's mean
+// orbital path ring. The Moon body itself is a celestial track in the scenario
+// telemetry and is rendered by entities.js. Pure setup; no gameplay logic.
+// No background starfield (removed as distracting).
 //
 // Note: createScene() does NOT call controls.update() — the camera
 // controller owns that.
@@ -45,17 +46,10 @@
         scene.add(earth);
         earth.userData.targetId = 'earth';
 
-        // Moon: a wireframe sphere on its (tilted) mean orbital path ring.
-        const moonGroup = new THREE.Group();
-        const moon = new THREE.Mesh(
-            new THREE.SphereGeometry(MOON_RADIUS, 32, 16),
-            new THREE.MeshBasicMaterial({ color: 0x9aa0a8, wireframe: true, transparent: true, opacity: 0.5 })
-        );
-        const phase = 0.35;
-        moon.position.set(Math.cos(phase) * MOON_DIST, 0, Math.sin(phase) * MOON_DIST);
-        moonGroup.add(moon);
-        moon.userData.targetId = 'moon';
-
+        // Moon's mean orbital path ring. The Moon itself is a celestial track in
+        // the scenario telemetry (`kind: "celestial"`), so its mesh and trail are
+        // rendered by entities.js and it moves along this ring as time advances.
+        // The ring is only the guide.
         const ringSeg = 256;
         const ringPos = new Float32Array((ringSeg + 1) * 3);
         for (let i = 0; i <= ringSeg; i++) {
@@ -70,9 +64,8 @@
             color: 0x556, transparent: true, opacity: 0.18,
         }));
         ring.frustumCulled = false;
-        moonGroup.add(ring);
-        moonGroup.rotation.x = MOON_INCL;
-        scene.add(moonGroup);
+        ring.rotation.x = MOON_INCL;
+        scene.add(ring);
 
         function onResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -85,14 +78,14 @@
             renderer.render(scene, camera);
         }
 
-        // World position of the Moon center (group rotated, mesh offset inside).
+        // World position of a static body. Only Earth is static now — the Moon
+        // is a celestial track whose position comes from the ephemeris engine.
         function getBodyWorldPosition(id, out) {
-            if (id === 'earth') { out.set(0, 0, 0); return out; }
-            if (id === 'moon') { return moon.getWorldPosition(out || new THREE.Vector3()); }
+            if (id === 'earth') { (out || new THREE.Vector3()).set(0, 0, 0); return out; }
             return null;
         }
 
-        const bodies = { earth, moon: moonGroup };
+        const bodies = { earth };
 
         return { scene, camera, renderer, controls, bodies, getBodyWorldPosition, render, onResize };
     }

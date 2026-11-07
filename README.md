@@ -4,7 +4,7 @@ A static, server-less WebGL space-object telemetry viewer built with Three.js.
 It renders real orbital data — the International Space Station and China's
 Tiangong (CSS) — using a **state-vector ephemeris** grounded in the CCSDS
 OMM / OEM / XTCE recommendations (see **[SCHEMA.md](SCHEMA.md)** and
-`docs/adr/`), plus the Moon as a celestial body.
+`docs/adr/`), plus the Moon as a moving celestial track.
 
 This is the foundational step toward an Expanse-themed tactical viewer: a
 solid, standards-driven space-telemetry layer that any future scenario (moving
@@ -39,15 +39,19 @@ python3 -m http.server 8000
   Moon) and space object (ISS, Tiangong); click to retarget the camera and see
   that target's telemetry (altitude/speed/position for objects; radius/orbit
   for bodies).
-- **Gradient ribbon trails** (`js/entities.js`): each spacecraft leaves an
-  orientation-aware ribbon (body-roll oriented, head→tail color gradient) whose
-  width scales with camera distance so it stays visible when zoomed out.
+- **Gradient ribbon trails** (`js/entities.js`): each artificial space object
+  leaves a bright, orientation-aware ribbon (body-roll oriented, head→tail color
+  gradient) whose width scales with camera distance so it stays visible when
+  zoomed out. Celestial bodies (`kind: "celestial"`, i.e. the Moon) use the same
+  ribbon in a subdued form — colder, thinner, but kept in the orbital plane — so
+  a body's arc never competes with a spacecraft's track.
 - **Viewport** (`js/camera.js`): two modes — **Orbit** (free rotation around the
   selected target) and **Follow** (chase the selected moving object; drag to
   orbit it, zoom to pull in). Zoom via wheel, `+`/`-`/PageUp/PageDown, or the
   slider. No distracting background starfield.
-- Celestial bodies: wireframe Earth and Moon (with its mean orbital path ring)
-  in the ECI scene (`js/scene.js`).
+- Celestial bodies: wireframe Earth (static) and the Moon, which is a celestial
+  telemetry track moving along its tilted mean orbital path ring
+  (`js/scene.js` + `data/scenarios.json`).
 - Clean timeline: play/pause, restart, jump, scrubbing, speed (0.25x–512x).
 
 ## Project structure
@@ -61,9 +65,9 @@ data/
   scenarios.json         — canonical source dataset (validated by npm test)
 js/
   main.js                 — entry point, wiring, per-frame loop
-  scene.js                — ECI scene, Earth + Moon bodies (no starfield)
+  scene.js                — ECI scene, Earth body + Moon orbit ring (no starfield)
   ephemeris.js            — track/ephemeris engine (state queries, playback)
-  entities.js             — per-track object, orbital path, gradient ribbon
+  entities.js             — per-track body, orbital path, ribbon trails (object vs celestial)
   spacecraft-model.js     — procedural spacecraft body (heading/orientation)
   labels.js               — billboarded on-screen labels (one per track)
   camera.js               — Orbit / Follow viewport modes around a target

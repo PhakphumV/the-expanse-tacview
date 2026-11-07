@@ -26,8 +26,8 @@ The app reads the embedded copy in `js/scenarios-data.js`; the canonical source 
 `data/scenarios.json`, which is what `npm test` validates. Keep the two in sync by
 regenerating the embedded copy after editing the data (see `README.md`).
 
-The first scenario ships two tracks (International Space Station and Tiangong /
-CSS) plus a Moon celestial body rendered by the scene.
+The first scenario ships three tracks: the Moon (a *celestial* track, see
+below), the International Space Station, and Tiangong / CSS.
 
 ## Top-level structure
 
@@ -82,6 +82,12 @@ session) will be its own scenario carrying its tracks and mission events.
 - `id` (string, required, unique): identifier used by the UI and camera look-at.
 - `OBJECT_NAME` / `OBJECT_ID` / `NORAD_CAT_ID`: OMM identification (best-effort
   strings/numbers taken verbatim from the source message).
+- `kind` (string, optional, default `"object"`): `"object"` for an artificial
+  space object, `"celestial"` for a natural body (see *Celestial tracks*). The
+  renderer styles trails by this field: only artificial objects get the bright
+  trail.
+- `radius_m` (number, required when `kind` is `"celestial"`): body radius in
+  metres, used to size the rendered sphere.
 - `CENTER_NAME` (string, default `"EARTH"`): central body the `REF_FRAME` is
   fixed to.
 - `REF_FRAME` (string, required): inertial reference frame, `"TEME"` or `"ECI"`.
@@ -116,6 +122,40 @@ session) will be its own scenario carrying its tracks and mission events.
 Neither OMM nor the CCSDS ephemeris messages define attitude; this contract
 adds `orientation` as a per-sample unit quaternion so spacecraft heading and
 orientation can be rendered in 3D.
+
+## Celestial tracks
+
+A natural body (the Moon) is a track like any other — same metadata, same
+state samples — so it interpolates, is selectable, and scrubs with the same
+engine. It is distinguished by `kind: "celestial"` and adds:
+
+- `radius_m` (number, required): body radius in metres.
+- `mean_elements.SEMI_MAJOR_AXIS` (number, required): orbit radius. `npm test`
+  checks that every sample stays on it (within 5%).
+
+Renderer behaviour:
+
+- Drawn as a wireframe sphere instead of a spacecraft model; the sample
+  `orientation` is not applied (a body has no attitude styling).
+- Gets the same ribbon trail as an object, but **subtle**: colder palette, about
+  half the opacity and roughly half the width, kept in the orbital plane rather
+  than the body-roll plane. Only artificial space objects (`kind: "object"`)
+  render the bright trail.
+- The camera frames and follows bodies at body scale, not spacecraft scale.
+
+### Motion over a short replay
+
+The Moon's real sidereal period is 27.3 days, so over a ~3 h scenario it sweeps
+under 2° — visually indistinguishable from parked. The shipped Moon track
+therefore advances one full visible revolution per replay. The compression is
+explicit in the data rather than implied:
+
+- `mean_elements.ORBITAL_PERIOD_S` — true sidereal period (2 360 591.5 s).
+- `mean_elements.DISPLAY_PERIOD_S` — the period actually used by the samples.
+- `mean_elements.DISPLAY_TIME_SCALE` — ratio of the two (≈211.7).
+
+Sample `velocity` keeps the *physical* tangent speed (≈1.023 km/s); only the
+positional rate is compressed.
 
 ## Event object
 

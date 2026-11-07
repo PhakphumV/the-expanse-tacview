@@ -59,13 +59,29 @@
 
         function getTarget() { return activeId; }
 
+        function isCelestial(id) {
+            const tr = engine.getTrack(id);
+            return !!(tr && tr.meta && tr.meta.kind === 'celestial');
+        }
+
+        // Body readouts come from the track metadata when the body is a
+        // telemetry track (Moon), and from BODY_INFO for the static Earth.
+        function bodyRows(id) {
+            const tr = engine.getTrack(id);
+            const me = (tr && tr.meta && tr.meta.mean_elements) || {};
+            const info = BODY_INFO[id];
+            const name = ((tr && tr.meta.OBJECT_NAME) || (info && info.label) || id).toUpperCase();
+            const radiusKm = tr && tr.meta.radius_m ? tr.meta.radius_m / 1000 : (info && info.radiusKm);
+            const orbitKm = me.SEMI_MAJOR_AXIS ? me.SEMI_MAJOR_AXIS / 1000 : (info && info.orbitKm);
+            const rows = [['BODY', name]];
+            if (orbitKm) rows.push(['ORBIT', km(Math.round(orbitKm)) + ' km']);
+            if (radiusKm) rows.push(['RADIUS', km(Math.round(radiusKm)) + ' km']);
+            return rows;
+        }
+
         function rowsFor(t) {
             const time = engine.getTime();
-            if (BODY_INFO[t]) {
-                const b = BODY_INFO[t];
-                if (t === 'earth') return [['BODY', 'EARTH'], ['RADIUS', km(b.radiusKm) + ' km']];
-                return [['BODY', 'MOON'], ['ORBIT', km(b.orbitKm) + ' km'], ['RADIUS', km(b.radiusKm) + ' km']];
-            }
+            if (BODY_INFO[t] || isCelestial(t)) return bodyRows(t);
             const st = engine.getStateAtTimeFor(t, time);
             if (!st) return [['ALT', '—'], ['SPD', '—'], ['POS', '—']];
             const radius = st.position.length();
@@ -83,7 +99,7 @@
             return t ? t.meta.OBJECT_NAME || t.id : (BODY_INFO[id] ? BODY_INFO[id].label : id);
         }
         function tagFor(id) {
-            if (BODY_INFO[id]) return BODY_INFO[id].tag;
+            if (BODY_INFO[id] || isCelestial(id)) return 'CELESTIAL BODY';
             const t = engine.getTrack(id);
             return t ? 'SPACE OBJECT' : id;
         }

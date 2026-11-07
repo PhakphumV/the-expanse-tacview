@@ -12,6 +12,7 @@
 //   4. Every orientation is a unit quaternion (|q| ~= 1).
 //   5. Attitude forward axis maps onto velocity direction (heading sanity).
 //   6. Scenario events have finite t and a non-empty label.
+//   7. Celestial tracks carry a radius and stay on their declared orbit.
 //
 // Run:    npm test   (or)   node scripts/validate-telemetry.js
 // Exits 0 on success, 1 on any failed check.
@@ -154,6 +155,25 @@ function qmul(a, b) {
     ];
 }
 
+function checkCelestial() {
+    for (const sc of scenarios())
+        for (const t of sc.tracks) {
+            if (t.kind !== 'celestial') continue;
+            if (typeof t.radius_m !== 'number' || !(t.radius_m > 0))
+                return `${t.id}: celestial track missing positive radius_m`;
+            const me = t.mean_elements || {};
+            const a = me.SEMI_MAJOR_AXIS;
+            if (typeof a !== 'number' || !(a > 0))
+                return `${t.id}: celestial track missing mean_elements.SEMI_MAJOR_AXIS`;
+            for (const s of t.samples) {
+                const r = Math.hypot(s.position[0], s.position[1], s.position[2]);
+                if (Math.abs(r - a) / a > 0.05)
+                    return `${t.id} sample t=${s.t}: radius ${(r / 1000).toFixed(0)} km off SEMI_MAJOR_AXIS ${(a / 1000).toFixed(0)} km`;
+            }
+        }
+    return null;
+}
+
 console.log(`Validating ${path.relative(repoRoot, datasetPath)}\n`);
 check('1. Dataset shape conforms to schema', checkShape);
 check('2. JS module syntax', checkSyntax);
@@ -161,6 +181,7 @@ check('3. Samples strictly time-ordered', checkOrdering);
 check('4. Orientation is a unit quaternion', checkUnitQuaternions);
 check('5. Attitude forward maps onto velocity (heading)', checkHeading);
 check('6. Scenario events well-formed and time-ordered', checkEvents);
+check('7. Celestial tracks carry radius and match their orbit', checkCelestial);
 
 console.log(`\n${passCount} passed, ${failCount} failed`);
 process.exit(failCount === 0 ? 0 : 1);

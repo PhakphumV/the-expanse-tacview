@@ -1,7 +1,12 @@
 // js/entities.js
-// Tracked-object renderers: one spacecraft body + full orbital path polyline
-// + a gradient, orientation-aware ribbon trail per track. Ribbon width scales
-// with camera distance so it stays visible when zoomed out.
+// Tracked-object renderers. Two flavours, chosen by the track's `kind` meta:
+//   - artificial space object (default): spacecraft body + full orbital path
+//     polyline + a bright, gradient, orientation-aware ribbon trail.
+//   - celestial body (`kind: "celestial"`): wireframe sphere (no path polyline —
+//     the scene's orbit ring already shows the orbit) + the same ribbon trail,
+//     rendered far more subtly (dimmer, thinner, colder) so a body's arc never
+//     competes with an artificial object's.
+// Ribbon width scales with camera distance so it stays visible when zoomed out.
 //
 // Classic-script module: attaches Tacview.createTrackEntity.
 
@@ -16,12 +21,53 @@
     const WIDTH_MAX = 4e6;          // m — ceiling so it never blows up
     const WIDTH_DIST_SCALE = 0.02;  // ribbon width ≈ 2% of camera distance
 
-    const BRIGHT_COLOR = new THREE.Color(0xd6f4ff);   // head, at the object
-    const BLUE_COLOR = new THREE.Color(0x3a8fe0);     // middle
+    // Bright trail: artificial space objects only (head bright, mid blue).
+    const OBJECT_TRAIL = {
+        head: new THREE.Color(0xd6f4ff),
+        mid: new THREE.Color(0x3a8fe0),
+        alpha: 1.0,
+        widthScale: 1.0,
+        pathLine: true,
+        pathColor: 0x3a7bd5,
+        pathOpacity: 0.4,
+        pathWidth: 1,
+    };
+
+    // Subtle trail: celestial bodies. Same geometry, fade and width scaling as
+    // an object's ribbon, but colder, thinner and much dimmer — the arc reads
+    // against the orbit ring without competing with an artificial object.
+    const CELESTIAL_TRAIL = {
+        head: new THREE.Color(0x9fb4d4),
+        mid: new THREE.Color(0x5b6f92),
+        alpha: 0.5,
+        widthScale: 0.55,
+        pathLine: false,
+        pathColor: 0x44506a,
+        pathOpacity: 0.12,
+        pathWidth: 1,
+    };
 
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    function createTrailRibbon() {
+    function trailStyleFor(meta) {
+        return meta && meta.kind === 'celestial' ? CELESTIAL_TRAIL : OBJECT_TRAIL;
+    }
+
+    // Celestial bodies are inert shells: a wireframe sphere sized by the track's
+    // radius_m. No attitude is shown, so the mesh ignores the sample quaternion.
+    function createCelestialMesh(radius) {
+        const group = new THREE.Group();
+        const shell = new THREE.Mesh(
+            new THREE.SphereGeometry(radius, 32, 16),
+            new THREE.MeshBasicMaterial({
+                color: 0x9aa0a8, wireframe: true, transparent: true, opacity: 0.5,
+            })
+        );
+        group.add(shell);
+        return group;
+    }
+
+    function createTrailRibbon(style) {
         const verts = TRAIL_SAMPLES * 2;
         const positions = new Float32Array(verts * 3);
         const colors = new Float32Array(verts * 3);
@@ -59,22 +105,24 @@
         });
         const ribbon = new THREE.Mesh(geom, mat);
         ribbon.frustumCulled = false;
+        ribbon.userData.style = style;
         return ribbon;
     }
 
-    // p runs 0 (old tail) -> 1 (head, at the object). Color goes blue (middle)
-    // to bright (head); tail color is irrelevant since alpha fades it to 0.
-    function writeColor(arr, i, p) {
+    // p runs 0 (old tail) -> 1 (head, at the object). Color goes mid (middle)
+    // to head; tail color is irrelevant since alpha fades it to 0.
+    function writeColor(arr, i, p, style) {
         const col = new THREE.Color();
-        if (p < 0.5) col.copy(BLUE_COLOR);
-        else col.copy(BLUE_COLOR).lerp(BRIGHT_COLOR, (p - 0.5) * 2);
+        if (p < 0.5) col.copy(style.mid);
+        else col.copy(style.mid).lerp(style.head, (p - 0.5) * 2);
         arr[i * 3] = col.r; arr[i * 3 + 1] = col.g; arr[i * 3 + 2] = col.b;
     }
 
     // Fade the tail (p=0) in to full opacity by p=0.4, so the far end is
-    // transparent, the middle is solid blue, the head is solid bright.
-    function writeAlpha(arr, i, p) {
-        arr[i] = p < 0.4 ? p / 0.4 : 1;
+    // transparent, the middle is solid mid, the head is solid head.
+    function writeAlpha(arr, i, p, style) {
+        const fade = p < 0.4 ? p / 0.4 : 1;
+        arr[i] = fade * style.alpha;
     }
 
     // Interpolated position at time tt (lightweight, O(1) via cursor).
@@ -93,42 +141,53 @@
         };
     }
 
+    function buildPathLine(eng, id, style) {
+        const kfs = eng.getSamplesFor(id);
+        const pos = new Float32Array(kfs.length * 3);
+        kfs.forEach((s, i) => {
+            pos[i * 3] = s.position.x;
+            pos[i * 3 + 1] = s.position.y;
+            pos[i * 3 + 2] = s.position.z;
+        });
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        const line = new THREE.Line(geom, new THREE.LineBasicMaterial({
+            color: style.pathColor, transparent: true, opacity: style.pathOpacity,
+        }));
+        line.frustumCulled = false;
+        return line;
+    }
+
     function createTrackEntity(container, engine, camera, trackId) {
-        const mesh = createSpacecraftModel();
+        const track = engine.getTrack(trackId);
+        const meta = (track && track.meta) || {};
+        const isCelestial = meta.kind === 'celestial';
+        const style = trailStyleFor(meta);
+
+        const mesh = isCelestial
+            ? createCelestialMesh(meta.radius_m || 1737400)
+            : createSpacecraftModel();
         mesh.visible = false;
         container.add(mesh);
         mesh.userData.trackId = trackId;
 
-        const pathLine = buildPathLine(engine, trackId);
-        container.add(pathLine);
+        let pathLine = null;
+        if (style.pathLine) {
+            pathLine = buildPathLine(engine, trackId, style);
+            container.add(pathLine);
+        }
 
-        const ribbon = createTrailRibbon();
+        const ribbon = createTrailRibbon(style);
         ribbon.visible = false;
         container.add(ribbon);
 
         let trailVisible = true;
 
-        function buildPathLine(eng, id) {
-            const kfs = eng.getSamplesFor(id);
-            const pos = new Float32Array(kfs.length * 3);
-            kfs.forEach((s, i) => {
-                pos[i * 3] = s.position.x;
-                pos[i * 3 + 1] = s.position.y;
-                pos[i * 3 + 2] = s.position.z;
-            });
-            const geom = new THREE.BufferGeometry();
-            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            const line = new THREE.Line(geom, new THREE.LineBasicMaterial({
-                color: 0x3a7bd5, transparent: true, opacity: 0.4,
-            }));
-            line.frustumCulled = false;
-            return line;
-        }
-
         // Gradient, orientation-aware ribbon over [t-TRAIL_SECONDS, t]. Width is
         // scaled to the camera distance so the ribbon stays visible when zoomed
-        // out; width is oriented to the body's roll (body-up projected off the
-        // path tangent, falling back to cross(position,tangent)).
+        // out. Artificial objects orient the ribbon to the body's roll (body-up
+        // projected off the path tangent); celestial bodies keep it in the
+        // orbital plane (orbit normal x tangent) so the arc hugs the orbit.
         function updateTrails(t, st) {
             const kfs = engine.getSamplesFor(trackId);
             if (!trailVisible || !kfs || kfs.length < 2) { ribbon.visible = false; return; }
@@ -138,15 +197,17 @@
             const span = Math.max(tEnd - t1, 1e-9);
 
             const camDist = camera.position.distanceTo(st.position);
-            const halfW = clamp(camDist * WIDTH_DIST_SCALE, WIDTH_MIN, WIDTH_MAX) / 2;
+            const halfW = (clamp(camDist * WIDTH_DIST_SCALE, WIDTH_MIN, WIDTH_MAX) / 2) * style.widthScale;
 
             const positions = ribbon.geometry.attributes.position.array;
             const colors = ribbon.geometry.attributes.color.array;
             const alphas = ribbon.geometry.attributes.alpha.array;
             const fwd = new THREE.Vector3();
             const upBody = new THREE.Vector3();
+            const normal = new THREE.Vector3();
             const lat = new THREE.Vector3();
             const cursor = { i: 0 };
+            const unitY = new THREE.Vector3(0, 1, 0);
 
             for (let i = 0; i < TRAIL_SAMPLES; i++) {
                 const u = i / (TRAIL_SAMPLES - 1);
@@ -156,9 +217,17 @@
 
                 if (sti && sti.velocity.lengthSq() > 1e-12) fwd.copy(sti.velocity).normalize();
                 else fwd.set(0, 0, -1);
-                upBody.set(0, 1, 0).applyQuaternion(sti ? sti.orientation : new THREE.Quaternion());
-                lat.copy(upBody).addScaledVector(fwd, -upBody.dot(fwd));
-                if (lat.lengthSq() < 1e-12) lat.crossVectors(sti ? sti.position : new THREE.Vector3(), fwd);
+
+                if (isCelestial) {
+                    normal.crossVectors(sti ? sti.position : p, fwd);
+                    if (normal.lengthSq() > 1e-12) lat.crossVectors(normal.normalize(), fwd);
+                    else lat.copy(unitY);
+                } else {
+                    upBody.set(0, 1, 0).applyQuaternion(sti ? sti.orientation : new THREE.Quaternion());
+                    lat.copy(upBody).addScaledVector(fwd, -upBody.dot(fwd));
+                    if (lat.lengthSq() < 1e-12) lat.crossVectors(sti ? sti.position : new THREE.Vector3(), fwd);
+                }
+                if (lat.lengthSq() < 1e-12) lat.copy(unitY);
                 lat.normalize();
 
                 const a = i * 2, b = i * 2 + 1;
@@ -169,10 +238,10 @@
                 positions[b * 3 + 1] = p.y - lat.y * halfW;
                 positions[b * 3 + 2] = p.z - lat.z * halfW;
 
-                writeColor(colors, a, u);
-                writeColor(colors, b, u);
-                writeAlpha(alphas, a, u);
-                writeAlpha(alphas, b, u);
+                writeColor(colors, a, u, style);
+                writeColor(colors, b, u, style);
+                writeAlpha(alphas, a, u, style);
+                writeAlpha(alphas, b, u, style);
             }
 
             ribbon.visible = true;
@@ -184,13 +253,14 @@
         function setTrailsVisible(v) { trailVisible = !!v; }
         function getTrailsVisible() { return trailVisible; }
         function getTrackId() { return trackId; }
+        function isCelestialBody() { return isCelestial; }
 
         function update(t) {
             const st = engine.getStateAtTimeFor(trackId, t);
             if (st) {
                 mesh.visible = true;
                 mesh.position.copy(st.position);
-                mesh.quaternion.copy(st.orientation);
+                if (!isCelestial) mesh.quaternion.copy(st.orientation);
                 updateTrails(t, st);
             } else {
                 mesh.visible = false;
@@ -198,7 +268,10 @@
             return st;
         }
 
-        return { update, setTrailsVisible, getTrailsVisible, getTrackId, getMesh: () => mesh };
+        return {
+            update, setTrailsVisible, getTrailsVisible, getTrackId, isCelestialBody,
+            getMesh: () => mesh,
+        };
     }
 
     global.Tacview = global.Tacview || {};

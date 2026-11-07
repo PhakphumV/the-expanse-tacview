@@ -6,6 +6,9 @@ stable.
 - **track** — a single space object's telemetry record: provenance metadata
   (identification, reference frame, time system, optional mean elements) plus
   a time-ordered ephemeris. A dataset is a list of tracks.
+- **celestial track** — a track whose `kind` is `"celestial"`: a natural body
+  (the Moon) moving on its orbit, carrying the same samples as an object track
+  but rendered as a body with a subtle trail.
 - **ephemeris** — the ordered series of state samples that is the ground-truth
   render data for a track. Propulsion-agnostic: it stores where the object is
   and where it is going at each sample and never assumes *why* it moved.

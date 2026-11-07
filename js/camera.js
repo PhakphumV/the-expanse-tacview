@@ -30,11 +30,18 @@
         let followSph = null;   // { theta, phi, radius } around the target
         const targetPos = new THREE.Vector3();
 
-        function isStaticTarget() { return targetId === 'earth' || targetId === 'moon'; }
+        function isStaticTarget() { return targetId === 'earth'; }
+        function isCelestialTarget() {
+            const tr = engine.getTrack(targetId);
+            return !!(tr && tr.meta && tr.meta.kind === 'celestial');
+        }
+        // Bodies (static Earth, or a celestial track like the Moon) are framed
+        // from far away and followed at body scale, not spacecraft scale.
+        function isBodyLike() { return isStaticTarget() || isCelestialTarget(); }
 
         // Resolve the target's world point at time t into targetPos.
         function resolveTarget(t, out) {
-            if (targetId === 'earth' || targetId === 'moon') {
+            if (isStaticTarget()) {
                 return getBodyWorldPosition(targetId, out);   // static
             }
             const st = engine.getStateAtTimeFor(targetId, t);
@@ -51,13 +58,13 @@
         }
 
         // Seed the follow offset behind/above a moving target's heading (or a
-        // generic side offset for static bodies).
+        // generic side offset for bodies).
         function seedFollow() {
             const t = engine.getTime();
             const tp = resolveTarget(t, new THREE.Vector3());
             if (!tp) { followSph = { theta: 0, phi: 1.2, radius: CHASE_BACK }; return; }
-            if (isStaticTarget()) {
-                followSph = { theta: 0.6, phi: Math.PI / 3, radius: CHASE_BACK * 8 };
+            if (isBodyLike()) {
+                followSph = { theta: 0.6, phi: Math.PI / 3, radius: viewDist(targetId) };
                 return;
             }
             const st = engine.getStateAtTimeFor(targetId, t);
@@ -88,7 +95,8 @@
 
         function dolly(factor) {
             if (mode === 'follow' && followSph) {
-                followSph.radius = clamp(followSph.radius * factor, FOLLOW_R_MIN, FOLLOW_R_MAX);
+                const r = followRange();
+                followSph.radius = clamp(followSph.radius * factor, r.min, r.max);
                 return;
             }
             const dir = new THREE.Vector3().copy(camera.position).sub(controls.target);
@@ -106,7 +114,8 @@
         function setZoomNorm(n) {
             n = clamp(n, 0, 1);
             if (mode === 'follow' && followSph) {
-                followSph.radius = FOLLOW_R_MIN * Math.pow(FOLLOW_R_MAX / FOLLOW_R_MIN, 1 - n);
+                const r = followRange();
+                followSph.radius = r.min * Math.pow(r.max / r.min, 1 - n);
                 return;
             }
             const dir = new THREE.Vector3().copy(camera.position).sub(controls.target);
@@ -143,8 +152,16 @@
         });
         window.addEventListener('mouseup', function () { dragging = false; });
 
-        const VIEW_DIST = { earth: 3.5e7, moon: 1e7 };
+        const VIEW_DIST = { earth: 3.5e7, moon: 6e7 };
         function viewDist(id) { return VIEW_DIST[id] || 2e6; }   // tracks default
+
+        // Follow-radius clamp: body scale for planets/moons, spacecraft scale
+        // otherwise.
+        function followRange() {
+            return isBodyLike()
+                ? { min: 20, max: 1e9 }
+                : { min: FOLLOW_R_MIN, max: FOLLOW_R_MAX };
+        }
 
         function setMode(m) {
             if (m !== 'orbit' && m !== 'follow') return;
