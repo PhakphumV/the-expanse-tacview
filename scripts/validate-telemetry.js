@@ -311,14 +311,23 @@ function checkManeuvers() {
                     if (!before || !after) return `${where} needs samples bracketing the burn`;
 
                     if (typeof m.dv_mps === 'number') {
-                        const onAxis = (m.attitude || 'prograde') === 'prograde' || m.attitude === 'antivelocity';
+                        // A burn that points along the track changes speed; only an
+                        // off-axis burn (fixed attitude, plane change) shows up as a
+                        // vector difference. Retrograde counts as along-track.
+                        const onAxis = ['prograde', 'retrograde', 'antivelocity'].indexOf(m.attitude || 'prograde') !== -1;
                         let observed;
+                        const vb = centralVelocity(sc, before.t, before.position, before.velocity);
+                        const va = centralVelocity(sc, after.t, after.position, after.velocity);
                         if (m.kind === 'impulsive' || !onAxis) {
-                            observed = dist3(before.velocity, after.velocity);
+                            observed = dist3(vb, va);
                         } else {
-                            observed = Math.abs(norm3(after.velocity) - norm3(before.velocity));
+                            observed = Math.abs(norm3(va) - norm3(vb));
                         }
-                        if (Math.abs(observed - m.dv_mps) > DV_VS_SAMPLES_TOL * m.dv_mps)
+                        // A finite burn near a body also gains/loses speed to gravity
+                        // (Apollo's LOI-1 shows 770 m/s across a 862 m/s burn), so it
+                        // gets a wider band than an impulsive step.
+                        const dvTol = m.kind === 'impulsive' ? DV_VS_SAMPLES_TOL : Math.max(DV_VS_SAMPLES_TOL, 0.15);
+                        if (Math.abs(observed - m.dv_mps) > dvTol * m.dv_mps)
                             return `${where} (${m.id}): samples show ${observed.toFixed(0)} m/s, dv_mps says ${m.dv_mps}`;
                         if (m.kind !== 'impulsive') {
                             const rate = m.dv_mps / (m.t_end - m.t_start);
@@ -427,6 +436,24 @@ function declaredDirection(m, basis) {
 }
 function norm3(v) {
     return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+}
+const MU_EARTH = 3.986005e14;
+const MU_MOON = 4.902800e12;
+
+// Velocity of a state in the frame of whichever body dominates there (Earth or
+// the Moon). A lunar-orbit burn measured in the Earth frame picks up the Moon's
+// own 1 km/s motion, so the speed change reads wrong by tens of m/s.
+function centralVelocity(sc, t, pos, vel) {
+    const moon = (sc.tracks || []).find((tr) => tr.kind === 'celestial' && /moon/i.test(tr.OBJECT_NAME || tr.id));
+    if (!moon) return vel;
+    const ms = sampleAtOrBefore(moon.samples, t) || sampleAtOrAfter(moon.samples, t);
+    if (!ms) return vel;
+    const dMoon = Math.sqrt(
+        (pos[0] - ms.position[0]) ** 2 + (pos[1] - ms.position[1]) ** 2 + (pos[2] - ms.position[2]) ** 2);
+    const dEarth = norm3(pos);
+    if (!(dMoon > 0) || !(dEarth > 0)) return vel;
+    if (MU_MOON / (dMoon * dMoon) <= MU_EARTH / (dEarth * dEarth)) return vel;
+    return [vel[0] - ms.velocity[0], vel[1] - ms.velocity[1], vel[2] - ms.velocity[2]];
 }
 function sampleAtOrBefore(samples, t) {
     let out = null;

@@ -45,9 +45,10 @@ python3 -m http.server 8000
   sampling still draws smooth arcs.
 - **Apollo 11, 1969** (`data/scenarios.json`): an eight-phase replay from launch
   to splashdown — 195 h 18 m of real mission time with the Moon on its true
-  geocentric ephemeris (JPL Horizons/DE441). Phases 1–2 are in: launch, ascent,
-  parking orbit, TLI, and the trans-lunar coast with MCC-2 to the lunar
-  perilune. Remaining phases are tracked in `docs/apollo11-phases.md`.
+  geocentric ephemeris (JPL Horizons/DE441). Phases 1–3 are in: launch, ascent,
+  parking orbit, TLI, the trans-lunar coast with MCC-2, and lunar orbit insertion
+  (LOI-1 into 111 × 314 km, LOI-2 to ~92 × 122 km) through separation. Remaining
+  phases are tracked in `docs/apollo11-phases.md`.
 - **Readable at any scale** (`js/entities.js`): bodies and spacecraft keep a
   minimum apparent size, so a 26 m vehicle and a 3 500 km Moon both stay visible
   at cislunar range instead of collapsing to a pixel.

@@ -29,7 +29,7 @@ and validated.
 | 0 | Scenario skeleton | 000:00:00 → 195:18:35 | Moon only, real ephemeris; 12 phase/milestone events | JPL Horizons 301 (Moon), DE441, 15-min steps |
 | 1 | Launch → parking orbit → TLI | 000:00:00 → 002:50:13 | `COLUMBIA` from the pad, S-IC/S-II ascent, 185 km / 32.5° parking orbit, TLI burn | Apollo 11 TLI state vector (Apollo by the Numbers / Postflight Trajectories); parking-orbit elements from the mission report | DONE |
 | 2 | Trans-lunar coast | 002:50:13 → 075:49:50 | Free-return coast, MCC-2 (026:44:59), lunar SOI entry | TLI state + two-body + Moon gravity integration, targeted to the real lunar arrival geometry | DONE |
-| 3 | Lunar orbit insertion | 075:49:50 → 100:12:00 | LOI-1 (111 × 314 km), LOI-2 (≈ 99 × 121 km), lunar orbits | Published LOI-1/LOI-2 ΔV and orbit elements; arrival state from phase 2 |
+| 3 | Lunar orbit insertion | 075:49:50 → 100:39:53 | LOI-1 (111 × 314 km), LOI-2 (≈ 92 × 122 km), lunar orbits to separation | Published LOI-1/LOI-2 ΔV and orbit elements; arrival state from phase 2 | DONE |
 | 4 | Undocking → DOI → PDI → landing | 100:12:00 → 102:45:40 | `EAGLE` becomes its own track: undocking, separation, descent orbit (≈ 15 × 111 km), powered descent | Separation 100:39:53, touchdown 102:45:40 (JPL/NASA mission summary); descent ΔV budget |
 | 5 | Surface stay and EVA | 102:45:40 → 124:22:01 | `EAGLE` parked (zero velocity, real landing site), EVA events | EVA start 109:07:33, first step 109:24:15 |
 | 6 | Ascent → rendezvous → docking → LM jettison | 124:22:01 → 130:09:00 | Ascent to 18 × 87 km, rendezvous with `COLUMBIA`, docking, jettison | Liftoff 124:22:01, docking 128:03:00 |
@@ -78,12 +78,49 @@ and validated.
   position), so the whole `COLUMBIA` track is rotated 111° about Earth's spin
   axis to line up with the real intercept. Ascent, parking orbit and TLI arc
   rotate rigidly; staging altitudes and the TLI state are unchanged.
-- MCC-2 (026:44:59) is a solved impulsive burn, 68.9 m/s, retargeting the
-  reconstructed state onto the 111 km perilune at LOI-1. The real MCC-2 was
-  1.04 m/s: the difference absorbs the phase error above. Recorded in the
-  maneuver's `note` and in the track's `SOURCE`.
-- Arrival at LOI-1: 56 km above the Moon (target 111 km), lunar-relative speed
-  2.565 km/s. ΔV used at that point: 3.11 km/s.
+- MCC-2 (026:44:59) is a solved impulsive burn, 64.0 m/s (radial −44.3, transverse
+  +46.2), retargeting the reconstructed state onto a 111 km perilune at LOI-1.
+  The real MCC-2 was 1.04 m/s: the difference absorbs the phase error above.
+  Recorded in the maneuver's `note` and in the track's `SOURCE`.
+- Arrival at LOI-1: perilune exactly 111 km with zero radial velocity (the solve
+  constrains both), lunar-relative speed 2.533 km/s. ΔV used at that point:
+  3.11 km/s.
+
+### Phase 2 repair (found while starting phase 3)
+
+The committed phase-2 tail was wrong: the coast flew **through** the Moon
+(minimum lunar altitude −752 km at GET 75.653 h) and the "+56 km" in the notes
+above was measured on the far side, on the way out. The track simply continued
+through the body because nothing stops an integrator at the surface, and none of
+the validators check for an impact.
+
+Phase 3 re-integrated the coast from the same TLI cutoff state with MCC-2 solved
+for *both* conditions — perilune 111 km and zero radial velocity at the real
+LOI-1 time — which produced the 64.0 m/s burn above. The coast samples
+(10,520 → 8,700) were replaced; ascent, parking orbit and TLI are untouched.
+
+## Phase 3 notes (implemented)
+
+- LOI-1 (075:49:50) is a 291 s finite retrograde SPS burn. A finite burn cannot
+  start *at* perilune: at 2.53 km/s the craft is still near escape speed, so
+  291 s of thrust carries it hundreds of km outward and the resulting periapsis
+  falls below the surface. The real burn straddled perilune, so the generator
+  solves the delta-v **and** the ignition offset together: **862.2 m/s**
+  (published 887.8) ignited **158 s before perilune**, giving 106.8 × 318.8 km
+  against the published 111 × 314 km.
+- LOI-2 (080:11:36) is an 18 s finite retrograde burn, **50.3 m/s** (published
+  56.0) onto 91.7 × 121.5 km (published ≈ 99.5 × 121.5).
+- Lunar orbits run to separation (100:39:53) at 90 s sampling, 20 s between the
+  burns, 2 s through LOI-1 and 1 s through LOI-2. Perilune drifts from 106.8 km
+  down to 91.5 km by separation under Earth's third-body perturbation — real
+  missions trimmed for this; the reconstruction does not.
+- Validator changes this phase forced:
+  - a retrograde finite burn is measured by *speed* change, like a prograde one
+    (the old check compared vectors and read 57 m/s for a 50 m/s burn);
+  - a finite burn's dv gets a 15 % band (LOI-1 shows 770 m/s across an 862 m/s
+    burn because gravity also changes the speed over 291 s);
+  - velocity changes are measured in the frame of the dominant body, so a lunar
+    burn is not polluted by the Moon's own 1 km/s motion.
 
 ## Known gaps carried by the skeleton
 
