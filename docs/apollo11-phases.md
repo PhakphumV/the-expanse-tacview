@@ -31,7 +31,7 @@ and validated.
 | 2 | Trans-lunar coast | 002:50:13 → 075:49:50 | Free-return coast, MCC-2 (026:44:59), lunar SOI entry | TLI state + two-body + Moon gravity integration, targeted to the real lunar arrival geometry | DONE |
 | 3 | Lunar orbit insertion | 075:49:50 → 100:39:53 | LOI-1 (111 × 314 km), LOI-2 (≈ 92 × 122 km), lunar orbits to separation | Published LOI-1/LOI-2 ΔV and orbit elements; arrival state from phase 2 | DONE |
 | 4 | Undocking → DOI → PDI → landing | 100:12:00 → 102:45:40 | `EAGLE` becomes its own track: undocking, separation, descent orbit (15 × 111 km), powered descent | Separation 100:39:53, DOI 101:36:14, PDI 102:33:05, touchdown 102:45:40 | DONE |
-| 5 | Surface stay and EVA | 102:45:40 → 124:22:01 | `EAGLE` parked (zero velocity, real landing site), EVA events | EVA start 109:07:33, first step 109:24:15 |
+| 5 | Surface stay and EVA | 102:45:40 → 124:22:01 | `EAGLE` parked (zero relative velocity), EVA events | EVA start 109:07:33, first step 109:24:15 | DONE |
 | 6 | Ascent → rendezvous → docking → LM jettison | 124:22:01 → 130:09:00 | Ascent to 18 × 87 km, rendezvous with `COLUMBIA`, docking, jettison | Liftoff 124:22:01, docking 128:03:00 |
 | 7 | TEI → trans-Earth coast → entry → splashdown | 130:09:00 → 195:18:35 | TEI burn, 3-day coast, final midcourse, entry interface at 400 000 ft, splashdown | TEI 135:22:42, entry state at EI (400 kft), splashdown 195:18:35 |
 
@@ -153,6 +153,28 @@ LOI-1 time — which produced the 64.0 m/s burn above. The coast samples
 - Sampling: 10 s through the lunar coasts, 0.002–0.02 s brackets around the
   impulsive burns (gravity would otherwise eat a 0.15 m/s burn inside a 0.05 s
   bracket), 1 s through the descent, then a 6 s landed hold.
+
+## Phase 5 notes (implemented)
+
+- `EAGLE` is parked from touchdown to liftoff (369 940 → 447 721 s, 130 samples at
+  600 s). Its position rides the Moon's translation and its velocity is the Moon's
+  velocity, so the lunar-relative speed is exactly zero — that is what "stationary
+  on the surface" means in an Earth-centred track.
+- The Moon is modelled as **translating only** (there is no lunar rotation in this
+  ephemeris), so the site holds a fixed inertial direction and a landed attitude is
+  not definable. Recorded in the track's `SOURCE` rather than faked.
+- `COLUMBIA` keeps orbiting overhead for the 21.6 h (433 samples at 180 s), so the
+  CSM is still there when you scrub through the EVA.
+- Payload discipline: the scenario was at 1.98 MB, so COLUMBIA's 90 s lunar-orbit
+  stretch was decimated to 180 s (still ~40 samples per orbit under Hermite) and
+  the extension runs at 180 s. Net payload 1.99 MB for 12 732 samples.
+- Two HUD fixes this phase made obvious:
+  - speed is reported **lunar-relative** inside the Moon's sphere of influence; a
+    landed LM used to read 1.000 km/s (the Moon's own motion) instead of 0.000;
+  - a landed vehicle reads `ON SURFACE` instead of `BELOW 0 km`, which is what
+    round-off produced when the altitude sat a few metres under the radius.
+- The EVA events (109:07:33 start, 109:24:15 first step) have existed since phase 0;
+  they now have four hours of parked telemetry underneath them.
 
 ## Known gaps carried by the skeleton
 

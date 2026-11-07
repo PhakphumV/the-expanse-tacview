@@ -14,7 +14,7 @@ window.TacviewManifest = {
     {
       "id": "apollo11",
       "name": "Apollo 11 — Lunar Landing",
-      "description": "Apollo 11, 16-24 July 1969: launch through splashdown, with the Moon on its real geocentric ephemeris. Through the landing: launch, ascent, parking orbit, TLI, the trans-lunar coast with MCC-2, LOI-1/LOI-2 into lunar orbit, and the LM undocking, DOI and powered descent to touchdown.",
+      "description": "Apollo 11, 16-24 July 1969: launch through splashdown, with the Moon on its real geocentric ephemeris. Through the surface stay: launch, ascent, parking orbit, TLI, the trans-lunar coast, lunar orbit insertion, the LM undocking and powered descent to touchdown, and the EVA on the surface.",
       "epoch": "1969-07-16T13:32:00Z",
       "duration_s": 703115,
       "default_speed": 512,
@@ -22,8 +22,8 @@ window.TacviewManifest = {
       "view_distance_m": 14000000,
       "tracks": 3,
       "events": 22,
-      "samples": 12620,
-      "bytes": 1976481
+      "samples": 12732,
+      "bytes": 1995379
     }
   ]
 };

@@ -45,11 +45,11 @@ python3 -m http.server 8000
   sampling still draws smooth arcs.
 - **Apollo 11, 1969** (`data/scenarios.json`): an eight-phase replay from launch
   to splashdown — 195 h 18 m of real mission time with the Moon on its true
-  geocentric ephemeris (JPL Horizons/DE441). Phases 1–4 are in: launch, ascent,
+  geocentric ephemeris (JPL Horizons/DE441). Phases 1–5 are in: launch, ascent,
   parking orbit, TLI, the trans-lunar coast with MCC-2, lunar orbit insertion
-  (LOI-1 into 111 × 314 km, LOI-2 to ~92 × 122 km), and the LM's own descent —
-  undocking, DOI, powered descent and touchdown. Remaining phases are tracked in
-  `docs/apollo11-phases.md`.
+  (LOI-1 into 111 × 314 km, LOI-2 to ~92 × 122 km), the LM's own descent —
+  undocking, DOI, powered descent and touchdown — and the surface stay through
+  the EVA. Remaining phases are tracked in `docs/apollo11-phases.md`.
 - **Typeface**: Orbitron (Google Fonts, SIL OFL 1.1), self-hosted from
   `vendor/orbitron/` so the page still works from `file://` with no network. The
   latin subset is a variable font (wght 400–700) with equal advance widths, so

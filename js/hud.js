@@ -86,23 +86,38 @@
             if (!st) return [['ALT', '—'], ['SPD', '—'], ['POS', '—']];
             const radius = st.position.length();
             const altKm = (radius - EARTH_RADIUS) / 1000;
-            const speedKmps = st.velocity.length() / 1000;
+            const moonState = engine.getStateAtTimeFor('moon', time);
+            const moonInfo = engine.getTrack('moon') ? engine.getTrack('moon').meta : null;
+            // Inside the Moon's sphere of influence the Earth-frame speed is mostly
+            // the Moon's own motion (~1 km/s), so report the lunar-relative speed: a
+            // landed LM reads 0.000, not 1.000.
+            let speedVec = st.velocity;
+            let lunarFrame = false;
+            if (moonState && moonInfo && moonInfo.radius_m
+                && st.position.distanceTo(moonState.position) < 6.6e7) {
+                speedVec = st.velocity.clone().sub(moonState.velocity);
+                lunarFrame = true;
+            }
+            const speedKmps = speedVec.length() / 1000;
             const dvUsed = engine.getDeltaVUsed(t, time);
             const rows = [
                 ['ALT', altKm.toFixed(1) + ' km'],
-                ['SPD', speedKmps.toFixed(3) + ' km/s'],
+                ['SPD', speedKmps.toFixed(3) + ' km/s' + (lunarFrame ? ' lunar' : '')],
                 ['POS', `[${(st.position.x / 1000).toFixed(0)}, ${(st.position.y / 1000).toFixed(0)}, ${(st.position.z / 1000).toFixed(0)}]`],
                 ['\u0394V', dvUsed >= 1000 ? (dvUsed / 1000).toFixed(2) + ' km/s' : dvUsed.toFixed(0) + ' m/s'],
             ];
             // Cislunar tracks: Earth altitude is not the interesting number, so
             // report the Moon as well (ADR-0004 follow-up).
-            const moonState = engine.getStateAtTimeFor('moon', time);
-            const moonInfo = engine.getTrack('moon') ? engine.getTrack('moon').meta : null;
             if (moonState && moonInfo && moonInfo.radius_m) {
                 const dist = st.position.distanceTo(moonState.position);
                 const moonAlt = (dist - moonInfo.radius_m) / 1000;
                 if (dist < 2e8) {
-                    rows.push(['MOON', (moonAlt >= 0 ? 'ALT ' : 'BELOW ') + Math.abs(moonAlt).toFixed(0) + ' km']);
+                    // A landed vehicle should read as on the surface, not "BELOW 0 km":
+                    // round-off can put the altitude a few metres under the radius.
+                    const label = Math.abs(moonAlt) < 0.05
+                        ? 'ON SURFACE'
+                        : (moonAlt > 0 ? 'ALT ' : 'BELOW ') + Math.abs(moonAlt).toFixed(0) + ' km';
+                    rows.push(['MOON', label]);
                 }
             }
             return rows;
