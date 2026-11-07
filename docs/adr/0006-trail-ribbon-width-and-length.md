@@ -215,9 +215,35 @@ Measured on the shipped data: 30 190 km just after TLI, 7 299 km at mid-coast,
 4 240 km late in the coast — each exactly 60.0 minutes; the parking orbit keeps
 its 5 149 km (11 min, an eighth of the orbit).
 
-Related change made at the same time: the length low-pass now **snaps on a
-scrub** (`|Δt| > 5 s`) rather than filtering through it, so a paused timeline jump
-shows the correct trail immediately instead of easing into it.
+Related change made at the same time: the length low-pass briefly snapped on a
+scrub so a paused timeline jump showed the right trail immediately. That
+heuristic is superseded by the amendment below (it misfired at high playback
+speed and silently disabled the filter).
+
+## Amendment — ease the transfer cap, taper the tail
+
+The 60-minute cap was applied as a hard `max()` on the window start, so the frame
+the craft crossed into (or out of) a transfer the ribbon's tail jumped — from
+28 000 km to 700 km at LOI, in one frame. It is now applied as a **distance**
+(`lengthOver(kfs, tEnd, 3600)`), taken as a `min()` with the orbit-derived length
+*before* the low-pass, so the same filter that smooths the orbit rule also eases
+the cap. Measured across the boundaries in the browser:
+
+| Boundary | Length across the transition |
+|---|---|
+| TLI entry (t 10 181 → 10 199) | 14 055 → 18 674 → 22 529 → 25 657 → 27 818 → 28 204 km |
+| LOI release (t 272 700 → 272 716) | 28 392 → 18 117 → 13 857 → 10 677 → 8 236 → 6 443 → 5 107 → 4 050 → 3 285 → 2 680 km |
+
+The snap-on-scrub heuristic was **removed** with this change: it keyed off
+`|Δt| > 5 s`, which at 512x playback is a normal frame (11 s of mission time) and
+fired on every stutter, silently disabling the filter. Length is now always
+low-passed (`τ = 0.8 s`); a paused scrub settles in about two seconds, which
+looks better than an instant jump and needs no seek detection.
+
+The ribbon also **tapers at the tail**: width is scaled by
+`0.35 + 0.65·(u/0.5)` for the first half of the arc, so the far end narrows into
+the alpha fade instead of ending as a blunt full-width cut (measured ratio
+tail : head = 0.35 on both the craft and the Moon ribbons).
 
 ## Alternatives considered
 

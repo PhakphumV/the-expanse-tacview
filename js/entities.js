@@ -24,7 +24,7 @@
 
     const TRAIL_VERTS = 128;        // vertices along the ribbon (equal arc length)
     const SOLVE_INTERVAL_MS = 200;  // trail window solve rate (5 Hz)
-    const LENGTH_TAU_S = 0.5;       // low-pass on the target length
+    const LENGTH_TAU_S = 0.8;       // low-pass on the target length (eases regime changes)
     const SUBSTEPS = 256;           // time steps used to measure arc length
     const WIDTH_MIN = 40;           // m — floor ribbon width
     const WIDTH_MAX = 4e6;          // m — ceiling so it never blows up
@@ -260,7 +260,6 @@
         let lastFrameMs = 0;
         let lastTransfer = false;
         let effLength = null;
-        let lastT = null;   // previous frame's time, to detect scrubs
         const vertTimes = new Float64Array(TRAIL_VERTS);
         const probe = { p: new THREE.Vector3(), v: new THREE.Vector3(), q: null };
         const cursor = { i: 0 };
@@ -311,38 +310,38 @@
             const dtMs = lastFrameMs ? Math.min(nowMs - lastFrameMs, 100) : 16;
             lastFrameMs = nowMs;
 
-            // A scrub or a jump is not a regime change: snap the length instead of
-            // low-passing it, so a paused scrub shows the right trail immediately.
-            const jumped = lastT !== null && Math.abs(t - lastT) > 5;
-            lastT = t;
-
-            // 1. How long should the trail be right now? (ADR-0006 §2/§3)
+            // Length is always low-passed: the filter is what turns a regime change
+            // (orbit -> transfer at TLI, transfer -> lunar orbit at LOI) into an ease
+            // instead of a snap. A scrub settles the same way in ~1 s, which reads
+            // better than an instant jump and needs no seek heuristic.
+            const firstT = kfs[0].t, trackLastT = kfs[kfs.length - 1].t;
+            const tEnd = Math.min(trackLastT, t);
             const moonState = moonTrack ? engine.getStateAtTimeFor(moonTrack.id, t) : null;
-            const target = Trails.targetLength({
+            const transfer = !isCelestial && Trails.isTransfer({
+                state: { position: st.position, velocity: st.velocity },
+                moon: moonState ? { position: moonState.position, velocity: moonState.velocity } : null,
+            });
+            let target = Trails.targetLength({
                 kind: isCelestial ? 'celestial' : 'object',
                 state: { position: st.position, velocity: st.velocity },
                 moon: moonState ? { position: moonState.position, velocity: moonState.velocity } : null,
                 arcLength: trackArc,
             });
-            if (lengthSmooth === null || jumped) lengthSmooth = target;
+            if (transfer) {
+                // The 60-minute transfer cap is applied as a *distance*, not as a hard
+                // cut on the window: that way the low-pass below eases into and out of
+                // it instead of snapping the ribbon short.
+                target = Math.min(target, Trails.lengthOver(kfs, tEnd, Trails.TRANSFER_WINDOW_S));
+            }
+            lastTransfer = transfer;
+            if (lengthSmooth === null) lengthSmooth = target;
             else lengthSmooth += (target - lengthSmooth) * Math.min(1, dtMs / (LENGTH_TAU_S * 1000));
 
             // 2. Re-solve the window at 5 Hz: the vertex times do not move between
             //    solves (they are historical points), so the ribbon is stable.
-            const firstT = kfs[0].t, trackLastT = kfs[kfs.length - 1].t;
-            const tEnd = Math.min(trackLastT, t);
             if (nowMs - lastSolveMs > SOLVE_INTERVAL_MS) {
                 lastSolveMs = nowMs;
-                // A transfer coast trails only its last 60 minutes: an eighth of a
-                // trans-lunar orbit would otherwise be ~27 h of ribbon across the
-                // whole scene. Parking orbits and lunar orbits keep the orbit rule.
-                const transfer = !isCelestial && Trails.isTransfer({
-                    state: { position: st.position, velocity: st.velocity },
-                    moon: moonState ? { position: moonState.position, velocity: moonState.velocity } : null,
-                });
-                let t0 = Math.max(firstT, Trails.windowStart(kfs, tEnd, lengthSmooth));
-                if (transfer) t0 = Math.max(t0, tEnd - Trails.TRANSFER_WINDOW_S);
-                lastTransfer = transfer;
+                const t0 = Math.max(firstT, Trails.windowStart(kfs, tEnd, lengthSmooth));
                 effLength = solveWindow(t, kfs, t0, tEnd);
                 ribbon.userData.trail = {
                     target, smooth: lengthSmooth, t0, tEnd, trackArc, transfer, effective: effLength,
@@ -388,12 +387,17 @@
                 prevLat.copy(lat);
 
                 const a = i * 2, b = i * 2 + 1;
-                positions[a * 3]     = p.x + lat.x * halfW;
-                positions[a * 3 + 1] = p.y + lat.y * halfW;
-                positions[a * 3 + 2] = p.z + lat.z * halfW;
-                positions[b * 3]     = p.x - lat.x * halfW;
-                positions[b * 3 + 1] = p.y - lat.y * halfW;
-                positions[b * 3 + 2] = p.z - lat.z * halfW;
+                // Ease the far end: a shorter band that still had full width would
+                // end in a blunt cut. Tapering the last half of the arc (with the
+                // alpha fade) makes the tail read as a fade rather than a snap.
+                const taper = u < 0.5 ? 0.35 + 0.65 * (u / 0.5) : 1;
+                const w = halfW * taper;
+                positions[a * 3]     = p.x + lat.x * w;
+                positions[a * 3 + 1] = p.y + lat.y * w;
+                positions[a * 3 + 2] = p.z + lat.z * w;
+                positions[b * 3]     = p.x - lat.x * w;
+                positions[b * 3 + 1] = p.y - lat.y * w;
+                positions[b * 3 + 2] = p.z - lat.z * w;
 
                 writeColor(colors, a, u, style);
                 writeColor(colors, b, u, style);

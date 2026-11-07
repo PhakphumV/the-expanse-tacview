@@ -223,5 +223,17 @@ check('17. The transfer window is 60 minutes and matches the sampled path', () =
     return null;
 });
 
+check('18. lengthOver(60 min) equals the arc the window solver walks back', () => {
+    const samples = lineSamples(600);                 // 10 s apart, 1 000 m per step
+    const t = 5900;
+    const L = Trails.lengthOver(samples, t, Trails.TRANSFER_WINDOW_S);
+    // 3 600 s at 100 m/s = 360 000 m.
+    if (Math.abs(L - 360000) > 1100) return 'lengthOver gave ' + L.toFixed(0) + ' m, want ~360000';
+    const t0 = Trails.windowStart(samples, t, L);
+    const span = t - t0;
+    if (Math.abs(span - 3600) > 20) return 'windowStart re-walked ' + span.toFixed(1) + ' s, want ~3600';
+    return null;
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

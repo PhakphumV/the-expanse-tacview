@@ -184,13 +184,34 @@
         return samples[0].t;
     }
 
+    // Path length covered in the last `seconds` of track time — the transfer
+    // trail's cap expressed as a *distance*, so it can go through the same
+    // low-pass as the orbit-derived length and ease instead of snapping.
+    function lengthOver(samples, t, seconds) {
+        const n = samples.length;
+        if (!n || !(seconds > 0)) return 0;
+        const t0 = t - seconds;
+        let prev = pointAt(samples, t0);
+        let acc = 0;
+        for (let i = Math.max(0, indexAtOrBefore(samples, t0)); i < n; i++) {
+            const s = samples[i];
+            if (s.t <= t0) continue;
+            if (s.t > t) break;
+            acc += dist(prev, s.position);
+            prev = s.position;
+        }
+        const end = pointAt(samples, t);
+        if (end !== prev) acc += dist(prev, end);
+        return acc;
+    }
+
     const Trails = {
         MU_EARTH, MU_MOON,
         CELESTIAL_FRACTION, OBJECT_FRACTION, ARC_CAP_FRACTION,
         FALLBACK_SECONDS, TRANSFER_ECC, TRANSFER_WINDOW_S, MIN_LENGTH, MAX_LENGTH,
         len, sub, dist, cross,
         perimeter, orbit, centralBody, isTransfer, targetLength,
-        arcLength, indexAtOrBefore, pointAt, windowStart,
+        arcLength, lengthOver, indexAtOrBefore, pointAt, windowStart,
     };
 
     global.Tacview = global.Tacview || {};

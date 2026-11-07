@@ -65,7 +65,10 @@ python3 -m http.server 8000
   spread by arc length rather than by time. On a **transfer trajectory** (an open
   or near-escape arc, e ≥ 0.9, about the dominant body) the window is capped at
   the last 60 minutes instead, so a trans-lunar coast shows a 7 000 km tail rather
-  than 27 hours of ribbon.
+  than 27 hours of ribbon. The cap is applied as a length through the same
+  low-pass as the orbit rule, so it eases in and out instead of snapping, and the
+  ribbon tapers to 35 % width over its last half so the far end fades rather than
+  ending in a cut.
   Celestial bodies (`kind: "celestial"`, i.e. the Moon) use the same ribbon in a
   subdued form — colder, thinner, but kept in the orbital plane — so a body's arc
   never competes with a spacecraft's track.
