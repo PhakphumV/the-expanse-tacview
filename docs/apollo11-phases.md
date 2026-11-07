@@ -30,7 +30,7 @@ and validated.
 | 1 | Launch → parking orbit → TLI | 000:00:00 → 002:50:13 | `COLUMBIA` from the pad, S-IC/S-II ascent, 185 km / 32.5° parking orbit, TLI burn | Apollo 11 TLI state vector (Apollo by the Numbers / Postflight Trajectories); parking-orbit elements from the mission report | DONE |
 | 2 | Trans-lunar coast | 002:50:13 → 075:49:50 | Free-return coast, MCC-2 (026:44:59), lunar SOI entry | TLI state + two-body + Moon gravity integration, targeted to the real lunar arrival geometry | DONE |
 | 3 | Lunar orbit insertion | 075:49:50 → 100:39:53 | LOI-1 (111 × 314 km), LOI-2 (≈ 92 × 122 km), lunar orbits to separation | Published LOI-1/LOI-2 ΔV and orbit elements; arrival state from phase 2 | DONE |
-| 4 | Undocking → DOI → PDI → landing | 100:12:00 → 102:45:40 | `EAGLE` becomes its own track: undocking, separation, descent orbit (≈ 15 × 111 km), powered descent | Separation 100:39:53, touchdown 102:45:40 (JPL/NASA mission summary); descent ΔV budget |
+| 4 | Undocking → DOI → PDI → landing | 100:12:00 → 102:45:40 | `EAGLE` becomes its own track: undocking, separation, descent orbit (15 × 111 km), powered descent | Separation 100:39:53, DOI 101:36:14, PDI 102:33:05, touchdown 102:45:40 | DONE |
 | 5 | Surface stay and EVA | 102:45:40 → 124:22:01 | `EAGLE` parked (zero velocity, real landing site), EVA events | EVA start 109:07:33, first step 109:24:15 |
 | 6 | Ascent → rendezvous → docking → LM jettison | 124:22:01 → 130:09:00 | Ascent to 18 × 87 km, rendezvous with `COLUMBIA`, docking, jettison | Liftoff 124:22:01, docking 128:03:00 |
 | 7 | TEI → trans-Earth coast → entry → splashdown | 130:09:00 → 195:18:35 | TEI burn, 3-day coast, final midcourse, entry interface at 400 000 ft, splashdown | TEI 135:22:42, entry state at EI (400 kft), splashdown 195:18:35 |
@@ -121,6 +121,38 @@ LOI-1 time — which produced the 64.0 m/s burn above. The coast samples
     burn because gravity also changes the speed over 291 s);
   - velocity changes are measured in the frame of the dominant body, so a lunar
     burn is not polluted by the Moon's own 1 km/s motion.
+
+## Phase 4 notes (implemented)
+
+- `EAGLE` is now its own track, 360 720 → 369 946 s (1 614 samples): undocking,
+  a 0.9 m/s separation burn, a 57 min coast, DOI and the descent.
+- `COLUMBIA` is extended to touchdown (9 039 samples) so the CSM keeps orbiting
+  while the LM descends.
+- Undocking is a 0.15 m/s radial nudge (the real undocking was a spring push, not
+  a burn). DOI is 22.8 m/s retrograde, solved so the altitude **at PDI** is the
+  published 15.2 km — published is 23.2 m/s; the solve absorbs the orbit phase.
+- The powered descent is **shaped, not flown by a guidance loop**: altitude and
+  downrange follow a cubic (altitude) and an exponential (horizontal velocity)
+  profile between the published anchors, positions are built on the great circle
+  above a reconstructed landing site, and velocities come from central
+  differences so position and velocity always agree. The implied thrust is
+  checked: 1.82 km/s integrated, peak 3.16 m/s² (LM capability ~4.4 m/s²),
+  touchdown sink rate 0.78 m/s. It lands where it aims, but it is not a flown
+  descent, and the site's longitude is not the real Tranquility Base — both are
+  recorded in the track's `SOURCE`.
+- Timing anchors this phase made concrete: separation 100:39:53, DOI 101:36:14,
+  PDI 102:33:05 (15.2 km, 1 690 m/s relative), touchdown 102:45:40. Downrange
+  flown during the descent is 532 km.
+- Validator changes forced by lunar-frame data:
+  - burn directions are resolved in the **dominant body's** RTN frame, not
+    Earth's — a radial-out nudge away from the Moon is nearly perpendicular to
+    Earth's radial direction;
+  - the Moon's coarse 15-minute grid is interpolated when building that frame.
+    A nearest-sample lookup is stale by up to 900 km, which rotated a correct
+    burn direction by 20° and failed it.
+- Sampling: 10 s through the lunar coasts, 0.002–0.02 s brackets around the
+  impulsive burns (gravity would otherwise eat a 0.15 m/s burn inside a 0.05 s
+  bracket), 1 s through the descent, then a 6 s landed hold.
 
 ## Known gaps carried by the skeleton
 

@@ -346,7 +346,8 @@ function checkManeuvers() {
                     // TLI shows a 4 421 m/s step for a 3 037 m/s prograde burn),
                     // so only its sense — does speed rise or fall — is checked;
                     // normal/radial burns are left to the magnitude checks.
-                    const dir = declaredDirection(m, rtnBasis(before.position, before.velocity));
+                    const cb = centralState(sc, before.t, before.position, before.velocity);
+                    const dir = declaredDirection(m, rtnBasis(cb.r, cb.v));
                     if (dir) {
                         const step = [0, 1, 2].map((i) => after.velocity[i] - before.velocity[i]);
                         const stepLen = norm3(step);
@@ -443,17 +444,41 @@ const MU_MOON = 4.902800e12;
 // Velocity of a state in the frame of whichever body dominates there (Earth or
 // the Moon). A lunar-orbit burn measured in the Earth frame picks up the Moon's
 // own 1 km/s motion, so the speed change reads wrong by tens of m/s.
-function centralVelocity(sc, t, pos, vel) {
+// State in the frame of whichever body dominates there (Earth or the Moon). Both
+// the velocity change and the RTN directions of a burn mean nothing in the wrong
+// frame: a radial-out nudge away from the Moon points almost perpendicular to
+// Earth's radial direction.
+function centralState(sc, t, pos, vel) {
     const moon = (sc.tracks || []).find((tr) => tr.kind === 'celestial' && /moon/i.test(tr.OBJECT_NAME || tr.id));
-    if (!moon) return vel;
-    const ms = sampleAtOrBefore(moon.samples, t) || sampleAtOrAfter(moon.samples, t);
-    if (!ms) return vel;
-    const dMoon = Math.sqrt(
-        (pos[0] - ms.position[0]) ** 2 + (pos[1] - ms.position[1]) ** 2 + (pos[2] - ms.position[2]) ** 2);
+    if (!moon) return { r: pos, v: vel };
+    // The Moon's grid is coarse (15 min), so a nearest-sample lookup leaves the
+    // relative frame stale by up to 900 km — enough to rotate a burn direction by
+    // ~20 degrees and fail a correct burn. Interpolate instead.
+    const ms = interpSample(moon.samples, t);
+    if (!ms) return { r: pos, v: vel };
+    const rel = [pos[0] - ms.position[0], pos[1] - ms.position[1], pos[2] - ms.position[2]];
+    const dMoon = norm3(rel);
     const dEarth = norm3(pos);
-    if (!(dMoon > 0) || !(dEarth > 0)) return vel;
-    if (MU_MOON / (dMoon * dMoon) <= MU_EARTH / (dEarth * dEarth)) return vel;
-    return [vel[0] - ms.velocity[0], vel[1] - ms.velocity[1], vel[2] - ms.velocity[2]];
+    if (!(dMoon > 0) || !(dEarth > 0)) return { r: pos, v: vel };
+    if (MU_MOON / (dMoon * dMoon) <= MU_EARTH / (dEarth * dEarth)) return { r: pos, v: vel };
+    return { r: rel, v: [vel[0] - ms.velocity[0], vel[1] - ms.velocity[1], vel[2] - ms.velocity[2]] };
+}
+function centralVelocity(sc, t, pos, vel) {
+    return centralState(sc, t, pos, vel).v;
+}
+// Linear interpolation of a sample track (positions and velocities), used where a
+// coarse grid would otherwise be read as a stale state.
+function interpSample(samples, t) {
+    const a = sampleAtOrBefore(samples, t);
+    const b = sampleAtOrAfter(samples, t);
+    if (!a) return b;
+    if (!b || a.t === b.t) return a;
+    const u = (t - a.t) / (b.t - a.t);
+    const mix = (p, q, i) => p[i] + (q[i] - p[i]) * u;
+    return {
+        position: [mix(a.position, b.position, 0), mix(a.position, b.position, 1), mix(a.position, b.position, 2)],
+        velocity: [mix(a.velocity, b.velocity, 0), mix(a.velocity, b.velocity, 1), mix(a.velocity, b.velocity, 2)],
+    };
 }
 function sampleAtOrBefore(samples, t) {
     let out = null;
