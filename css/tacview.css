@@ -291,15 +291,21 @@ html, body {
    the whole tick plus pin (16 x 32), so the hit area is a real target instead of a
    2 px sliver. Colour comes from --mk, set in JS: events that sit within a few
    pixels of each other take different colours rather than stacking in rows. */
-.event-marker {
+/* Higher specificity than `#timeline button`, which would otherwise give every
+   pin that button's dark fill, border and padding. A pin is only the glyph. */
+#timeline .event-marker,
+#timeline .event-marker:hover {
     position: absolute;
     top: -20px;
     width: 16px;
     height: 20px;      /* the pin only: the tick below it must not block the track */
+    min-width: 0;
     margin-left: -8px;
     padding: 0;
     border: 0;
+    border-radius: 0;
     background: none;
+    box-shadow: none;
     color: var(--mk, #ffd27f);
     pointer-events: auto;
     cursor: pointer;
