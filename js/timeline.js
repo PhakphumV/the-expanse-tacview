@@ -39,8 +39,8 @@
         const eventMarkersEl = document.getElementById('eventMarkers');
         const speedSelect = document.getElementById('speedSelect');
         const restartBtn = document.getElementById('restartBtn');
-        const jumpStartBtn = document.getElementById('jumpStartBtn');
-        const jumpEndBtn = document.getElementById('jumpEndBtn');
+        const prevEventBtn = document.getElementById('prevEventBtn');
+        const nextEventBtn = document.getElementById('nextEventBtn');
 
         // Multi-day missions (Apollo) read as HHH:MM:SS rather than MM:SS.s.
         function isLong() { return engine.getDuration() >= 86400; }
@@ -57,12 +57,27 @@
         if (restartBtn) restartBtn.addEventListener('click', function () {
             engine.restart(); refreshPlayPauseLabel();
         });
-        if (jumpStartBtn) jumpStartBtn.addEventListener('click', function () {
-            engine.jumpToStart(); refreshPlayPauseLabel();
-        });
-        if (jumpEndBtn) jumpEndBtn.addEventListener('click', function () {
-            engine.jumpToEnd(); refreshPlayPauseLabel();
-        });
+        // Event stepping: the pins on the track are the jump targets, so these two
+        // buttons walk them in either direction from wherever the playhead is.
+        function events() {
+            const list = (engine.getEvents ? engine.getEvents() : []) || [];
+            return list.filter((e) => typeof e.t === 'number').sort((a, b) => a.t - b.t);
+        }
+        function stepEvent(dir) {
+            const t = engine.getTime();
+            const list = events();
+            let best = null;
+            for (const e of list) {
+                if (dir > 0 && e.t > t + 0.5 && (best === null || e.t < best.t)) best = e;
+                if (dir < 0 && e.t < t - 0.5 && (best === null || e.t > best.t)) best = e;
+            }
+            if (!best) return;
+            engine.setTime(best.t);
+            refreshPlayPauseLabel();
+            updateUI();
+        }
+        if (prevEventBtn) prevEventBtn.addEventListener('click', function () { stepEvent(-1); });
+        if (nextEventBtn) nextEventBtn.addEventListener('click', function () { stepEvent(1); });
         if (speedSelect) speedSelect.addEventListener('change', function () {
             engine.setSpeed(parseFloat(speedSelect.value));
         });
@@ -80,6 +95,10 @@
                 e.preventDefault(); engine.jumpToEnd(); refreshPlayPauseLabel();
             } else if (e.key === 'r' || e.key === 'R') {
                 engine.restart(); refreshPlayPauseLabel();
+            } else if (e.key === 'ArrowLeft' && e.shiftKey) {
+                e.preventDefault(); stepEvent(-1);
+            } else if (e.key === 'ArrowRight' && e.shiftKey) {
+                e.preventDefault(); stepEvent(1);
             }
         });
 
