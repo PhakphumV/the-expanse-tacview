@@ -1,6 +1,7 @@
 # Telemetry and scenario guide
 
-Everything the viewer draws comes from one JSON file: `data/scenarios.json`.
+Everything the viewer draws comes from the scenario store: one JSON file per
+scenario, `data/scenarios/<id>.json`.
 This guide is for anyone adding a scenario — a mission, a launch, a docking, a
 transfer — and the telemetry behind it.
 
@@ -14,7 +15,7 @@ transfer — and the telemetry behind it.
 ## 1. How data reaches the screen
 
 ```
-data/scenarios.json            canonical source (you edit this)
+data/scenarios/<id>.json       canonical source, one file per scenario (you edit this)
         │  npm run embed
         ├── js/scenarios-data.js      manifest: ids, names, hints, counts (no samples)
         └── js/scenario-<id>.js       one payload per scenario: tracks + events
@@ -30,8 +31,8 @@ data/scenarios.json            canonical source (you edit this)
 Rules that follow from this:
 
 - **Never hand-edit** `js/scenarios-data.js` or `js/scenario-<id>.js`; they are
-  generated. Edit `data/scenarios.json`, then run `npm run embed`.
-- Adding a scenario means adding an entry to `data/scenarios.json`; the loader
+  generated. Edit `data/scenarios/<id>.json`, then run `npm run embed`.
+- Adding a scenario means adding a new file under `data/scenarios/`; the loader
   picks it up automatically and the SCENARIO dropdown lists it.
 - The page has no build step and no `fetch`, so it also runs from `file://`.
 
@@ -58,7 +59,7 @@ each instant. Everything else describes or decorates them.
 A 10-minute low-Earth-orbit pass with one impulsive burn. These exact numbers
 pass `npm test` — the samples are a 400 km circular orbit at 51.6° inclination,
 with the burn bracketed by two samples 0.05 s apart. Save it as a scratch file
-while you experiment, then splice it into `data/scenarios.json`.
+while you experiment, then drop it in as `data/scenarios/<id>.json`.
 
 ```json
 {
@@ -350,7 +351,7 @@ was produced.
 
 ## 9. Validation — `npm test`
 
-Ten checks run against `data/scenarios.json`; any failure names the field. A
+Ten checks run against the scenario store; any failure names the field. A
 second suite (`scripts/test-trails.js`, 14 checks) covers the trail-geometry
 maths in `js/trails.js`.
 

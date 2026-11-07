@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA = path.join(__dirname, '..', 'data', 'scenarios.json');
+const store = require('./scenario-store');
 
 function quatFromMinusZ(v) {
     const n = Math.hypot(v[0], v[1], v[2]);
@@ -119,7 +119,7 @@ async function preRollApollo(track, epochIso) {
 }
 
 (async function main() {
-    const data = JSON.parse(fs.readFileSync(DATA, 'utf8'));
+    const data = store.dataset();
 
     const leo = data.scenarios.find((s) => s.id === 'leo');
     const leoMoon = leo.tracks.find((t) => t.id === 'moon');
@@ -132,7 +132,7 @@ async function preRollApollo(track, epochIso) {
     const b = await preRollApollo(apMoon, epoch);
     console.log('apollo11/moon pre-roll', b.count, 'samples, span', b.span, 's (want', b.want.toFixed(0) + ')');
 
-    fs.writeFileSync(DATA, JSON.stringify(data, null, 2));
+    for (const sc of data.scenarios) store.save(sc);
     for (const [sc, tr] of [['leo', leoMoon], ['apollo11', apMoon]]) {
         console.log('  ' + sc + '/' + tr.id + ' now t0=' + tr.samples[0].t
             + ' t1=' + tr.samples[tr.samples.length - 1].t + ' n=' + tr.samples.length);

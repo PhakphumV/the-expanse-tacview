@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // scripts/validate-telemetry.js
 //
-// End-to-end telemetry validation against data/scenarios.json. No browser, no
+// End-to-end telemetry validation against the scenario store (data/scenarios/).
+// No browser, no
 // Three.js — pure Node.
 //
 // Checks:
@@ -14,7 +15,7 @@
 //   6. Scenario events have finite t and a non-empty label.
 //   7. Celestial tracks carry a radius and stay on their declared orbit.
 //   8. Scenario presentation fields (epoch, duration_s, speeds, framing) are sane.
-//   9. The generated per-scenario payloads match data/scenarios.json.
+//   9. The generated per-scenario payloads match the store.
 //  10. Maneuver records are ordered, inside the track window, and match the
 //      velocity change / acceleration the samples actually show.
 //
@@ -27,7 +28,7 @@ const vm = require('vm');
 const { execSync } = require('child_process');
 
 const repoRoot = path.resolve(__dirname, '..');
-const datasetPath = path.join(repoRoot, 'data', 'scenarios.json');
+const store = require('./scenario-store');
 const ORIENT_TOL = 1e-4;      // unit-quaternion tolerance
 const FWD_DOT_MIN = 0.98;     // attitude.forward vs velocity unit direction
 const IDLE_SPEED = 1.0;       // m/s — below this the vehicle is parked/landed
@@ -48,7 +49,7 @@ const qnorm = (q) => Math.sqrt(q.reduce((a, c) => a + c * c, 0));
 const finite = (a) => a.every(Number.isFinite);
 
 function scenarios() {
-    const raw = JSON.parse(fs.readFileSync(datasetPath, 'utf8'));
+    const raw = store.dataset();
     if (!raw || typeof raw !== 'object') throw new Error('dataset must be an object');
     if (!Array.isArray(raw.scenarios) || raw.scenarios.length === 0)
         throw new Error('scenarios must be a non-empty array');
@@ -219,6 +220,8 @@ function checkScenarioFields() {
         }
         if (sc.default_target !== undefined && (typeof sc.default_target !== 'string' || !sc.default_target))
             return `${sc.id}: default_target must be a non-empty string`;
+        if (sc.menu_order !== undefined && !(Number.isFinite(sc.menu_order) && sc.menu_order > 0))
+            return `${sc.id}: menu_order must be a positive number`;
         if (typeof sc.duration_s === 'number') {
             const lastEvent = (sc.events || []).reduce((m, e) => Math.max(m, e.t), 0);
             if (sc.duration_s < lastEvent)
@@ -512,7 +515,7 @@ function sampleStrictlyAfter(samples, t) {
     return null;
 }
 
-console.log(`Validating ${path.relative(repoRoot, datasetPath)}\n`);
+console.log(`Validating ${path.relative(repoRoot, store.DIR)}/*.json\n`);
 check('1. Dataset shape conforms to schema', checkShape);
 check('2. JS module syntax', checkSyntax);
 check('3. Samples strictly time-ordered', checkOrdering);

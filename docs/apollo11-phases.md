@@ -38,7 +38,7 @@ and validated.
 ## Per-phase workflow
 
 1. Extend the offline generator (kept out of the repo; it only writes
-   `data/scenarios.json` and the embedded `js/scenarios-data.js`).
+   `data/scenarios/apollo11.json` and the embedded `js/scenarios-data.js`).
 2. Add the phase's samples with a sample rate matched to the dynamics — dense
    during burns and the descent, sparse on the coasts.
 3. Add the phase's burn/milestone events at their real GETs, with a `phase`

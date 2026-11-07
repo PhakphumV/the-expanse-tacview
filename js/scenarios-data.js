@@ -1,4 +1,4 @@
-// Generated from data/scenarios.json (canonical source). Do not edit by hand.
+// Generated from the scenario store (data/scenarios/*.json). Do not edit by hand.
 // Scenario manifest only — the payloads live in js/scenario-<id>.js
 window.TacviewManifest = {
   "scenarios": [
@@ -6,10 +6,11 @@ window.TacviewManifest = {
       "id": "leo",
       "name": "Low Earth Orbit",
       "description": "ISS and Tiangong (CSS) in low Earth orbit, with the Moon orbiting Earth (celestial track, one revolution per replay).",
+      "menu_order": 1,
       "tracks": 3,
       "events": 0,
       "samples": 2549,
-      "bytes": 433884
+      "bytes": 433903
     },
     {
       "id": "apollo11",
@@ -20,10 +21,11 @@ window.TacviewManifest = {
       "default_speed": 512,
       "default_target": "earth",
       "view_distance_m": 14000000,
+      "menu_order": 2,
       "tracks": 3,
       "events": 25,
       "samples": 12605,
-      "bytes": 1993507
+      "bytes": 1993526
     }
   ]
 };

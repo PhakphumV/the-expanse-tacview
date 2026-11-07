@@ -2,7 +2,7 @@
 
 This document defines the telemetry contract consumed by `index.html`. The
 implementation loads the embedded per-scenario payloads generated from
-`data/scenarios.json` and expects them to match this schema.
+`data/scenarios/<id>.json` and expects them to match this schema.
 
 For a step-by-step authoring guide — data flow, a verified minimal example,
 generation recipes and the ten automated checks — see
@@ -20,7 +20,7 @@ The contract is grounded in the CCSDS 502 family recommendations:
 
 ## Dataset file
 
-- **Path:** `data/scenarios.json` (canonical source)
+- **Path:** `data/scenarios/<id>.json` (canonical source, one file per scenario)
 - **Embedded payloads:** `js/scenario-<id>.js`, one per scenario — generated
 - **Embedded manifest:** `js/scenarios-data.js` — generated
 - **Format:** UTF-8 JSON
@@ -30,7 +30,7 @@ The contract is grounded in the CCSDS 502 family recommendations:
   works from a `file://` origin with no server.
 - **Regenerate:** `npm run embed` (`scripts/embed-scenarios.js`)
 
-The app reads the generated files; the canonical source is `data/scenarios.json`,
+The app reads the generated files; the canonical source is the scenario store,
 which is what `npm test` validates. `npm test` also fails when a generated
 payload no longer matches the canonical dataset (sample counts, windows, events),
 so a forgotten `npm run embed` is caught rather than shipped.

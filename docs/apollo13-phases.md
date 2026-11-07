@@ -83,7 +83,7 @@ so each one is independently replayable and validated, exactly like Apollo 11.
 ## Per-phase workflow (unchanged)
 
 1. Extend the offline generator (kept out of the repo; it only writes
-   `data/scenarios.json`).
+   `data/scenarios/apollo13.json`).
 2. `npm run embed` to regenerate the per-scenario payload; `npm test` to run the
    ten data checks and the trail maths.
 3. Browser check at 127.0.0.1 with a spare port (`8000` is taken by a proxy on

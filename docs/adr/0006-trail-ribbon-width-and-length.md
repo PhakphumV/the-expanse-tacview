@@ -2,7 +2,7 @@
 
 - **Status:** accepted — implemented in `js/trails.js` + `js/entities.js`
 - **Date:** 2026-11-07
-- **Related:** `js/entities.js` (ribbon builder), `data/scenarios.json` (celestial
+- **Related:** `js/entities.js` (ribbon builder), `data/scenarios/*.json` (celestial
   sample coverage), ADR-0001 (state vectors as render source)
 
 ## Context
@@ -158,7 +158,7 @@ arc-length fade. Purely visual, no length change yet.
 state, the pad/hyperbolic fallbacks, the cap, monotonicity of the window solver,
 and the 0.45 / 0.125 fractions.
 
-**Phase 3 — history, fade, docs.** Celestial pre-roll in `data/scenarios.json`
+**Phase 3 — history, fade, docs.** Celestial pre-roll in the scenario store
 (regenerate + `npm run embed`), retuned gradient and celestial opacity once the
 long trails are on screen, README description, and a screenshot of the new
 Apollo trail.

@@ -204,8 +204,7 @@ check('17. The transfer window is 60 minutes and matches the sampled path', () =
     if (Trails.TRANSFER_WINDOW_S !== 3600) return 'TRANSFER_WINDOW_S should be 3600 s';
     // On the real COLUMBIA trans-lunar coast, a 60-minute window should walk back
     // exactly 3 600 s through the samples.
-    const data = require('../data/scenarios.json');
-    const col = data.scenarios.find((s) => s.id === 'apollo11').tracks.find((t) => t.id === 'COLUMBIA');
+    const col = require('./scenario-store').load('apollo11').tracks.find((t) => t.id === 'COLUMBIA');
     const kfs = col.samples
         .filter((s) => s.t >= 120000 && s.t <= 140000)
         .map((s) => ({ t: s.t, position: V(s.position[0], s.position[1], s.position[2]) }));

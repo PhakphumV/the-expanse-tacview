@@ -53,7 +53,7 @@ python3 -m http.server 8000
   burns against them; the HUD shows cumulative ΔV and burn spans render as bars
   on the timeline. Position interpolation is cubic Hermite, so sparse coast
   sampling still draws smooth arcs.
-- **Apollo 11, 1969** (`data/scenarios.json`): an eight-phase replay from launch
+- **Apollo 11, 1969** (`data/scenarios/apollo11.json`): an eight-phase replay from launch
   to splashdown — 195 h 18 m of real mission time with the Moon on its true
   geocentric ephemeris (JPL Horizons/DE441). All eight phases are in: launch, ascent,
   parking orbit, TLI, the trans-lunar coast with MCC-2, lunar orbit insertion
@@ -117,7 +117,7 @@ python3 -m http.server 8000
   rows mean, and the full shortcut list. Esc or a backdrop click closes it.
 - Celestial bodies: wireframe Earth (static) and the Moon, which is a celestial
   telemetry track moving along its tilted mean orbital path ring
-  (`js/scene.js` + `data/scenarios.json`).
+  (`js/scene.js` + the scenario store).
 - Clean timeline: play/pause, restart, jump, scrubbing, speed (0.25x–8192x).
 - **One scenario in memory at a time** (`js/scenario-loader.js`): the page boots
   from a ~1 KB manifest, then injects the `<script>` for the scenario you pick
@@ -134,7 +134,7 @@ CONTEXT.md                — domain glossary
 docs/telemetry-guide.md   — authoring guide: data model, recipes, validation, traps
 docs/adr/                 — architecture decision records
 data/
-  scenarios.json         — canonical source dataset (validated by npm test)
+  scenarios/<id>.json    — canonical source, one file per scenario (validated by npm test)
 js/
   main.js                 — entry point, wiring, per-frame loop
   scenario-loader.js      — loads/releases one scenario payload at a time
@@ -152,7 +152,8 @@ js/
   scenario-<id>.js        — generated per-scenario payload (tracks + events)
 scripts/
   validate-telemetry.js   — validates the contract (shape, quaternions, heading)
-  embed-scenarios.js      — splits data/scenarios.json into the files above
+  scenario-store.js       — reads/writes the one-file-per-scenario store
+  embed-scenarios.js      — splits data/scenarios/*.json into the files above
 docs/
   adr/                    — architecture decision records
   apollo11-phases.md      — Apollo 11 phase plan, data anchors and provenance
@@ -162,11 +163,12 @@ docs/
 ## Development
 
 ```bash
-npm test        # validate data/scenarios.json against SCHEMA.md + JS syntax
+npm test        # validate data/scenarios/*.json against SCHEMA.md + JS syntax
 npm run embed   # regenerate js/scenarios-data.js + js/scenario-<id>.js
 ```
 
-New datasets are authored as JSON against `SCHEMA.md`. `data/scenarios.json` is
+New datasets are authored as JSON against `SCHEMA.md`, one file per scenario in
+`data/scenarios/`; that store is
 the canonical source; `npm run embed` splits it into one payload per scenario
 (`js/scenario-<id>.js`) plus a manifest (`js/scenarios-data.js`), so the viewer
 only ever loads the scenario being watched. `npm test` fails if the generated

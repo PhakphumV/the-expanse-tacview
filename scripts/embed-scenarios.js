@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // scripts/embed-scenarios.js
 //
-// Splits data/scenarios.json (canonical source) into per-scenario embedded
-// payloads plus a small manifest:
+// Splits the scenario store (data/scenarios/<id>.json) into per-scenario
+// embedded payloads plus a small manifest:
 //
 //   js/scenarios-data.js     — window.TacviewManifest (id, name, presentation
 //                              hints, counts — no samples)
@@ -19,16 +19,18 @@
 
 const fs = require('fs');
 const path = require('path');
+const store = require('./scenario-store');
 
 const repoRoot = path.resolve(__dirname, '..');
-const datasetPath = path.join(repoRoot, 'data', 'scenarios.json');
 const jsDir = path.join(repoRoot, 'js');
-const HEADER = '// Generated from data/scenarios.json (canonical source). Do not edit by hand.';
-const PRESENTATION = ['epoch', 'duration_s', 'default_speed', 'default_target', 'view_distance_m'];
+const HEADER = '// Generated from the scenario store (data/scenarios/*.json). Do not edit by hand.';
+const PRESENTATION = ['epoch', 'duration_s', 'default_speed', 'default_target', 'view_distance_m', 'menu_order'];
 
-const data = JSON.parse(fs.readFileSync(datasetPath, 'utf8'));
+// One file per scenario. The selector order comes from menu_order, not from the
+// filenames, so renaming a file cannot reorder the menus.
+const data = store.dataset();
 if (!Array.isArray(data.scenarios) || data.scenarios.length === 0) {
-    console.error('data/scenarios.json has no scenarios');
+    console.error('data/scenarios/ has no scenario files');
     process.exit(1);
 }
 
@@ -63,8 +65,8 @@ fs.writeFileSync(
 for (const f of fs.readdirSync(jsDir)) {
     if (!/^scenario-.+\.js$/.test(f)) continue;
     const fp = path.join(jsDir, f);
-    const head = fs.readFileSync(fp, 'utf8').slice(0, 120);
-    if (!head.includes('Generated from data/scenarios.json')) continue;
+    const head = fs.readFileSync(fp, 'utf8').slice(0, 200);
+    if (!head.startsWith(HEADER)) continue;
     if (!written.includes(f)) {
         fs.unlinkSync(fp);
         console.log(`removed stale ${f}`);

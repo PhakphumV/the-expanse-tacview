@@ -8,9 +8,7 @@
 // be re-run after any regeneration of the tracks.
 const fs = require('fs');
 
-const path = require('path');
-const ROOT = path.resolve(__dirname, '..');
-const DATA = path.join(ROOT, 'data/scenarios.json');
+const store = require('./scenario-store');
 const SLEW_RATE_DPS = 1.5;    // deg/s — Apollo's big slews were of this order
 const SLEW_MIN_S = 20;
 const SLEW_MAX_S = 300;
@@ -94,7 +92,7 @@ function sampleStates(list, t) {
     };
 }
 
-const data = JSON.parse(fs.readFileSync(DATA, 'utf8'));
+const data = store.dataset();
 for (const sc of data.scenarios) {
     for (const tr of sc.tracks) {
         if (tr.meta && tr.meta.kind === 'celestial') continue;
@@ -171,5 +169,5 @@ for (const sc of data.scenarios) {
     }
 }
 
-fs.writeFileSync(DATA, JSON.stringify(data, null, 1) + '\n');
+for (const sc of data.scenarios) store.save(sc);
 console.log('written');
