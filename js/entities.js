@@ -222,6 +222,72 @@
         });
     }
 
+    // A vehicle parked on a surface has no motion of its own: a ribbon drawn over
+    // those samples is the body's own translation (for the LM on the Moon that is a
+    // 300 000 km streak in the Earth frame). Landed spans are found once, from the
+    // samples, so the ribbon can simply be hidden inside them — and clamped to the
+    // liftoff time afterwards, so it does not reach back across the parked hours.
+    const GROUND_ALT_M = 150;
+    const GROUND_SPEED_MPS = 5;
+
+    // Cubic Hermite at t, matching engine.interp, with a cursor that survives a
+    // monotone sweep: loading thousands of epochs through a linear scan each is slow.
+    function makeSampler(kfs) {
+        let i = 0;
+        return function sampleAt(t) {
+            if (!kfs || kfs.length < 2) return null;
+            if (t < kfs[0].t || t > kfs[kfs.length - 1].t) return null;
+            if (i > kfs.length - 2 || kfs[i].t > t) i = 0;
+            while (i < kfs.length - 2 && kfs[i + 1].t < t) i++;
+            const a = kfs[i], b = kfs[i + 1];
+            const span = b.t - a.t || 1;
+            const u = (t - a.t) / span, u2 = u * u, u3 = u2 * u;
+            const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u;
+            const h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+            return {
+                p: {
+                    x: h00 * a.position.x + h10 * span * a.velocity.x + h01 * b.position.x + h11 * span * b.velocity.x,
+                    y: h00 * a.position.y + h10 * span * a.velocity.y + h01 * b.position.y + h11 * span * b.velocity.y,
+                    z: h00 * a.position.z + h10 * span * a.velocity.z + h01 * b.position.z + h11 * span * b.velocity.z,
+                },
+                v: {
+                    x: a.velocity.x + (b.velocity.x - a.velocity.x) * u,
+                    y: a.velocity.y + (b.velocity.y - a.velocity.y) * u,
+                    z: a.velocity.z + (b.velocity.z - a.velocity.z) * u,
+                },
+            };
+        };
+    }
+
+    // [start, end] sample-time pairs where the track sits on a celestial surface.
+    function findGroundedSpans(engine, samples, bodies) {
+        if (!samples || samples.length < 2 || !bodies.length) return [];
+        const probes = bodies.map((b) => ({ r: b.radius_m, at: makeSampler(engine.getSamplesFor(b.id)) }));
+        const spans = [];
+        let start = null;
+        let prevT = samples[0].t;
+        for (const s of samples) {
+            let grounded = false;
+            for (const b of probes) {
+                const bs = b.at(s.t);
+                if (!bs) continue;
+                const dx = s.position.x - bs.p.x;
+                const dy = s.position.y - bs.p.y;
+                const dz = s.position.z - bs.p.z;
+                if (Math.sqrt(dx * dx + dy * dy + dz * dz) - b.r > GROUND_ALT_M) continue;
+                const vx = s.velocity.x - bs.v.x;
+                const vy = s.velocity.y - bs.v.y;
+                const vz = s.velocity.z - bs.v.z;
+                if (vx * vx + vy * vy + vz * vz <= GROUND_SPEED_MPS * GROUND_SPEED_MPS) { grounded = true; break; }
+            }
+            if (grounded && start === null) start = s.t;
+            else if (!grounded && start !== null) { spans.push([start, prevT]); start = null; }
+            prevT = s.t;
+        }
+        if (start !== null) spans.push([start, prevT]);
+        return spans;
+    }
+
     function createTrackEntity(container, engine, camera, trackId) {
         const track = engine.getTrack(trackId);
         const meta = (track && track.meta) || {};
@@ -243,6 +309,7 @@
 
         const ribbon = createTrailRibbon(style);
         ribbon.visible = false;
+        ribbon.userData.trackId = trackId;   // keeps the ribbon findable next to its mesh
         container.add(ribbon);
 
         let trailVisible = true;
@@ -254,6 +321,24 @@
         // At lunar distance the craft is hyperbolic about Earth but orbiting the
         // Moon; the Moon's state is what the dominance test needs.
         const moonTrack = isCelestial ? null : engine.getTrack('moon');
+
+        // Bodies this object could be sitting on, and the spans where it does.
+        const groundBodies = isCelestial ? [] : (engine.getTracks() || [])
+            .filter((tr) => tr.id !== trackId && tr.meta && tr.meta.kind === 'celestial' && tr.meta.radius_m > 0)
+            .map((tr) => ({ id: tr.id, radius_m: tr.meta.radius_m }));
+        const groundedSpans = findGroundedSpans(engine, allSamples, groundBodies);
+
+        function isGroundedAt(t) {
+            for (const s of groundedSpans) if (t >= s[0] && t <= s[1]) return true;
+            return false;
+        }
+        // End of the most recent landed span before t: the liftoff time, so a trail
+        // cannot reach back over the parked hours.
+        function groundEndBefore(t) {
+            let end = null;
+            for (const s of groundedSpans) if (s[1] < t && (end === null || s[1] > end)) end = s[1];
+            return end;
+        }
 
         let lengthSmooth = null;
         let lastSolveMs = -1e9;
@@ -316,6 +401,9 @@
             // better than an instant jump and needs no seek heuristic.
             const firstT = kfs[0].t, trackLastT = kfs[kfs.length - 1].t;
             const tEnd = Math.min(trackLastT, t);
+            // On a surface: no ribbon at all. A parked vehicle's samples trace the
+            // body's translation, not its own motion.
+            if (isGroundedAt(tEnd)) { ribbon.visible = false; return; }
             const moonState = moonTrack ? engine.getStateAtTimeFor(moonTrack.id, t) : null;
             const transfer = !isCelestial && Trails.isTransfer({
                 state: { position: st.position, velocity: st.velocity },
@@ -342,9 +430,13 @@
             if (nowMs - lastSolveMs > SOLVE_INTERVAL_MS) {
                 lastSolveMs = nowMs;
                 const t0 = Math.max(firstT, Trails.windowStart(kfs, tEnd, lengthSmooth));
-                effLength = solveWindow(t, kfs, t0, tEnd);
+                // Never reach back across a landing: after liftoff the ribbon grows
+                // from the liftoff instant instead of showing the parked hours.
+                const lift = groundEndBefore(tEnd);
+                const startT = lift === null ? t0 : Math.max(t0, lift);
+                effLength = solveWindow(t, kfs, startT, tEnd);
                 ribbon.userData.trail = {
-                    target, smooth: lengthSmooth, t0, tEnd, trackArc, transfer, effective: effLength,
+                    target, smooth: lengthSmooth, t0: startT, tEnd, trackArc, transfer, effective: effLength,
                 };
             }
             vertTimes[TRAIL_VERTS - 1] = tEnd;

@@ -245,6 +245,31 @@ The ribbon also **tapers at the tail**: width is scaled by
 the alpha fade instead of ending as a blunt full-width cut (measured ratio
 tail : head = 0.35 on both the craft and the Moon ribbons).
 
+
+## Amendment — a landed object has no ribbon
+
+A vehicle sitting on a surface has no motion of its own: its samples trace the
+*body's* translation, so the ribbon drew the Moon's 300 000 km path as if the LM
+were flying it. Landed spans are now found once, at build, from the samples
+themselves (altitude above a celestial track's `radius_m` under 150 m **and**
+relative speed under 5 m/s), and the ribbon is simply hidden inside them. After
+liftoff the window start is clamped to the end of the last landed span, so the
+ribbon grows from the liftoff instant instead of reaching back across the parked
+hours.
+
+Measured on Apollo 11's `EAGLE` (touchdown 102:45:40 → liftoff 124:22:01):
+
+| Time | Ribbon | Window |
+|---|---|---|
+| 362 000 (descent) | visible | normal |
+| 369 940 → 447 700 (parked) | **hidden** | — |
+| 447 750 (29 s after liftoff) | visible | 447 723 → 447 750, 27.9 km |
+| 448 300 | visible | 447 723 → 448 300, 1 017 km (still clamped to liftoff) |
+| 450 000 | visible | 449 332 → 450 000, 1 273 km (normal length resumed) |
+
+Nothing else changed: `COLUMBIA`, the Moon and both LEO craft keep their ribbons
+at every time, because no span of theirs meets the two tests.
+
 ## Alternatives considered
 
 - **Keep a flat time window, tune it per track in `meta`.** Rejected: it turns

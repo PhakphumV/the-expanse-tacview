@@ -90,7 +90,10 @@ python3 -m http.server 8000
   so the scene reads upside down, for matching a printed chart or an inverted
   reference frame; labels stay upright because they are DOM, not scene geometry.
   Orbit guide rings and object path lines are dashed, with the dash pattern
-  rescaled to the camera distance so it reads at every scale.
+  rescaled to the camera distance so it reads at every scale. A landed vehicle
+  draws **no trail** — a parked object's samples are the body's own translation,
+  which reads as a 300 000 km streak — and after liftoff its ribbon starts at the
+  liftoff instant rather than reaching back over the parked hours.
 - **Steady readouts**: elapsed/remaining time, the timeline clock and every HUD
   value use tabular figures in a fixed-width, right-aligned box, and the phase
   label sits on its own header row. Without that, a proportional display face
