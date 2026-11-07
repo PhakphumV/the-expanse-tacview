@@ -7,6 +7,7 @@
     "test": "node scripts/validate-telemetry.js && node scripts/test-trails.js",
     "embed": "node scripts/embed-scenarios.js",
     "preroll": "node scripts/pre-roll-celestial.js",
-    "serve": "python3 -m http.server 8000"
+    "serve": "python3 -m http.server 8000",
+    "attitude": "node scripts/apply-burn-attitude.js"
   }
 }

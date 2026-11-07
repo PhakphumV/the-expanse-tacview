@@ -42,6 +42,11 @@ python3 -m http.server 8000
   drawn as lines in the same colour as their pin above. Dragging it pauses playback and resumes on release, so the
   engine cannot fight the pointer. A scenario may also declare its own `default_speed`,
   `default_target` and framing distance.
+- **Attitude** (`scripts/apply-burn-attitude.js`): samples carry a quaternion, and
+  the model turns to the burn attitude before ignition and back after cutoff — a
+  retrograde burn flies tail-first, so LOI-1 is a visible 180° turnaround (1.5 °/s,
+  sampled at 5 s through the slew). Cruise attitude follows the velocity. The HUD's
+  `ROT` row reports the rate in degrees per second.
 - **Maneuvers** (`SCHEMA.md`, ADR-0004): each track can carry ordered burn
   records — impulsive, finite or constant-thrust — with Δv, thrust, mass and
   attitude. The samples stay the ground truth and `npm test` checks the declared

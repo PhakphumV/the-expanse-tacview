@@ -22,8 +22,8 @@ window.TacviewManifest = {
       "view_distance_m": 14000000,
       "tracks": 3,
       "events": 25,
-      "samples": 12317,
-      "bytes": 1949231
+      "samples": 12605,
+      "bytes": 1993507
     }
   ]
 };

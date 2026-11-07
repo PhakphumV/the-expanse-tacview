@@ -300,6 +300,20 @@
         function getSamplesFor(id) { const t = getTrack(id); return t ? t.samples : []; }
         function getStateAtTimeFor(id, t) { return interp(getSamplesFor(id), t); }
 
+        // Angular velocity of the stored attitude: the angle between the orientations
+        // half a second either side of t, in degrees per second. The renderer slerps
+        // between samples, so this is the rate the model actually turns at — 1.5 deg/s
+        // through a LOI turnaround, 0 while the burn holds a fixed attitude.
+        function getAngularVelocity(trackId, t) {
+            const kfs = getSamplesFor(trackId);
+            const a = interp(kfs, t - 0.5);
+            const b = interp(kfs, t + 0.5);
+            if (!a || !b) return 0;
+            const qa = a.orientation, qb = b.orientation;
+            const d = Math.min(1, Math.abs(qa.x * qb.x + qa.y * qb.y + qa.z * qb.z + qa.w * qb.w));
+            return 2 * Math.acos(d) * 180 / Math.PI;
+        }
+
         // Maneuver accessors (ADR-0004 item 1).
         function getManeuvers(trackId) {
             const tr = getTrack(trackId);
@@ -368,7 +382,7 @@
             getEvents, getEventsUpTo,
             setTime, getTime, setSpeed, getSpeed,
             play, pause, isPlaying, getDuration,
-            getSamples, getTracks, getActiveTrack, getActiveTrackId,
+            getSamples, getTracks, getActiveTrack, getActiveTrackId, getAngularVelocity,
             jumpToStart, jumpToEnd, restart,
         };
     }

@@ -106,6 +106,10 @@
                 ['POS', `[${(st.position.x / 1000).toFixed(0)}, ${(st.position.y / 1000).toFixed(0)}, ${(st.position.z / 1000).toFixed(0)}]`],
                 ['\u0394V', dvUsed >= 1000 ? (dvUsed / 1000).toFixed(2) + ' km/s' : dvUsed.toFixed(0) + ' m/s'],
             ];
+            // Attitude rate: the craft turns to a burn attitude before ignition and
+            // back after cutoff, and this is how fast it is doing it.
+            const rot = engine.getAngularVelocity ? engine.getAngularVelocity(t, time) : 0;
+            rows.push(['ROT', rot.toFixed(2) + ' \u00b0/s']);
             // Cislunar tracks: Earth altitude is not the interesting number, so
             // report the Moon as well (ADR-0004 follow-up).
             if (moonState && moonInfo && moonInfo.radius_m) {

@@ -196,7 +196,22 @@ maneuver records are validated *against* them.
   equation must also agree with `dv_mps` (10 %).
 - `attitude`: `prograde` | `retrograde` | `fixed`, used to interpret the burn.
 
-### Burn direction
+### Attitude
+
+Each sample carries `orientation`, a unit quaternion for the body frame. The model's
+forward axis is `-Z` (a track may override it with `attitude.forward`), and
+`attitude.mode` says what the forward axis tracks: `velocity` (nose first, the
+default), `antivelocity`, or `fixed`.
+
+A burn is not flown nose-first: the engine points along the thrust, so a
+**retrograde burn flies tail-first** and a plane change is off-axis. The validator
+therefore exempts samples inside a manoeuvre window (±400 s around it) from the
+heading check and requires nose-first everywhere else. `npm run attitude` rewrites
+the orientations from the manoeuvres: cruise attitude from the velocity, the thrust
+attitude held through each burn, and a slew in and out at 1.5 °/s with samples
+added every 5 s so the renderer's slerp is smooth.
+
+## Burn direction
 
 Magnitude alone cannot describe a plane change, so a burn may also say *which
 way it pushed*. Three forms, in order of precedence:

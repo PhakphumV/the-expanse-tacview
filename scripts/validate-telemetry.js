@@ -126,8 +126,16 @@ function checkHeading() {
             const mode = (t.attitude && t.attitude.mode) || 'velocity';
             if (['velocity', 'antivelocity', 'fixed'].indexOf(mode) === -1)
                 return `${t.id}: attitude.mode "${mode}" is not velocity|antivelocity|fixed`;
+            // A burn holds a thrust attitude, which is not the velocity direction: a
+            // retrograde burn flies tail-first and a plane change is off-axis. Samples
+            // inside a manoeuvre window are therefore exempt; outside it the craft
+            // flies nose-first again.
+            const burnWindows = (t.maneuvers || [])
+                .filter((m) => typeof m.t_start === 'number')
+                .map((m) => [m.t_start - 400, (m.t_end != null ? m.t_end : m.t_start) + 400]);
             for (const s of t.samples) {
                 const q = s.orientation;
+                if (burnWindows.some((w) => s.t >= w[0] && s.t <= w[1])) continue;
                 const p = [fwd[0], fwd[1], fwd[2], 0];
                 const qc = [-q[0], -q[1], -q[2], q[3]];
                 const t1 = qmul(q, p), t2 = qmul(t1, qc);
