@@ -163,6 +163,15 @@ html, body {
     cursor: pointer;
 }
 .target-item:hover { border-color: #3a7bd5; color: #fff; }
+/* A track that has not started yet or has already ended has nothing to show:
+   the row is dimmed and cannot be clicked. */
+.target-item:disabled {
+    opacity: 0.3;
+    cursor: default;
+    border-color: #1b2740;
+    color: #7f97b8;
+}
+.target-item:disabled:hover { border-color: #1b2740; color: #7f97b8; }
 .target-item.active {
     background: #2b6cb0;
     border-color: #5aa0e8;
@@ -344,8 +353,7 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 7px 5px 5px;
+    padding: 8px 6px;
     background: rgba(10, 22, 46, 0.85);
     border: 1px solid #2b406a;
     border-radius: 3px;
@@ -355,7 +363,7 @@ html, body {
     position: absolute;
     left: 2px;
     right: 2px;
-    top: 59px;                    /* mid-track: the neutral (no zoom) point */
+    top: 50%;                     /* mid-track: the neutral (no zoom) point */
     height: 1px;
     background: rgba(159, 184, 216, 0.4);
     pointer-events: none;
@@ -366,7 +374,7 @@ html, body {
     writing-mode: vertical-lr;
     direction: rtl;               /* minimum at the bottom, so up = zoom in */
     width: 12px;
-    height: 104px;
+    height: 200px;
     background: transparent;
     position: relative;
     z-index: 1;
@@ -401,15 +409,6 @@ html, body {
     background: #9fb8d8;
     border: 1px solid #dbe8fa;
 }
-#zoomSliderLabel {
-    font-size: 9px;
-    letter-spacing: 1px;
-    color: #7f97b8;
-    text-align: center;
-    line-height: 1.3;
-    min-width: 48px;
-}
-
 /* ---- Entity label ---- */
 #labelsContainer { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
 .entity-label {

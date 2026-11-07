@@ -198,15 +198,10 @@
     // right = continuous zoom in, and the further from centre the faster the
     // view distance changes.
     const zoomSlider = document.getElementById('zoomSlider');
-    const zoomLabel = document.getElementById('zoomSliderLabel');
     function applyZoomSlider() {
         if (!zoomSlider) return;
         const n = (+zoomSlider.value - 50) / 50;
         cameraCtl.setZoomVelocity(n);
-        if (zoomLabel) {
-            const pct = Math.round(Math.abs(n) * 100);
-            zoomLabel.textContent = pct === 0 ? 'ZOOM' : (n < 0 ? 'OUT ' : 'IN ') + pct + '%';
-        }
     }
     // Momentary control: releasing the drag (or leaving the control) snaps the
     // slider back to centre, so zoom stops the moment the drag ends.

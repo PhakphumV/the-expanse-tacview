@@ -133,8 +133,28 @@
             return t ? 'SPACE OBJECT' : id;
         }
 
+        // A track that has not started yet or has already ended has no state to
+        // show, so its row is dimmed and cannot be clicked: selecting it would only
+        // park the camera on a ghost. Bodies and the static Earth are always live.
+        function refreshAvailability() {
+            const t = engine.getTime ? engine.getTime() : 0;
+            for (const id in items) {
+                const tr = engine.getTrack ? engine.getTrack(id) : null;
+                let live = true;
+                if (tr && tr.samples && tr.samples.length) {
+                    live = t >= tr.samples[0].t && t <= tr.samples[tr.samples.length - 1].t;
+                }
+                const btn = items[id];
+                const off = !live;
+                if (btn.disabled === off) continue;
+                btn.disabled = off;
+                btn.classList.toggle('unavailable', off);
+            }
+        }
+
         function update() {
             if (!infoEl) return;
+            refreshAvailability();
             const id = activeId || 'earth';
             const tag = tagFor(id);
             const rows = rowsFor(id);
