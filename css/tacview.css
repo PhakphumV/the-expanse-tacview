@@ -281,27 +281,35 @@ html, body {
     pointer-events: none;
     overflow: visible;
 }
+/* Event pins: a map-pin planted on the track, with a 14 x 17 px hit area instead
+   of the old 2 px tick. The tip lands on the bar's top edge; --row staggers pins
+   that would otherwise overlap (set from JS once the bar has a width). */
 .event-marker {
     position: absolute;
-    top: 0;
-    transform: translateX(-50%);
+    top: calc(-20px - var(--row, 0) * 13px);
+    width: 16px;
+    height: 20px;
+    margin-left: -8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #ffd27f;
     pointer-events: auto;
     cursor: pointer;
+    transition: color 0.12s linear;
 }
-.event-marker::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 0;
-    width: 2px;
-    height: 12px;
-    transform: translateX(-50%);
-    background: #ffd27f;
+.event-marker svg {
+    display: block;
+    width: 16px;
+    height: 20px;
+    fill: currentColor;
+    filter: drop-shadow(0 0 3px rgba(255, 210, 127, 0.35));
 }
+.event-marker:focus-visible { outline: 1px solid #9fd0ff; outline-offset: 1px; }
 .event-marker span {
     position: absolute;
     left: 50%;
-    bottom: 13px;
+    bottom: 100%;
     transform: translateX(-50%);
     white-space: nowrap;
     font-size: 9px;
@@ -327,8 +335,10 @@ html, body {
 .maneuver-bar.impulsive { background: #ffd27f; height: 3px; }
 .maneuver-bar.constant { background: #ff7a3d; }
 /* Phase markers are the coarse jump targets: taller tick, brighter label. */
-.event-marker.phase::before { height: 18px; background: #ffe8b8; }
+.event-marker.phase { color: #ffe8b8; }
 .event-marker.phase span { color: #ffe8b8; font-weight: bold; }
+.event-marker.milestone { color: #9fd0ff; }
+.event-marker:hover { color: #ffffff; }
 /* A long mission packs many events into a short scrub bar, so labels are
    hover-only: the ticks stay readable and the header names the current phase. */
 .event-marker span { opacity: 0; transition: opacity 0.12s linear; }

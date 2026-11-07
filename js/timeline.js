@@ -24,6 +24,12 @@
         return pad2(m) + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
     }
 
+    // A map-pin glyph: 14 x 17 with the tip at the bottom centre, so it plants on
+    // the track's top edge. Colour comes from the button's `color` (phase, milestone).
+    const PIN_SVG = '<svg viewBox="0 0 14 17" aria-hidden="true" focusable="false">'
+        + '<path d="M7 16.6S13 9.7 13 6.05A6 6 0 1 0 1 6.05C1 9.7 7 16.6 7 16.6Z"/>'
+        + '<circle cx="7" cy="6" r="2.1" fill="#0a1626"/></svg>';
+
     function createTimeline(engine) {
         const playPauseBtn = document.getElementById('playPauseBtn');
         const timeReadout = document.getElementById('timeReadout');
@@ -120,11 +126,16 @@
 
             for (let i = 0; i < events.length; i++) {
                 const ev = events[i];
-                const m = document.createElement('div');
-                m.className = 'event-marker' + (ev.type ? ' ' + ev.type : '');
-                m.style.left = (ev.t / dur * 100) + '%';
-                m.title = ev.label + ' (T+' + formatMissionTime(ev.t, isLong()) + ')' + (ev.description ? ' — ' + ev.description : '');
-                m.addEventListener('click', function (e) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'event-marker' + (ev.type ? ' ' + ev.type : '');
+                btn.style.left = (ev.t / dur * 100) + '%';
+                btn.title = ev.label + ' (T+' + formatMissionTime(ev.t, isLong()) + ')' + (ev.description ? ' — ' + ev.description : '');
+                btn.innerHTML = PIN_SVG;
+                // Stop the press here: the scrub bar starts a drag on mousedown, and a
+                // pin should jump, not scrub.
+                btn.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+                btn.addEventListener('click', function (e) {
                     e.stopPropagation();
                     engine.setTime(ev.t);
                     refreshPlayPauseLabel();
@@ -132,11 +143,8 @@
                 });
                 const lab = document.createElement('span');
                 lab.textContent = ev.label;
-                // Stagger label rows so clustered events stay readable, and
-                // anchor labels at the bar's ends instead of centering them off
-                // the edge.
+                // Anchor labels at the bar's ends instead of centering them off the edge.
                 const frac = ev.t / dur;
-                lab.style.bottom = (13 + (i % 3) * 13) + 'px';
                 if (frac < 0.06) {
                     lab.style.left = '0';
                     lab.style.transform = 'none';
@@ -144,10 +152,30 @@
                     lab.style.left = '100%';
                     lab.style.transform = 'translateX(-100%)';
                 }
-                m.appendChild(lab);
-                eventMarkersEl.appendChild(m);
+                btn.appendChild(lab);
+                eventMarkersEl.appendChild(btn);
+            }
+            staggerPins();
+        }
+
+        // Pins sit at the same x when events are close in time (Apollo packs the EVA
+        // and the landing into the same few pixels), so stack them: the first pin
+        // that fits in a row stays there, the next goes up a row. Re-run whenever the
+        // bar is resized, because the pixel gaps depend on its width.
+        function staggerPins() {
+            if (!eventMarkersEl) return;
+            const pins = Array.prototype.slice.call(eventMarkersEl.querySelectorAll('.event-marker'));
+            const rowRight = [-Infinity, -Infinity, -Infinity];
+            for (const pin of pins) {
+                const x = pin.offsetLeft;
+                let row = 0;
+                while (row < rowRight.length && x - rowRight[row] < 17) row++;
+                if (row >= rowRight.length) row = rowRight.length - 1;
+                rowRight[row] = x;
+                pin.style.setProperty('--row', row);
             }
         }
+        window.addEventListener('resize', staggerPins);
 
         function updateUI() {
             const t = engine.getTime();
