@@ -1,10 +1,10 @@
 # The Expanse Tacview
 
 A static, server-less WebGL space-object telemetry viewer built with Three.js.
-It renders real orbital data — the International Space Station and China's
-Tiangong (CSS) — using a **state-vector ephemeris** grounded in the CCSDS
+It replays real orbital data — low Earth orbit, and the Apollo 11 and Apollo 13
+missions — from a **state-vector ephemeris** grounded in the CCSDS
 OMM / OEM / XTCE recommendations (see **[SCHEMA.md](SCHEMA.md)** and
-`docs/adr/`), plus the Moon as a moving celestial track.
+`docs/adr/`), with the Moon as a moving celestial track.
 
 This is the foundational step toward an Expanse-themed tactical viewer: a
 solid, standards-driven space-telemetry layer that any future scenario (moving
@@ -22,14 +22,11 @@ python3 -m http.server 8000
 # then open http://localhost:8000/index.html
 ```
 
-## Features
+## Core features
 
-- **Real orbits — ISS (NORAD 25544) and Tiangong / CSS (NORAD 48274)**: each a
-  pre-baked two-orbit LVLH ephemeris of position/velocity/orientation samples,
-  propagated offline from live element sets, no runtime SGP4. HUD shows the
-  active object's altitude, ground speed, and ECI position.
 - **Space-object telemetry engine** (`js/ephemeris.js`): time-based
-  interpolation of state-vector samples, per track.
+  interpolation of state-vector samples, per track. Position interpolation is
+  cubic Hermite, so sparse coast sampling still draws smooth arcs.
 - **Multiple scenarios & timeline events** (`js/ephemeris.js`, `js/timeline.js`):
   a SCENARIO selector switches between replayable missions; each scenario can
   carry labeled events rendered as pins on a full-width scrub track — each pin has
@@ -37,9 +34,10 @@ python3 -m http.server 8000
   within a few pixels of each other take different colours instead of stacking.
   Events typed `phase` drive the header's PHASE readout, so a long mission reads
   as a sequence of phases rather than a bare clock. A second, **detail** track sits
-  above the overview: a fixed 20-minute window (±10) centred on the playhead, which
-  you drag left or right to scrub precisely, with the events inside that window
-  drawn as lines in the same colour as their pin above. Dragging it pauses playback and resumes on release, so the
+  above the overview: a fixed 20-minute window (±10) centred on the playhead with a
+  line at every whole minute and a timestamp every five, which you drag left or
+  right to scrub precisely, with the events inside that window drawn as lines in the
+  same colour as their pin above. Dragging it pauses playback and resumes on release, so the
   engine cannot fight the pointer. A scenario may also declare its own `default_speed`,
   `default_target` and framing distance.
 - **Attitude** (`scripts/apply-burn-attitude.js`): samples carry a quaternion, and
@@ -51,19 +49,12 @@ python3 -m http.server 8000
   records — impulsive, finite or constant-thrust — with Δv, thrust, mass and
   attitude. The samples stay the ground truth and `npm test` checks the declared
   burns against them; the HUD shows cumulative ΔV and burn spans render as bars
-  on the timeline. Position interpolation is cubic Hermite, so sparse coast
-  sampling still draws smooth arcs.
-- **Apollo 11, 1969** (`data/scenarios/apollo11.json`): an eight-phase replay from launch
-  to splashdown — 195 h 18 m of real mission time with the Moon on its true
-  geocentric ephemeris (JPL Horizons/DE441). All eight phases are in: launch, ascent,
-  parking orbit, TLI, the trans-lunar coast with MCC-2, lunar orbit insertion
-  (LOI-1 into 111 × 314 km, LOI-2 to ~92 × 122 km), the LM's own descent —
-  undocking, DOI, powered descent and touchdown — the surface stay through the
-  EVA, and the ascent back off the Moon: lift-off, an integrated 593 s climb to
-  18 × 87 km, a solved two-impulse rendezvous, docking at 128:03, the LM jettison
-  at 130:09, and the trip home: a solved trans-Earth injection at 135:22:42, a
-  2.5-day coast, entry at 400 000 ft and splashdown at 195:18:35. Phase-by-phase
-  detail is in `docs/apollo11-phases.md`.
+  on the timeline.
+- **Explosion events** (`js/explosion.js`): a `type: "explosion"` event draws a
+  low-poly orange sphere at the host track's position — faceted, unlit, popping
+  to full size almost instantly and fading out over its `duration_s`, leaving
+  nothing behind. Radius and duration are scenario data (`radius_m`,
+  `duration_s`); the effect never perturbs the trajectory.
 - **Typeface**: Orbitron (Google Fonts, SIL OFL 1.1), self-hosted from
   `vendor/orbitron/` so the page still works from `file://` with no network. The
   latin subset is a variable font (wght 400–700) with equal advance widths, so
@@ -124,6 +115,50 @@ python3 -m http.server 8000
   and releases the previous payload (and disposes the previous scene's
   geometries). Only the payload being watched is decoded into vectors.
 
+## Scenarios
+
+Three missions ship with the viewer, selected from the header's SCENARIO menu.
+Each is one JSON file in `data/scenarios/`, validated by `npm test` and split into
+its own payload by `npm run embed`.
+
+| id         | Scenario                     | Mission time | Tracks                                  | Events |
+| ---------- | ---------------------------- | ------------ | --------------------------------------- | ------ |
+| `leo`      | Low Earth Orbit              | 3 h 6 m      | ISS, Tiangong, Moon                     | 0      |
+| `apollo11` | Apollo 11 — Lunar Landing    | 195 h 19 m   | Columbia, Eagle, Moon                   | 25     |
+| `apollo13` | Apollo 13 — Abort Mission    | 142 h 55 m   | Odyssey, Aquarius, Service Module, Moon | 15     |
+
+### Low Earth Orbit (`leo`)
+
+The pure tracking view. ISS (NORAD 25544) and Tiangong / CSS (NORAD 48274), each
+a pre-baked two-orbit LVLH ephemeris of position/velocity/orientation samples,
+propagated offline from live element sets — no runtime SGP4 — plus the Moon on a
+celestial track completing one revolution per replay. No events, so the timeline
+is a bare scrubber; the HUD shows the active object's altitude, ground speed and
+ECI position.
+
+### Apollo 11 — Lunar Landing (`apollo11`)
+
+An eight-phase replay from launch to splashdown — 195 h 18 m of real mission time
+with the Moon on its true geocentric ephemeris (JPL Horizons/DE441). All eight
+phases are in: launch, ascent, parking orbit, TLI, the trans-lunar coast with
+MCC-2, lunar orbit insertion (LOI-1 into 111 × 314 km, LOI-2 to ~92 × 122 km),
+the LM's own descent — undocking, DOI, powered descent and touchdown — the
+surface stay through the EVA, and the ascent back off the Moon: lift-off, an
+integrated 593 s climb to 18 × 87 km, a solved two-impulse rendezvous, docking at
+128:03, the LM jettison at 130:09, and the trip home: a solved trans-Earth
+injection at 135:22:42, a 2.5-day coast, entry at 400 000 ft and splashdown at
+195:18:35. Phase-by-phase detail is in `docs/apollo11-phases.md`.
+
+### Apollo 13 — Abort Mission (`apollo13`)
+
+The first abort mission in the set. Launch through TLI and the hybrid
+trans-lunar coast to the oxygen-tank rupture at 55:54 GET — rendered as an
+explosion event on the Odyssey track — then the two LM descent-engine burns that
+turn the trajectory back to Earth, the 254 km lunar flyby, MCC-5 and MCC-7, the
+jettisons of the service module and Aquarius into their own drift tracks, and the
+entry and Pacific splashdown. Four tracks and 15 events; the reconstruction
+deviations from the published numbers are listed in `docs/apollo13-phases.md`.
+
 ## Project structure
 
 ```
@@ -144,6 +179,7 @@ js/
   entities.js             — per-track body, orbital path, ribbon trails (object vs celestial)
   trails.js               — trail length/window maths (pure, tested in Node)
   spacecraft-model.js     — procedural spacecraft body (heading/orientation)
+  explosion.js            — low-poly fireball for `explosion` events
   labels.js               — billboarded on-screen labels (one per track)
   camera.js               — Orbit / Follow viewport modes around a target
   hud.js                  — selectable target list + per-target readouts
@@ -157,7 +193,7 @@ scripts/
 docs/
   adr/                    — architecture decision records
   apollo11-phases.md      — Apollo 11 phase plan, data anchors and provenance
-  apollo13-phases.md      — Apollo 13 (abort mission) phase plan, not yet built
+  apollo13-phases.md      — Apollo 13 (abort mission) phase plan and provenance
 ```
 
 ## Development
