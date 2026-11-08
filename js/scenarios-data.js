@@ -26,6 +26,21 @@ window.TacviewManifest = {
       "events": 25,
       "samples": 12605,
       "bytes": 1993526
+    },
+    {
+      "id": "apollo13",
+      "name": "Apollo 13 — Abort Mission",
+      "description": "Apollo 13, 11-17 April 1970: launch through splashdown after the oxygen-tank explosion. The launch, the hybrid translunar coast, the accident at 55:54 GET, the two LM descent-engine burns that turn the trajectory back to Earth, the lunar flyby, and the return and entry of Odyssey and Aquarius.",
+      "epoch": "1970-04-11T19:13:00Z",
+      "duration_s": 514481,
+      "default_speed": 512,
+      "default_target": "earth",
+      "view_distance_m": 14000000,
+      "menu_order": 3,
+      "tracks": 4,
+      "events": 14,
+      "samples": 8302,
+      "bytes": 1325842
     }
   ]
 };

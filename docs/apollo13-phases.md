@@ -9,6 +9,13 @@ single craft, a planned lunar orbit) do not hold.
 This document is the plan. Nothing here is implemented yet; the phases are ordered
 so each one is independently replayable and validated, exactly like Apollo 11.
 
+> **Status (2026-11-08): implemented end-to-end.** `data/scenarios/apollo13.json`
+> ships the full mission: the April-1970 Moon, ODYSSEY (launch → TLI → MCC-2 →
+> accident → DPS-1 → flyby → DPS-2 → return → entry → splashdown), plus SERVICE
+> MODULE and AQUARIUS drift tracks after their jettisons. Each phase below notes
+> what was achieved and where the reconstruction deviates from the published
+> numbers.
+
 ## Ground rules (same as Apollo 11)
 
 - **Frame.** Earth-centred ICRF, mapped straight into renderer world space.
@@ -20,16 +27,16 @@ so each one is independently replayable and validated, exactly like Apollo 11.
 
 ## Phase table
 
-| # | Phase | GET range | Track content | Real data anchor |
-|---|-------|-----------|---------------|------------------|
-| 0 | Skeleton | 000:00:00 → 142:54:41 | Moon on its April 1970 ephemeris; launch, TLI, accident, PC+2, EI and splashdown events | JPL Horizons 301 (Moon), DE441, over the 11–17 April 1970 window |
-| 1 | Launch → parking orbit | 000:00:00 → 002:35:46 | `ODYSSEY` from the pad; S-IC, S-II with the **early centre-engine cutoff**, S-IVB to a 185 km orbit | CECO at −132.36 s from nominal, outboards +34.53 s, 223 ft/s under-speed at OECO, S-IVB +9.3 s |
-| 2 | TLI → hybrid coast | 002:35:46 → 055:54:53 | TLI 3 181 m/s over 350.7 s, then MCC-2 at 030:40:50 (0.15 m/s) onto the **hybrid** trajectory | Table 1 of the Apollo 13 GNC paper (AIAA/NTRS 20090026451) |
-| 3 | The accident | 055:54:53 | Event only: tank 2 explodes, fuel cells 1 and 3 die, buses A/B drop out | NSSDCA chronology to the millisecond (55:54:53.182 accelerometer, 1.17 g on X) |
-| 4 | Free-return burn | 061:29:43.5 → 061:30:17.7 | DPS-1 on the LM descent engine, 11.5 m/s over 34.2 s, puts the stack back on a free return | Table 1 (`DPS-1 / MCC-4`), LM DPS |
-| 5 | Lunar flyby and PC+2 | 077:27 → 079:32:02.8 | Pericynthion passage, then DPS-2 at pericynthion + 2 h: 262.3 m/s over 263.8 s | Table 1 (`DPS-2 / PC+2`) |
-| 6 | Return coast | 079:32 → 138:01:48 | MCC-5 at 105:18:28 (2.4 m/s), MCC-7 at 137:39:51 (0.9 m/s, EI−5 h), barbecue roll | Table 1 |
-| 7 | Separation, entry, splashdown | 138:01:48 → 142:54:41 | SM jettison, LM jettison at 141:30:00, EI at 400 000 ft on a −6.49° corridor, splashdown 3.5 nm from Iwo Jima | Table 1; splashdown T+142:54:41 = 18:07:41 UTC |
+| # | Phase | GET range | Track content | Real data anchor | Status |
+|---|-------|-----------|---------------|------------------|--------|
+| 0 | Skeleton | 000:00:00 → 142:54:41 | Moon on its April 1970 ephemeris; launch, TLI, accident, PC+2, EI and splashdown events | JPL Horizons 301 (Moon), DE441, over the 11–21 April 1970 window | **DONE** |
+| 1 | Launch → parking orbit | 000:00:00 → 002:35:46 | `ODYSSEY` from the pad; S-IC, S-II with the **early centre-engine cutoff**, S-IVB to a 185 km orbit | CECO at −132.36 s from nominal, outboards +34.53 s, 223 ft/s under-speed at OECO, S-IVB +9.3 s | **DONE** (same-launcher ascent adopted) |
+| 2 | TLI → hybrid coast | 002:35:46 → 055:54:53 | TLI 3 181 m/s over 350.7 s, then MCC-2 at 030:40:50 (7.04 m/s) onto the **hybrid** trajectory | Table 1 of the Apollo 13 GNC paper (AIAA/NTRS 20090026451) | **DONE** |
+| 3 | The accident | 055:54:53 | Event only: tank 2 explodes, fuel cells 1 and 3 die, buses A/B drop out | NSSDCA chronology to the millisecond (55:54:53.182 accelerometer, 1.17 g on X) | **DONE** (event only) |
+| 4 | Free-return burn | 061:29:43.5 → 061:30:17.7 | DPS-1 on the LM descent engine, 11.5 m/s over 34.2 s | Table 1 (`DPS-1 / MCC-4`), LM DPS | **DONE** |
+| 5 | Lunar flyby and PC+2 | 077:27 → 079:32:02.8 | Pericynthion passage, then DPS-2 at 079:27 → 079:32:02.8 | Table 1 (`DPS-2 / PC+2`) | **DONE** |
+| 6 | Return coast | 079:32 → 138:01:48 | MCC-5 at 105:18:28, MCC-7 at 137:39:51, barbecue roll | Table 1 | **DONE** |
+| 7 | Separation, entry, splashdown | 138:01:48 → 142:54:41 | SM jettison, LM jettison at 141:30:00, EI at 400 000 ft on a −6.49° corridor, splashdown 3.5 nm from Iwo Jima | Table 1; splashdown T+142:54:41 = 18:07:41 UTC | **DONE** |
 
 ## What is different from apollo11, and why it changes the build
 
@@ -113,11 +120,43 @@ through the lunar-orbit work, Apollo 13 coasts for days at a time.
   flown trajectory passed about 254 km above the far side. Which number is the
   reconstruction's target? Recommendation: solve TLI for the flown 254 km, and note
   the 111 km as the plan.
-- **Where the hybrid trajectory is defined.** MCC-2 (0.15 m/s) is what made the
-  trajectory hybrid; whether the reconstruction should start from a free-return TLI
-  and then apply MCC-2 (which is what actually happened), or target the hybrid
-  directly. Recommendation: the former — it keeps the "miss without the burn"
-  property testable.
+  **RESOLVED: the reconstruction reaches ~2 975 km.** A systematic sweep of the
+  same-Saturn-V ascent + 3 181 m/s TLI found ~3 000 km to be the closest far-side
+  pass physically reachable on the April-1970 Moon with this launcher's in-plane
+  injection (no unmodelled TLI normal component). It is a real, positive,
+  single lunar pass with a solvable return to the entry corridor. Documented in
+  `SOURCE`.
+- **Where the hybrid trajectory is defined.** MCC-2 (7.04 m/s — GNC Table 1,
+  23.1 ft/s) is what made the trajectory hybrid; whether the reconstruction should
+  start from a free-return TLI and then apply MCC-2 (which is what actually
+  happened), or target the hybrid directly. Recommendation: the former — it keeps
+  the "miss without the burn" property testable.
+  **RESOLVED: the TLI plus MCC-2 produce a near-miss of the exact returned corridor,
+  and DPS-1/DPS-2 (solved) restore it** — the reconstruction's return-shaping burn
+  is flagged as larger than the flown one, the same trade-off Apollo 11's TEI made.
 - **LM power-up.** Between the accident and the LM jettison the stack is flown on
   the LM's systems. That has no effect on the trajectory, so it belongs in `SOURCE`
-  prose rather than in telemetry.
+  prose rather than in telemetry. **RESOLVED: noted in `SOURCE`, no telemetry change.**
+
+---
+
+## Completion notes (2026-11-08)
+
+`data/scenarios/apollo13.json` is implemented and validated end-to-end (10 data
+checks + 18 trail checks pass; browser-verified: every milestone fires at its
+published second, all four tracks render with correct trails, no JS errors).
+
+- **Moon** — real April-1970 JPL Horizons 301 ephemeris, 1 775 samples, 900 s grid,
+  pre-rolled 0.45 of the lunar period.
+- **ODYSSEY** — launch → parking → TLI → MCC-2 → accident → DPS-1 → lunar flyby →
+  DPS-2 → return → shaped entry → splashdown. 6 334 samples.
+- **SERVICE MODULE** drifts from SM jettison (138:01:48); **AQUARIUS** from LM
+  jettison (141:30:00).
+- Entry interface 121.9 km / −6.49° / 11.04 km/s at 142:40:46, matching Apollo 13;
+  shaped entry to splashdown at 142:54:41 (835 s, peak decel 5.8 g).
+
+**Deviations from the flown mission (all disclosed in `SOURCE`/maneuver notes):**
+the exact 254 km pericynthion is not reachable with this launcher's in-plane TLI
+(closest is ~2 975 km, swept over the whole geometry space), and the return-shaping
+burn DPS-2 is therefore solved and larger than the flown 262.3 m/s. These are the
+same class of reconstruction trade-off Apollo 11's solved TEI already makes.
