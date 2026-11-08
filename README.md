@@ -51,9 +51,11 @@ python3 -m http.server 8000
   burns against them; the HUD shows cumulative ΔV and burn spans render as bars
   on the timeline.
 - **Explosion events** (`js/explosion.js`): a `type: "explosion"` event draws a
-  low-poly orange sphere at the host track's position — faceted, unlit, popping
-  to full size almost instantly and fading out over its `duration_s`, leaving
-  nothing behind. Radius and duration are scenario data (`radius_m`,
+  smooth orange sphere at the host track's position — shaded with baked vertex
+  colours, so it needs no lights — popping to full size almost instantly and
+  fading out over its `duration_s`, leaving nothing behind. Its radius is tied to
+  the zoom level: about a tenth of the viewport at long range, capped near a fifth
+  when you pull in. Radius and duration are scenario data (`radius_m`,
   `duration_s`); the effect never perturbs the trajectory.
 - **Typeface**: Orbitron (Google Fonts, SIL OFL 1.1), self-hosted from
   `vendor/orbitron/` so the page still works from `file://` with no network. The

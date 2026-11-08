@@ -332,10 +332,11 @@ timeline UI at `t / duration` along the scrub bar.
 
 ### Explosion events
 
-A `type: "explosion"` event makes the renderer draw a low-poly fireball — a
-faceted orange sphere — at the host track's position at that epoch. It pops to
-full size almost instantly, swells a little, and fades out over `duration_s`;
-nothing is left behind. The effect is driven by the scenario data alone — any
+A `type: "explosion"` event makes the renderer draw a fireball — a smooth orange
+sphere — at the host track's position at that epoch. It pops to full size almost
+instantly, swells a little, and fades out over `duration_s`; nothing is left
+behind. Its size follows the zoom level (readable at long range, capped so it
+never fills the screen). The effect is driven by the scenario data alone — any
 scenario can carry one by adding an event; a scenario with none draws nothing.
 The explosion does not change the trajectory (an accident that does not perturb
 the orbit, like Apollo 13's tank rupture, must not produce a jolt in the track).
