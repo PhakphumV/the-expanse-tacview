@@ -27,6 +27,7 @@
     const SETTLE_GROWTH = 0.12;     // extra radius gained over the rest of the life
     const FADE_START = 0.45;        // life fraction where the fade-out begins
     const FLASH_ALPHA = 0.95;
+    const START_ALPHA = 0.55;       // see-through while it is still expanding
 
     // Sphere stays a readable size on screen from any range (like the craft/body
     // MIN_APPARENT_RAD rule): radius scaled by camera distance once far away.
@@ -151,14 +152,13 @@
                 // clamping the radius) keeps the pop: it still starts at nothing.
                 const floor = camDist * MIN_APPARENT_FRAC / baseR;
                 mesh.scale.setScalar(r * Math.max(1, floor));
-                // Facets drift slowly, so the low-poly silhouette keeps moving.
-                mesh.rotation.y = dt * 0.25;
-                mesh.rotation.x = dt * 0.09;
 
-                // Fade out through the tail of the life.
+                // Opacity: starts partly see-through while it expands, reaches full
+                // brightness once the pop settles, then fades out through the tail.
+                const fadeIn = START_ALPHA + (1 - START_ALPHA) * Math.min(1, u / POP_FRAC);
                 const fade = u <= FADE_START ? 1
                     : Math.max(0, 1 - (u - FADE_START) / (1 - FADE_START));
-                mesh.material.opacity = FLASH_ALPHA * fade;
+                mesh.material.opacity = FLASH_ALPHA * fadeIn * fade;
             }
         }
 
