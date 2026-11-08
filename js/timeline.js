@@ -38,6 +38,7 @@
         const scrubHandle = document.getElementById('scrubHandle');
         const eventMarkersEl = document.getElementById('eventMarkers');
         const detailBar = document.getElementById('detailBar');
+        const detailGrid = document.getElementById('detailGrid');
         const detailTicks = document.getElementById('detailTicks');
         const detailFrom = document.getElementById('detailFrom');
         const detailTo = document.getElementById('detailTo');
@@ -245,9 +246,51 @@
             return { start: t - DETAIL_WINDOW_S / 2, end: t + DETAIL_WINDOW_S / 2 };
         }
 
+        // Minute ruler under the detail track: a line at every whole minute of
+        // mission time, brighter with a timestamp every fifth. Lines live at fixed
+        // mission times and scroll with the window, so they mean the same thing as
+        // the event lines beside them. A pool of elements is reused each frame
+        // rather than rebuilt (paintDetail runs on every animation frame).
+        const DETAIL_MAJOR_S = 300;
+        const gridPool = [];
+        function gridTick(i) {
+            if (gridPool[i]) return gridPool[i];
+            const line = document.createElement('div');
+            line.className = 'detail-grid-line';
+            const label = document.createElement('span');
+            label.className = 'detail-grid-label';
+            line.appendChild(label);
+            detailGrid.appendChild(line);
+            const rec = { line, label };
+            gridPool[i] = rec;
+            return rec;
+        }
+
+        function paintDetailGrid(w) {
+            if (!detailGrid) return;
+            const dur = engine.getDuration();
+            const first = Math.ceil(w.start / 60) * 60;
+            let i = 0;
+            for (let tt = first; tt <= w.end; tt += 60, i++) {
+                const rec = gridTick(i);
+                const frac = (tt - w.start) / DETAIL_WINDOW_S;
+                rec.line.style.display = 'block';
+                rec.line.style.left = (frac * 100) + '%';
+                const major = Math.abs(tt % DETAIL_MAJOR_S) < 0.5;
+                rec.line.classList.toggle('major', major);
+                // Outside the mission there is nothing to name: the line still
+                // shows the ruler, the label would just read nonsense. Labels also
+                // stay off the two ends, where they would be clipped by the bar.
+                rec.label.textContent = (major && tt >= 0 && tt <= dur && frac > 0.06 && frac < 0.94)
+                    ? formatMissionTime(tt, isLong()) : '';
+            }
+            for (; i < gridPool.length; i++) gridPool[i].line.style.display = 'none';
+        }
+
         function paintDetail(t) {
             if (!detailBar) return;
             const w = detailWindow(t);
+            paintDetailGrid(w);
             if (detailTicks) {
                 for (const dm of detailTicks.children) {
                     const et = parseFloat(dm.dataset.t);

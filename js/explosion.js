@@ -1,15 +1,13 @@
 // js/explosion.js
 // Core visual for "explosion" events: a scenario author drops an event with
 // `type: "explosion"` (and `track` naming which tracked object exploded, so the
-// effect can be anchored to a world position) and the renderer draws a fireball
-// there. Any scenario can carry one; a scenario with none simply shows nothing.
+// effect can be anchored to a world position) and the renderer draws the blast
+// there. Any scenario can carry one; a scenario with none shows nothing.
 //
-// The effect has two lives that run in *mission time* (not wall-clock), driven by
-// the engine clock:
-//   - a bright, expanding fireball for the seconds right after detonation
-//     (author-controllable via event.radius_m and event.duration_s);
-//   - a persistent, dimmer ember/glow pinned at the event position forever after
-//     (so the site of the accident is still findable when you scrub back).
+// The effect is deliberately cheap: one low-poly orange sphere (an icosahedron,
+// 80 flat-shaded faces) that pops to full size in a fraction of a second of
+// mission time and then fades out. No sprites, no halo, no persistent ember.
+// The facet shading is baked into vertex colours, so the scene needs no lights.
 //
 // Anchoring: the effect sits at the host track's interpolated position at the
 // event epoch (one position, frozen when the effect is built). It does not move
@@ -22,105 +20,103 @@
     const THREE = global.THREE;
 
     // Defaults, all overridable per event.
-    const DEF_DURATION = 60;        // mission-seconds the fireball is bright
+    const DEF_DURATION = 60;        // mission-seconds from detonation to gone
     const DEF_RADIUS = 25000;       // metres — seen against a lunar-distance view
-    const DEF_GROWTH = 0.8;         // radius grows by this fraction over the fireball life
+
+    const POP_FRAC = 0.12;          // share of the life spent expanding
+    const SETTLE_GROWTH = 0.12;     // extra radius gained over the rest of the life
+    const FADE_START = 0.45;        // life fraction where the fade-out begins
     const FLASH_ALPHA = 0.95;
-    const EMBER_ALPHA = 0.35;
-    const EMBER_OFF_AFTER = 1800;   // mission-seconds after which the ember fades to a pin
-    // Sprite stays a readable size on screen from any range (like the craft/body
+
+    // Sphere stays a readable size on screen from any range (like the craft/body
     // MIN_APPARENT_RAD rule): radius scaled by camera distance once far away.
-    const MIN_APPARENT_FRAC = 0.06; // fireball ≈ 6 % of a 780 px viewport at 60° fov
-    const EMBER_FRAC = 0.03;
+    const MIN_APPARENT_FRAC = 0.12;  // ≈ 12 % of a 780 px viewport at 60° fov
 
-    // Fireball tint: bright white-orange core bleeding to a blue-gold edge.
-    const CORE_COLOR = 0xfff2cc;
-    const MID_COLOR = 0xffa03a;
-    const EDGE_COLOR = 0x3377ff;
-    const EMBER_COLOR = 0xff7a2a;
+    // Low-poly fireball tint. Each face is shaded between these by its normal's
+    // angle to a fixed light, which is what makes the facets read as a solid.
+    const HOT_COLOR = 0xffc46b;
+    const BASE_COLOR = 0xff7a1a;
 
-    // A soft radial gradient sprite (canvas-generated, no asset file).
-    // `hexColor` returns 'rgba(r,g,b,' — the caller appends the alpha then ')'.
-    function makeGlowTexture(stops) {
-        const size = 128;
-        const cv = document.createElement('canvas');
-        cv.width = size; cv.height = size;
-        const ctx = cv.getContext('2d');
-        const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-        for (const s of stops) g.addColorStop(s[0], s[1]);
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, size, size);
-        const tex = new THREE.CanvasTexture(cv);
-        tex.needsUpdate = true;
-        return tex;
+    // Icosphere detail 1 = 80 triangles: a round orange ball that still shows
+    // clearly faceted when zoomed in. Detail 0 (20 faces) reads as a rock.
+    const GEOMETRY_DETAIL = 1;
+    const LIGHT_DIR = new THREE.Vector3(0.45, 0.6, 0.66).normalize();
+
+    // Bake a per-face normal shade into vertex colours. PolyhedronGeometry is
+    // already non-indexed, so every triangle owns three vertices and can take a
+    // single flat colour — no normals, no light in the scene.
+    function shadeGeometry(geometry) {
+        const pos = geometry.attributes.position;
+        const colors = new Float32Array(pos.count * 3);
+        const hot = new THREE.Color(HOT_COLOR);
+        const base = new THREE.Color(BASE_COLOR);
+        const a = new THREE.Vector3();
+        const b = new THREE.Vector3();
+        const c = new THREE.Vector3();
+        const ab = new THREE.Vector3();
+        const ac = new THREE.Vector3();
+        const n = new THREE.Vector3();
+        const col = new THREE.Color();
+
+        for (let i = 0; i < pos.count; i += 3) {
+            a.fromBufferAttribute(pos, i);
+            b.fromBufferAttribute(pos, i + 1);
+            c.fromBufferAttribute(pos, i + 2);
+            ab.subVectors(b, a);
+            ac.subVectors(c, a);
+            n.crossVectors(ab, ac).normalize();
+
+            // Facet brightness: faces turned toward the light run hot and pale,
+            // faces turned away drop to the dark ochre. Wide range on purpose —
+            // contrast is the only thing making the low-poly shape read.
+            const d = n.dot(LIGHT_DIR);
+            const lit = 0.4 + 0.85 * (d * 0.5 + 0.5);
+            col.copy(base).multiplyScalar(lit).lerp(hot, Math.max(0, d) * 0.35);
+            col.r = Math.min(1, col.r);
+            col.g = Math.min(1, col.g);
+            col.b = Math.min(1, col.b);
+
+            for (let k = 0; k < 3; k++) {
+                colors[(i + k) * 3] = col.r;
+                colors[(i + k) * 3 + 1] = col.g;
+                colors[(i + k) * 3 + 2] = col.b;
+            }
+        }
+
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        return geometry;
     }
 
-    function hexColor(c) {
-        const col = new THREE.Color(c);
-        return 'rgba(' + Math.round(col.r * 255) + ',' + Math.round(col.g * 255) + ','
-            + Math.round(col.b * 255) + ',';
+    function makeBlastGeometry() {
+        const geo = new THREE.IcosahedronGeometry(1, GEOMETRY_DETAIL);
+        const flat = geo.index ? geo.toNonIndexed() : geo;
+        if (flat !== geo) geo.dispose();
+        return shadeGeometry(flat);
     }
 
     function createExplosionSystem(scene, engine) {
         // One render object per explosion event, keyed by event.
         const effects = new Map();
 
-        // A per-frame reusable canvas texture is created lazily so a scenario
-        // without explosions never pays for one.
-        let glowTex = null;
-        function glow() {
-            if (!glowTex) {
-                // White -> edge-of-core -> transparent halo. Rendered as a sprite
-                // whose colour is tinted per-instance via sprite.material.color.
-                glowTex = makeGlowTexture([
-                    [0.0, 'rgba(255,255,255,1)'],
-                    [0.25, hexColor(MID_COLOR) + '0.95)'],
-                    [0.6, hexColor(EDGE_COLOR) + '0.35)'],
-                    [1.0, hexColor(EDGE_COLOR) + '0)'],
-                ]);
-            }
-            return glowTex;
-        }
-
-        function makeSprite(color, alpha, frac) {
-            const mat = new THREE.SpriteMaterial({
-                map: glow(), color: color || 0xffffff,
-                transparent: true,
-                opacity: alpha,
-                depthWrite: false,
-                blending: THREE.AdditiveBlending,
-            });
-            const sp = new THREE.Sprite(mat);
-            sp.userData.frac = frac;
-            return sp;
-        }
-
         function build(e) {
-            const group = new THREE.Group();
-
-            // Fireball: nested sprites so it reads as a hot core inside a halo.
-            // The glow texture already carries the white→blue-gold tint, so the
-            // sprites multiply by white and differ only in scale.
-            const core = makeSprite(0xffffff, FLASH_ALPHA, 0.5);
-            const mid = makeSprite(0xffffff, FLASH_ALPHA * 0.85, 1.0);
-            const edge = makeSprite(0xffffff, FLASH_ALPHA * 0.5, 1.7);
-            group.add(core, mid, edge);
-            group.userData.sprites = { core, mid, edge };
-
-            // Persistent ember: a dim, warm sprite pinned at the site.
-            const ember = makeSprite(0xffbb66, EMBER_ALPHA, 1.0);
-            group.add(ember);
-            group.userData.ember = ember;
+            const mat = new THREE.MeshBasicMaterial({
+                vertexColors: true,
+                transparent: true,
+                opacity: FLASH_ALPHA,
+                depthWrite: false,
+            });
+            const mesh = new THREE.Mesh(makeBlastGeometry(), mat);
+            mesh.frustumCulled = false;
 
             // Anchor to the host track's position at the explosion epoch. If no
             // host track is named (or it has no state then), fall back to Earth.
             const trackId = (e.track != null && String(e.track)) || defaultTrack();
             const st = trackId ? engine.getStateAtTimeFor(trackId, e.t) : null;
             const anchor = st ? st.position.clone() : new THREE.Vector3(0, 0, 0);
-            group.position.copy(anchor);
+            mesh.position.copy(anchor);
 
-            scene.add(group);
-            effects.set(e, group);
+            scene.add(mesh);
+            effects.set(e, mesh);
         }
 
         // The first non-celestial track is the natural default "what exploded".
@@ -131,56 +127,45 @@
         }
 
         // Evaluate at mission time t (seconds). dt is mission-seconds since the
-        // event; the fireball lives for duration, the ember fades to a pin after
-        // emberOff, and both sit fixed in world space thereafter.
+        // event: the sphere pops outward almost instantly, keeps swelling a
+        // little, then fades to nothing. It sits fixed in world space throughout.
         function update(t, camera) {
-            for (const [e, group] of effects) {
+            for (const [e, mesh] of effects) {
                 const dt = t - e.t;
                 const dur = (e.duration_s != null && e.duration_s > 0) ? e.duration_s : DEF_DURATION;
+                if (dt < 0 || dt >= dur) { mesh.visible = false; continue; }
+
+                mesh.visible = true;
                 const baseR = (e.radius_m != null && e.radius_m > 0) ? e.radius_m : DEF_RADIUS;
-                const growth = e.growth != null ? e.growth : DEF_GROWTH;
-
-                const visible = dt >= 0;
-                group.visible = visible;
-                if (!visible) continue;
-
-                const camDist = camera.position.distanceTo(group.position);
-                // Apparent-size scaling: on screen, radius ≈ frac of the viewport.
                 const u = dt / dur;
-                const flashScale = baseR * (1 + growth * Math.min(1, u))
-                    * Math.max(1, camDist * MIN_APPARENT_FRAC / baseR);
 
-                // Fireball alpha: fade out through the last 40 % of its life.
-                let fa = FLASH_ALPHA;
-                if (u >= 0.6) fa = FLASH_ALPHA * Math.max(0, 1 - (u - 0.6) / 0.4);
-                for (const [name, sp] of Object.entries(group.userData.sprites)) {
-                    const mult = name === 'core' ? 0.5 : (name === 'mid' ? 1.0 : 1.7);
-                    sp.scale.setScalar(flashScale * sp.userData.frac);
-                    sp.material.opacity = fa * (name === 'core' ? 1 : (name === 'mid' ? 0.85 : 0.5)) * (dt < dur ? 1 : 0);
-                }
+                // Sudden expansion: ease-out cubic over POP_FRAC of the life,
+                // then a slow settle so the ball never looks frozen.
+                const p = Math.min(1, u / POP_FRAC);
+                const pop = 1 - Math.pow(1 - p, 3);
+                const r = baseR * (pop + SETTLE_GROWTH * u);
 
-                // Ember: dim persistent glow after the flash. It keeps a
-                // camera-adaptive size, and eases down from full to a small floor
-                // that stays visible for the rest of the mission, so the
-                // accident's site is still findable when you scrub back hours
-                // later.
-                const embR = baseR * 0.5 * Math.max(1, camDist * EMBER_FRAC / (baseR * 0.5));
-                group.userData.ember.scale.setScalar(embR);
-                const eProg = dt >= dur ? Math.min(1, (dt - dur) / EMBER_OFF_AFTER) : 0;
-                const emberFloor = 0.12;
-                const emberOp = EMBER_ALPHA * (1 - eProg * (1 - emberFloor / EMBER_ALPHA));
-                group.userData.ember.material.opacity = emberOp;
+                const camDist = camera.position.distanceTo(mesh.position);
+                // Apparent-size floor: at long range the blast is grown so it keeps
+                // ≈ MIN_APPARENT_FRAC of the viewport. Scaling the whole curve (not
+                // clamping the radius) keeps the pop: it still starts at nothing.
+                const floor = camDist * MIN_APPARENT_FRAC / baseR;
+                mesh.scale.setScalar(r * Math.max(1, floor));
+                // Facets drift slowly, so the low-poly silhouette keeps moving.
+                mesh.rotation.y = dt * 0.25;
+                mesh.rotation.x = dt * 0.09;
+
+                // Fade out through the tail of the life.
+                const fade = u <= FADE_START ? 1
+                    : Math.max(0, 1 - (u - FADE_START) / (1 - FADE_START));
+                mesh.material.opacity = FLASH_ALPHA * fade;
             }
         }
 
         // (Re)build from the active scenario's explosion events. Called on scenario
         // load and on demand.
         function rebuild() {
-            for (const [, g] of effects) {
-                scene.remove(g);
-                g.traverse((o) => { if (o.material && o.material.dispose) o.material.dispose(); if (o.geometry && o.geometry.dispose) o.geometry.dispose(); });
-            }
-            effects.clear();
+            dispose();
             const events = engine.getEvents ? engine.getEvents() : [];
             for (const e of events) {
                 if (e.type === 'explosion') build(e);
@@ -188,9 +173,10 @@
         }
 
         function dispose() {
-            for (const [, g] of effects) {
-                scene.remove(g);
-                g.traverse((o) => { if (o.material && o.material.dispose) o.material.dispose(); if (o.geometry && o.geometry.dispose) o.geometry.dispose(); });
+            for (const [, mesh] of effects) {
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                mesh.material.dispose();
             }
             effects.clear();
         }

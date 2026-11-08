@@ -321,25 +321,24 @@ timeline UI at `t / duration` along the scrub bar.
   object that exploded. The effect is anchored to that track's interpolated world
   position at `t`. Omitting it anchors the effect to the scenario's first
   non-celestial track; a track with no state at `t` falls back to Earth.
-- `radius_m` (number, optional): for `"explosion"` events, the nominal fireball
-  radius in metres (default 25 000). Apparent size still adapts to camera
+- `radius_m` (number, optional): for `"explosion"` events, the final radius of
+  the fireball in metres (default 25 000). Apparent size still adapts to camera
   distance so it stays readable from any range.
 - `duration_s` (number, optional): for `"explosion"` events, how many
-  mission-seconds the bright fireball is visible (default 60). A dim ember
-  remains pinned at the site afterwards.
+  mission-seconds the fireball takes to expand and fade out (default 60).
+  Nothing remains at the site afterwards.
 - `label` (string, required): short text shown as the marker label and tooltip.
 - `description` (string, optional): fuller detail shown in the marker tooltip.
 
 ### Explosion events
 
-A `type: "explosion"` event makes the renderer draw a fireball (a white-orange
-core inside a blue-gold halo) at the host track's position at that epoch,
-bright and expanding for `duration_s`, then a dimmer ember pinned there so the
-accident's site stays findable when you scrub back. The effect is driven by the
-scenario data alone — any scenario can carry one by adding an event; a scenario
-with none draws nothing. The explosion does not change the trajectory (an
-accident that does not perturb the orbit, like Apollo 13's tank rupture, must
-not produce a jolt in the track).
+A `type: "explosion"` event makes the renderer draw a low-poly fireball — a
+faceted orange sphere — at the host track's position at that epoch. It pops to
+full size almost instantly, swells a little, and fades out over `duration_s`;
+nothing is left behind. The effect is driven by the scenario data alone — any
+scenario can carry one by adding an event; a scenario with none draws nothing.
+The explosion does not change the trajectory (an accident that does not perturb
+the orbit, like Apollo 13's tank rupture, must not produce a jolt in the track).
 
 Apollo scenario events will include e.g. launch, trans-lunar injection (TLI),
 lunar-orbit insertion (LOI), landing/docking, trans-Earth injection (TEI), and

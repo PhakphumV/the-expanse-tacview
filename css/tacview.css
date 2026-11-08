@@ -212,59 +212,79 @@ html, body {
     z-index: 5;
     font-size: 11px;
 }
-/* Detail timeline: a 10-minute window around the playhead, for precise scrubbing. */
-#detailRow { padding: 3px 0 3px; }
+/* Detail timeline: a 10-minute window around the playhead, for precise scrubbing.
+   Tall enough to read as a ruler: a line at every whole minute, a timestamp every
+   five, events drawn as full-height bars. */
+#detailRow { padding: 6px 0 4px; }
 #detailBar {
     position: relative;
     width: 100%;
-    height: 15px;
-    background: rgba(8, 16, 34, 0.8);
+    height: 38px;
+    background: linear-gradient(to bottom, rgba(11, 24, 48, 0.92), rgba(4, 11, 24, 0.96));
     border: 1px solid #24406a;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: ew-resize;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(120, 170, 230, 0.07), 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+#detailGrid { position: absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; }
+.detail-grid-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    margin-left: -0.5px;
+    background: rgba(88, 132, 192, 0.20);
+}
+/* Every fifth minute: brighter line, and the mission timestamp for that minute. */
+.detail-grid-line.major { background: rgba(122, 170, 226, 0.42); }
+.detail-grid-label {
+    position: absolute;
+    left: 3px;
+    bottom: 2px;
+    font-family: var(--font-num);
+    font-size: 8px;
+    letter-spacing: 0;
+    color: #6f8db4;
+    white-space: nowrap;
 }
 #detailTicks { position: absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; overflow: visible; }
 .detail-edge {
     position: absolute;
-    top: 1px;
-    left: 4px;
+    top: 2px;
+    left: 5px;
     font-size: 9px;
     letter-spacing: 0.5px;
     color: #55739d;
+    background: rgba(4, 11, 24, 0.75);
+    padding: 0 3px;
+    border-radius: 2px;
 }
-.detail-edge.right { left: auto; right: 4px; }
+.detail-edge.right { left: auto; right: 5px; }
+/* The playhead: a line through the track. No dot — the line alone marks centre. */
 #detailCenter {
     position: absolute;
     left: 50%;
-    top: -17px;
-    bottom: -2px;
+    top: 0;
+    bottom: 0;
     width: 1px;
     margin-left: -0.5px;
     background: #9fd0ff;
     box-shadow: 0 0 6px rgba(159, 208, 255, 0.7);
     pointer-events: none;
 }
-#detailCenter::before {
-    content: '';
-    position: absolute;
-    left: -3px;
-    top: -3px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #9fd0ff;
-}
 /* Events on the detail track are lines through the bar, not pins: at 10 minutes
    across the width they are dense, and the colour alone identifies them. */
 .detail-marker {
     position: absolute;
-    top: -2px;
-    bottom: -2px;
+    top: 0;
+    bottom: 0;
     width: 2px;
     margin-left: -1px;
     pointer-events: none;
     background: var(--mk, #ffd27f);
     border-radius: 1px;
+    box-shadow: 0 0 5px var(--mk, #ffd27f);
 }
 /* Room above the track for the event pins (20 px tall). */
 #scrubRow { padding: 21px 0 0; }

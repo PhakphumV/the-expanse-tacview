@@ -57,6 +57,11 @@
                     type: e.type != null ? String(e.type) : 'event',
                     label: e.label != null ? String(e.label) : (e.type ? String(e.type) : 'event'),
                     description: e.description != null ? String(e.description) : '',
+                    // Explosion presentation fields must survive normalisation,
+                    // or the renderer silently falls back to its defaults.
+                    ...(e.track != null ? { track: String(e.track) } : {}),
+                    ...(typeof e.radius_m === 'number' && isFinite(e.radius_m) ? { radius_m: e.radius_m } : {}),
+                    ...(typeof e.duration_s === 'number' && isFinite(e.duration_s) ? { duration_s: e.duration_s } : {}),
                 };
             });
         }
