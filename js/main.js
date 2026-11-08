@@ -27,6 +27,7 @@
     let entities = [];
     let hud = null;
     let labels = null;
+    let explosions = null;
 
     function setTrails(v) {
         entities.forEach((e) => e.setTrailsVisible(v));
@@ -67,6 +68,11 @@
         disposeGroup(trackGroup);
         disposeGroup(ringGroup);
         if (labels) labels.reset();
+        // Explosions live in the scene root (not in trackGroup) and are rebuilt
+        // from the active scenario's explosion events.
+        if (explosions) { explosions.dispose(); explosions = null; }
+        explosions = T.createExplosionSystem(scene, engine);
+        explosions.rebuild();
         entities = engine.getTracks().map((tr) => T.createTrackEntity(trackGroup, engine, camera, tr.id));
         engine.getTracks().filter(isCelestialTrack).forEach((tr) => {
             const ring = T.createOrbitRing(tr.samples);
@@ -86,7 +92,7 @@
         timeline.updateUI();
         // Developer hook: the console can inspect live entities, the camera and
         // the trail lengths without every module exporting them.
-        window.TacviewDebug = { engine, entities, camera, scene, cameraCtl, trackGroup };
+        window.TacviewDebug = { engine, entities, camera, scene, cameraCtl, trackGroup, explosions };
     }
 
     // Per-scenario presentation hints: playback speed and the framing distance of
@@ -298,6 +304,7 @@
 
         const t = engine.getTime();
         entities.forEach((e) => e.update(t));
+        if (explosions) explosions.update(t, camera);
         // Dashed guide rings rescale with the camera distance.
         const camDist = camera.position.length();
         ringGroup.children.forEach((ring) => T.updateDashScale(ring, camDist));

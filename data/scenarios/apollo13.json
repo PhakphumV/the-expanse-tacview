@@ -1,6 +1,6 @@
 {
  "id": "apollo13",
- "name": "Apollo 13 — Abort Mission",
+ "name": "Apollo 13 \u2014 Abort Mission",
  "description": "Apollo 13, 11-17 April 1970: launch through splashdown after the oxygen-tank explosion. The launch, the hybrid translunar coast, the accident at 55:54 GET, the two LM descent-engine burns that turn the trajectory back to Earth, the lunar flyby, and the return and entry of Odyssey and Aquarius.",
  "menu_order": 3,
  "epoch": "1970-04-11T19:13:00Z",
@@ -22833,7 +22833,7 @@
       -32.223
      ],
      "orientation": [
-      -0.00008304,
+      -8.304e-05,
       0.69543498,
       0,
       0.71858902
@@ -154974,10 +154974,10 @@
       -1549.362
      ],
      "attitude": "vector",
-     "note": "LM descent engine burn at PC+2 h, solved onto the entry corridor (121.92 km, -6.49 deg at 142:40:46). Published 262.3 m/s; this reconstruction needs 2881 m/s because the incoming leg is not the real free-return — the solved burn absorbs the reconstruction shortfall, the same trade-off Apollo 11 made for its TEI."
+     "note": "LM descent engine burn at PC+2 h, solved onto the entry corridor (121.92 km, -6.49 deg at 142:40:46). Published 262.3 m/s; this reconstruction needs 2881 m/s because the incoming leg is not the real free-return \u2014 the solved burn absorbs the reconstruction shortfall, the same trade-off Apollo 11 made for its TEI."
     }
    ],
-   "SOURCE": "Apollo 13 reconstructed end-to-end in Earth-centred ICRF over 1970-04-11..17. Launch, parking orbit and TLI use the same Saturn V ascent geometry as Apollo 11 (same launcher, same pad), node-rotated to reach the April 1970 Moon (JPL Horizons 301). The TLI is 3 181 m/s as flown; MCC-2 (7.04 m/s) starts the hybrid; DPS-1 (11.5 m/s) restores the return; DPS-2 is SOLVED onto the published entry corridor and is larger than the flown 262.3 m/s because the reconstruction does not reproduce the true free-return (Apollo 13 comparison: the real trajectory had to be corrected by two LM burns; here the same milestone epochs are hit but the individual burn that shapes the return carries the difference — see the maneuver note). Pericynthion is reconstructed at ~2975 km altitude — the closest far-side pass this same-Saturn-V ascent + 3 181 m/s TLI can reach on the April-1970 Moon (the flown 254 km needs the real TLI normal component / vehicle-specific injection, which is not in this reconstruction's force model). Entry is shaped (not a lifting-entry simulation): vertical speed from the interface value to a 9 m/s chute descent, horizontal from 11 km/s to walking pace, 2360 km downrange over 835 s, peak deceleration 5.8 g (published peak for Apollo 13 was ~5 g). Pad longitude, node rotation and the DPS-2 vector are free parameters of the reconstruction."
+   "SOURCE": "Apollo 13 reconstructed end-to-end in Earth-centred ICRF over 1970-04-11..17. Launch, parking orbit and TLI use the same Saturn V ascent geometry as Apollo 11 (same launcher, same pad), node-rotated to reach the April 1970 Moon (JPL Horizons 301). The TLI is 3 181 m/s as flown; MCC-2 (7.04 m/s) starts the hybrid; DPS-1 (11.5 m/s) restores the return; DPS-2 is SOLVED onto the published entry corridor and is larger than the flown 262.3 m/s because the reconstruction does not reproduce the true free-return (Apollo 13 comparison: the real trajectory had to be corrected by two LM burns; here the same milestone epochs are hit but the individual burn that shapes the return carries the difference \u2014 see the maneuver note). Pericynthion is reconstructed at ~2975 km altitude \u2014 the closest far-side pass this same-Saturn-V ascent + 3 181 m/s TLI can reach on the April-1970 Moon (the flown 254 km needs the real TLI normal component / vehicle-specific injection, which is not in this reconstruction's force model). Entry is shaped (not a lifting-entry simulation): vertical speed from the interface value to a 9 m/s chute descent, horizontal from 11 km/s to walking pace, 2360 km downrange over 835 s, peak deceleration 5.8 g (published peak for Apollo 13 was ~5 g). Pad longitude, node rotation and the DPS-2 vector are free parameters of the reconstruction."
   },
   {
    "id": "SERVICE MODULE",
@@ -157950,6 +157950,15 @@
    "type": "phase",
    "label": "ACCIDENT",
    "description": "Oxygen tank No.2 explodes; the SM loses both O2 tanks, fuel cells 1 and 3 die, and the mission becomes a rescue."
+  },
+  {
+   "t": 201293,
+   "type": "explosion",
+   "label": "O2 TANK RUPTURE",
+   "track": "ODYSSEY",
+   "radius_m": 40000,
+   "duration_s": 45,
+   "description": "Oxygen tank No.2 explodes in the service module: the SM loses both O2 tanks, fuel cells 1 and 3 die, and the mission becomes a rescue."
   },
   {
    "t": 221383.5,

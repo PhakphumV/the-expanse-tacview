@@ -416,6 +416,9 @@ html, body {
 .maneuver-bar.constant { background: #ff7a3d; }
 /* Phase markers are the coarse jump targets: taller tick, brighter label. */
 .event-marker.phase span { font-weight: bold; }
+/* Explosion markers: warm orange, slightly larger tick so the accident stands out. */
+#timeline .event-marker.explosion::before,
+#timeline .event-marker.explosion { filter: brightness(1.25); }
 /* A long mission packs many events into a short scrub bar, so labels are
    hover-only: the ticks stay readable and the header names the current phase. */
 .event-marker span { opacity: 0; transition: opacity 0.12s linear; }

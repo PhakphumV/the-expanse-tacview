@@ -37,12 +37,12 @@
     const MODEL_EXTENT = 26;        // m — spacecraft hull length
     const MIN_APPARENT_RAD = 0.012; // ≈ 9 px on a 780 px viewport at 60° fov
 
-    // Bright trail: artificial space objects only (head bright, mid blue).
+    // Bright trail: artificial space objects only (head blue, mid deeper blue).
     // widthScale 0.5 is ADR-0006's "halve the craft ribbon": the band used to be
     // 2% of the camera distance, now 1%.
     const OBJECT_TRAIL = {
-        head: new THREE.Color(0xd6f4ff),
-        mid: new THREE.Color(0x3a8fe0),
+        head: new THREE.Color(0x4a9fff),
+        mid: new THREE.Color(0x2266c4),
         alpha: 1.0,
         widthScale: 0.5,
         pathLine: true,

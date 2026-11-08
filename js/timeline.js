@@ -210,8 +210,9 @@
             for (const pin of pins) {
                 const x = pin.offsetLeft;
                 step = (x - lastX >= 14) ? 0 : step + 1;
-                const base = pin.classList.contains('milestone') ? '#9fd0ff'
-                    : (pin.classList.contains('phase') ? '#ffe8b8' : '#ffd27f');
+                const base = pin.classList.contains('explosion') ? '#ffb14a'
+                    : (pin.classList.contains('milestone') ? '#9fd0ff'
+                        : (pin.classList.contains('phase') ? '#ffe8b8' : '#ffd27f'));
                 let color = step === 0 ? base : CLUSTER_COLORS[step % CLUSTER_COLORS.length];
                 // Never give a neighbour the colour it already has: that is the whole
                 // point of tinting a cluster.
