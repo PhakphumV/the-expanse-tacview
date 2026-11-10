@@ -16,6 +16,8 @@
 //              the ascent stage on top.
 //   (default) — the original synthetic hull used when a track is not one of
 //              the known vehicles.
+//   ORION    — the Artemis I crew module + European Service Module with four
+//              solar-array wings and an OMS bell.
 //
 // Every model keeps the body convention of the rest of the viewer: forward =
 // -Z, up = +Y. The group reports its true bounding length in userData.extent so
@@ -267,6 +269,45 @@
         return g;
     }
 
+    // ------- Orion CM + European Service Module ----------------------------
+    // Crew-module cone forward of a service-module drum, four solar-array wings
+    // forming an X around the drum, OMS bell at the rear. Forward = -Z.
+    function buildOrion() {
+        const g = new THREE.Group();
+        const cmCol = 0xf0f2f4;    // crew module white
+        const esm = 0xc7ccd6;      // service module silver
+        const panel = 0x1e4fb4;    // solar array blue
+        const dark = 0x23252b;     // heat shield / cover
+
+        // Crew module cone, apex forward.
+        const cm = coneZ(2.0, 3.4, cmCol, 12);
+        cm.position.z = -1.7;
+        g.add(cm);
+        // Heat-shield band at the CM/ESM join.
+        const band = mesh(new THREE.BoxGeometry(3.6, 3.6, 0.7), dark);
+        band.position.z = -0.1;
+        g.add(band);
+        // European Service Module drum behind the CM.
+        const sm = cylZ(1.95, 1.95, 4.6, esm);
+        sm.position.z = 2.7;
+        g.add(sm);
+        // OMS engine bell at the rear.
+        const bell = cylZ(1.1, 0.8, 1.2, 0x3a3d46);
+        bell.position.z = 5.2;
+        g.add(bell);
+        // Four solar-array wings around the SM drum.
+        function wing(ang) {
+            const w = mesh(new THREE.BoxGeometry(1.4, 7.0, 0.3), panel);
+            w.position.set(Math.cos(ang) * 2.6, Math.sin(ang) * 2.6, 2.4);
+            w.rotation.z = ang - Math.PI / 2;
+            g.add(w);
+        }
+        wing(0); wing(Math.PI / 2); wing(Math.PI); wing(-Math.PI / 2);
+
+        g.userData.extent = 9;
+        return g;
+    }
+
     function createSpacecraftModel(trackId) {
         const id = String(trackId || '').toUpperCase().replace(/\s+/g, ' ');
         switch (id) {
@@ -277,6 +318,7 @@
             case 'SERVICE MODULE': return buildSM();
             case 'EAGLE':
             case 'AQUARIUS': return buildLM();
+            case 'ORION': return buildOrion();
             default: return buildGeneric();
         }
     }

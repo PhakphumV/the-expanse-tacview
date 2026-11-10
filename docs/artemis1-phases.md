@@ -157,3 +157,26 @@ phase would push past, decimate a coastal stretch rather than densify.
    `spacecraft-model.js`, extend the track-id dispatch. Also add the `ICPS`
    (a slim stage with an RL10 nozzle) if Q2 is approved. Recommend doing both in
    the phase where the track first appears.
+   **RESOLVED: the `ORION` model is in (CM cone + ESM drum + four blue solar
+   wings + OMS bell, extent 9 m). No `ICPS` track per Q2.**
+
+---
+
+## Phase 1 completion notes (2026-11-10)
+
+`data/scenarios/artemis1.json` is implemented through the end of Phase 1 and
+validated end-to-end (10 data + 18 trail checks pass; browser-verified: ORION
+renders with its own model, the LAUNCH/SRB-SEP/MECO/SOLAR-ARRAY-DEPLOY/PERIGEE-
+RAISE/TLI markers fire at their METs, no JS errors).
+
+- **Moon** — real Nov–Dec 2022 JPL Horizons 301 ephemeris, 2 449 samples, 900 s
+  grid, pre-rolled 0.45 of the lunar period before launch.
+- **ORION (launch → TLI start)** — 575 samples, 0 → 000/01:29:27. SLS ascent
+  (two-phase gravity-turn thrust fitted to SRB sep 00:02:12 / MECO 00:08:03),
+  ICPS circularisation into a parking orbit (~348–523 km), perigee/orbit raise
+  at 000:00:52:56, coast to TLI. Payload 476 KB.
+- **Integrator note:** low-Earth coasts must integrate on a small substep with a
+  symplectic (velocity-Verlet) step — plain RK4 bled orbital energy and decayed
+  the circular parking orbit into the ground over ~2 000 s, and coarse (30–60 s)
+  integration substeps did the same. This is now `step()` in the generator.
+- Next: TLI burn + outbound coast (Phase 2).

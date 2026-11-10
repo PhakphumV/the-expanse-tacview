@@ -41,6 +41,21 @@ window.TacviewManifest = {
       "events": 15,
       "samples": 8302,
       "bytes": 1326102
+    },
+    {
+      "id": "artemis1",
+      "name": "Artemis I — Distant Retrograde Orbit",
+      "description": "Artemis I, 16 Nov – 11 Dec 2022: SLS/Orion launch, trans-lunar injection, the outbound powered flyby, a six-day distant retrograde orbit about the Moon, the return flyby, and Pacific splashdown.",
+      "epoch": "2022-11-16T06:47:44Z",
+      "duration_s": 2203247,
+      "default_speed": 512,
+      "default_target": "earth",
+      "view_distance_m": 24000000,
+      "menu_order": 4,
+      "tracks": 2,
+      "events": 6,
+      "samples": 3024,
+      "bytes": 476466
     }
   ]
 };
