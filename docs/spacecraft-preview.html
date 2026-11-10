@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spacecraft model preview</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #c { position: fixed; inset: 0; }
+  #legend { position: fixed; top: 10px; left: 10px; z-index: 10;
+    font: 12px/1.6 "Courier New", monospace; color: #8fe0a0;
+    background: rgba(0,0,0,.55); padding: 8px 12px; border: 1px solid #2a3a30;
+    max-width: 40%; pointer-events: none; }
+  #legend b { color: #fff; }
+</style>
+</head>
+<body>
+<div id="c"></div>
+<div id="legend">
+  <b>Spacecraft low-poly models</b> (forward = -Z, up = +Y)<br>
+  Drag to orbit · scroll to zoom.<br>
+  The models shown are built by js/spacecraft-model.js as loaded in the app.
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../vendor/OrbitControls.js"></script>
+<script src="../js/spacecraft-model.js"></script>
+<script>
+(function () {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 1, 2000);
+  camera.position.set(40, 26, 60);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.setSize(innerWidth, innerHeight);
+  document.getElementById('c').appendChild(renderer.domElement);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  // Ground the scene with faint axes so orientation is readable.
+  const ax = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(), 30, 0xff6666);
+  const ay = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(), 30, 0x66ff66);
+  const az = new THREE.ArrowHelper(new THREE.Vector3(0,0,-1), new THREE.Vector3(), 30, 0x6666ff);
+  scene.add(ax, ay, az);
+
+  const cases = [
+    ['ISS', 'ISS'],
+    ['TIANGONG', 'TIANGONG'],
+    ['CSM + LM', 'COLUMBIA'],
+    ['SERVICE MODULE', 'SERVICE MODULE'],
+    ['LM', 'EAGLE'],
+    ['GENERIC', 'UNKNOWN'],
+  ];
+  const cols = 3;
+  const spacing = 60;
+  cases.forEach((c, i) => {
+    const model = Tacview.createSpacecraftModel(c[1]);
+    const col = i % cols, row = Math.floor(i / cols);
+    model.position.set((col - (cols-1)/2) * spacing, 0, row * spacing);
+    scene.add(model);
+  });
+
+  // Label each grid position in world space.
+  const labelGeo = new THREE.SphereGeometry(1, 8, 6);
+  const labelMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  cases.forEach((c, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const dot = new THREE.Mesh(labelGeo, labelMat);
+    dot.position.set((col - (cols-1)/2) * spacing, -14, row * spacing);
+    scene.add(dot);
+  });
+
+  function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+  animate();
+  window.__preview = { scene, camera, renderer, controls };
+})();
+</script>
+</body>
+</html>

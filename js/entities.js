@@ -298,7 +298,7 @@
 
         const mesh = isCelestial
             ? createCelestialMesh(meta.radius_m || 1737400)
-            : createSpacecraftModel();
+            : createSpacecraftModel(trackId);
         mesh.visible = false;
         container.add(mesh);
         mesh.userData.trackId = trackId;
@@ -526,7 +526,8 @@
                 if (!isCelestial) mesh.quaternion.copy(st.orientation);
                 // Keep the object readable at orbital range (see MODEL_EXTENT).
                 const dist = camera.position.distanceTo(st.position);
-                const extent = isCelestial ? (meta.radius_m || 1737400) * 2 : MODEL_EXTENT;
+                const extent = isCelestial ? (meta.radius_m || 1737400) * 2
+                    : (mesh.userData.extent || MODEL_EXTENT);
                 mesh.scale.setScalar(Math.max(1, dist * MIN_APPARENT_RAD / extent));
                 if (pathLine) global.Tacview.updateDashScale(pathLine, dist);
                 updateTrails(t, st);

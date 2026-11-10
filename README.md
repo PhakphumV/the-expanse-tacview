@@ -180,7 +180,7 @@ js/
   ephemeris.js            — track/ephemeris engine (state queries, playback)
   entities.js             — per-track body, orbital path, ribbon trails (object vs celestial)
   trails.js               — trail length/window maths (pure, tested in Node)
-  spacecraft-model.js     — procedural spacecraft body (heading/orientation)
+  spacecraft-model.js     — low-poly per-vehicle bodies (ISS, Tiangong, Apollo CSM/SM/LM)
   explosion.js            — low-poly fireball for `explosion` events
   labels.js               — billboarded on-screen labels (one per track)
   camera.js               — Orbit / Follow viewport modes around a target
